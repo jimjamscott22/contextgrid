@@ -61,6 +61,14 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# ContextGrid local database
+data/projects.db
+data/projects.db-journal
+
+# ContextGrid generated roadmap
+# Uncomment if you want ROADMAP.md to be auto-generated only (not tracked):
+# ROADMAP.md
+
 # Flask stuff:
 instance/
 .webassets-cache

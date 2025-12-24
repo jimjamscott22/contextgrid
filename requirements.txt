@@ -1,0 +1,12 @@
+# ContextGrid Dependencies
+# Minimal local-first project tracker
+
+# Python version: 3.8+
+# All dependencies are from Python standard library:
+# - sqlite3 (database)
+# - argparse (CLI parsing)
+# - datetime (timestamps)
+# - pathlib (file paths)
+
+# No external packages required for MVP
+

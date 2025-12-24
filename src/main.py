@@ -1,17 +1,12 @@
-from db import get_connection
+"""
+ContextGrid - Personal project tracker
+Entry point for the CLI application
+"""
 
-def main():
-    conn = get_connection()
-    cursor = conn.cursor()
+import sys
+from cli import main
 
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = [row["name"] for row in cursor.fetchall()]
-
-    print("ContextGrid tables:")
-    for table in tables:
-        print(f" - {table}")
-
-    conn.close()
 
 if __name__ == "__main__":
-    main()
+    exit_code = main()
+    sys.exit(exit_code)
