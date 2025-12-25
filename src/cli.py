@@ -30,7 +30,7 @@ def cmd_add(args) -> int:
     repo_url = input("Repository URL (optional): ").strip() or None
     local_path = input("Local path (optional): ").strip() or None
     
-    print("\nScope options: tiny, medium, long-haul")
+    print("\nScope options: quick, medium, long-haul")
     scope_size = input("Scope (optional): ").strip() or None
     
     learning_goal = input("Learning goal (optional): ").strip() or None
