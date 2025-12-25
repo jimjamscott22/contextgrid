@@ -151,6 +151,39 @@ def cmd_show(args) -> int:
         if project['last_worked_at']:
             print(f"  Last Worked: {project['last_worked_at']}")
         
+        # Display recent notes
+        recent_notes = models.get_recent_notes(project_id, limit=5)
+        if recent_notes:
+            print("\nRecent Notes:")
+            print("  " + "=" * 76)
+            
+            # Emoji mapping
+            emoji_map = {
+                "log": "📋",
+                "idea": "💡",
+                "blocker": "🚧",
+                "reflection": "🤔"
+            }
+            
+            for note in recent_notes:
+                emoji = emoji_map.get(note['note_type'], "📝")
+                timestamp = note['created_at'][:19]  # Remove microseconds
+                
+                # Content preview
+                content = note['content']
+                if len(content) > 60:
+                    preview = content[:57] + "..."
+                else:
+                    preview = content
+                
+                # Replace newlines with spaces
+                preview = preview.replace("\n", " ")
+                
+                print(f"  [{note['id']}] {emoji} {note['note_type']} - {timestamp}")
+                print(f"      {preview}")
+            
+            print(f"\n  Run 'note list {project_id}' to see all notes")
+        
         print()
         return 0
         
@@ -412,6 +445,204 @@ def cmd_roadmap(args) -> int:
         return 1
 
 
+def cmd_note_add(args) -> int:
+    """Handle 'note add' command - add a note to a project."""
+    project_id = args.project_id
+    
+    try:
+        # Verify project exists
+        project = models.get_project(project_id)
+        if not project:
+            print(f"[ERROR] Project {project_id} not found", file=sys.stderr)
+            return 1
+        
+        print(f"\nAdding note to project: {project['name']}")
+        print("=" * 50)
+        
+        # Prompt for note type
+        print("\nNote type options: log, idea, blocker, reflection")
+        note_type = input("Type [log]: ").strip() or "log"
+        
+        # Validate note type
+        if note_type not in ["log", "idea", "blocker", "reflection"]:
+            print(f"[ERROR] Invalid note type: {note_type}", file=sys.stderr)
+            return 1
+        
+        # Prompt for content (multi-line)
+        print("\nEnter your note (press Enter twice to finish):")
+        lines = []
+        empty_count = 0
+        while empty_count < 2:
+            line = input()
+            if line:
+                lines.append(line)
+                empty_count = 0
+            else:
+                empty_count += 1
+        
+        # Remove the last empty line that triggered the exit
+        content = "\n".join(lines).strip()
+        
+        if not content:
+            print("[ERROR] Note content cannot be empty", file=sys.stderr)
+            return 1
+        
+        # Create the note
+        note_id = models.create_note(project_id, content, note_type)
+        
+        print(f"\n[OK] Note created with ID: {note_id}")
+        return 0
+        
+    except Exception as e:
+        print(f"[ERROR] Error creating note: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_note_list(args) -> int:
+    """Handle 'note list' command - list notes for a project."""
+    project_id = args.project_id
+    note_type = args.type if hasattr(args, 'type') else None
+    
+    try:
+        # Verify project exists
+        project = models.get_project(project_id)
+        if not project:
+            print(f"[ERROR] Project {project_id} not found", file=sys.stderr)
+            return 1
+        
+        # Fetch notes
+        notes = models.list_notes(project_id, note_type)
+        
+        if not notes:
+            if note_type:
+                print(f"\nNo {note_type} notes found for project: {project['name']}")
+            else:
+                print(f"\nNo notes found for project: {project['name']}")
+            print(f"Add one with: note add {project_id}")
+            return 0
+        
+        # Display header
+        print(f"\nNotes for project: {project['name']}")
+        if note_type:
+            print(f"(filtered by type: {note_type})")
+        print("=" * 80)
+        
+        # Emoji mapping
+        emoji_map = {
+            "log": "📋",
+            "idea": "💡",
+            "blocker": "🚧",
+            "reflection": "🤔"
+        }
+        
+        # Display each note
+        for note in notes:
+            emoji = emoji_map.get(note['note_type'], "📝")
+            note_type_display = note['note_type']
+            timestamp = note['created_at'][:19]  # Remove microseconds
+            
+            # Content preview (first 80 chars)
+            content = note['content']
+            if len(content) > 80:
+                preview = content[:77] + "..."
+            else:
+                preview = content
+            
+            # Replace newlines with spaces in preview
+            preview = preview.replace("\n", " ")
+            
+            print(f"\n[{note['id']}] {emoji} {note_type_display}")
+            print(f"    {timestamp}")
+            print(f"    {preview}")
+        
+        print()
+        return 0
+        
+    except Exception as e:
+        print(f"[ERROR] Error listing notes: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_note_show(args) -> int:
+    """Handle 'note show' command - show full note details."""
+    note_id = args.note_id
+    
+    try:
+        note = models.get_note(note_id)
+        
+        if not note:
+            print(f"[ERROR] Note {note_id} not found", file=sys.stderr)
+            return 1
+        
+        # Get project info
+        project = models.get_project(note['project_id'])
+        project_name = project['name'] if project else f"Project {note['project_id']}"
+        
+        # Emoji mapping
+        emoji_map = {
+            "log": "📋",
+            "idea": "💡",
+            "blocker": "🚧",
+            "reflection": "🤔"
+        }
+        emoji = emoji_map.get(note['note_type'], "📝")
+        
+        # Display note
+        print(f"\nNote #{note['id']} {emoji}")
+        print("=" * 80)
+        print(f"Project: {project_name}")
+        print(f"Type: {note['note_type']}")
+        print(f"Created: {note['created_at']}")
+        print("\nContent:")
+        print(note['content'])
+        print()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"[ERROR] Error showing note: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_note_delete(args) -> int:
+    """Handle 'note delete' command - delete a note."""
+    note_id = args.note_id
+    
+    try:
+        # Fetch the note first
+        note = models.get_note(note_id)
+        
+        if not note:
+            print(f"[ERROR] Note {note_id} not found", file=sys.stderr)
+            return 1
+        
+        # Show the note
+        print(f"\nNote #{note['id']} - {note['note_type']}")
+        print(f"Created: {note['created_at']}")
+        print(f"Content: {note['content'][:100]}{'...' if len(note['content']) > 100 else ''}")
+        
+        # Ask for confirmation
+        confirm = input("\nDelete this note? (y/N): ").strip().lower()
+        
+        if confirm != 'y':
+            print("Cancelled")
+            return 0
+        
+        # Delete the note
+        success = models.delete_note(note_id)
+        
+        if success:
+            print(f"[OK] Note {note_id} deleted")
+            return 0
+        else:
+            print(f"[ERROR] Failed to delete note {note_id}", file=sys.stderr)
+            return 1
+        
+    except Exception as e:
+        print(f"[ERROR] Error deleting note: {e}", file=sys.stderr)
+        return 1
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser."""
     parser = argparse.ArgumentParser(
@@ -459,6 +690,35 @@ def create_parser() -> argparse.ArgumentParser:
         help="Output file path (default: ROADMAP.md)"
     )
     parser_roadmap.set_defaults(func=cmd_roadmap)
+    
+    # Note commands
+    parser_note = subparsers.add_parser("note", help="Manage project notes")
+    note_subparsers = parser_note.add_subparsers(dest="note_command", help="Note operations")
+    
+    # Note add command
+    parser_note_add = note_subparsers.add_parser("add", help="Add a note to a project")
+    parser_note_add.add_argument("project_id", type=int, help="Project ID")
+    parser_note_add.set_defaults(func=cmd_note_add)
+    
+    # Note list command
+    parser_note_list = note_subparsers.add_parser("list", help="List notes for a project")
+    parser_note_list.add_argument("project_id", type=int, help="Project ID")
+    parser_note_list.add_argument(
+        "--type",
+        choices=["log", "idea", "blocker", "reflection"],
+        help="Filter by note type"
+    )
+    parser_note_list.set_defaults(func=cmd_note_list)
+    
+    # Note show command
+    parser_note_show = note_subparsers.add_parser("show", help="Show full note details")
+    parser_note_show.add_argument("note_id", type=int, help="Note ID")
+    parser_note_show.set_defaults(func=cmd_note_show)
+    
+    # Note delete command
+    parser_note_delete = note_subparsers.add_parser("delete", help="Delete a note")
+    parser_note_delete.add_argument("note_id", type=int, help="Note ID")
+    parser_note_delete.set_defaults(func=cmd_note_delete)
     
     return parser
 
