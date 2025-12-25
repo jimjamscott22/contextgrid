@@ -200,3 +200,167 @@ def update_last_worked(project_id: int) -> bool:
     
     return rows_affected > 0
 
+
+# =========================
+# Project Notes Functions
+# =========================
+
+def create_note(project_id: int, content: str, note_type: str = "log") -> int:
+    """
+    Create a new note for a project.
+    
+    Args:
+        project_id: The project's ID
+        content: Note content
+        note_type: One of: log, idea, blocker, reflection (default: log)
+    
+    Returns:
+        The new note's ID
+    
+    Raises:
+        ValueError: If note_type is not valid
+    """
+    # Validate note_type
+    valid_types = ["log", "idea", "blocker", "reflection"]
+    if note_type not in valid_types:
+        raise ValueError(f"Invalid note_type: {note_type}. Must be one of: {', '.join(valid_types)}")
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    created_at = datetime.utcnow().isoformat()
+    
+    cursor.execute(
+        """
+        INSERT INTO project_notes (project_id, note_type, content, created_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (project_id, note_type, content, created_at)
+    )
+    
+    conn.commit()
+    note_id = cursor.lastrowid
+    conn.close()
+    
+    return note_id
+
+
+def list_notes(project_id: int, note_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    List all notes for a project, optionally filtered by type.
+    
+    Args:
+        project_id: The project's ID
+        note_type: Optional filter by note type
+    
+    Returns:
+        List of note dictionaries, ordered by created_at DESC
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    if note_type:
+        cursor.execute(
+            """
+            SELECT * FROM project_notes
+            WHERE project_id = ? AND note_type = ?
+            ORDER BY created_at DESC
+            """,
+            (project_id, note_type)
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT * FROM project_notes
+            WHERE project_id = ?
+            ORDER BY created_at DESC
+            """,
+            (project_id,)
+        )
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def get_note(note_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch a single note by ID.
+    
+    Args:
+        note_id: The note's ID
+    
+    Returns:
+        Dictionary of note fields, or None if not found
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        "SELECT * FROM project_notes WHERE id = ?",
+        (note_id,)
+    )
+    
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return dict(row)
+    return None
+
+
+def delete_note(note_id: int) -> bool:
+    """
+    Delete a note by ID.
+    
+    Args:
+        note_id: The note's ID
+    
+    Returns:
+        True if deleted, False if not found
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        "DELETE FROM project_notes WHERE id = ?",
+        (note_id,)
+    )
+    
+    conn.commit()
+    rows_affected = cursor.rowcount
+    conn.close()
+    
+    return rows_affected > 0
+
+
+def get_recent_notes(project_id: int, limit: int = 5) -> List[Dict[str, Any]]:
+    """
+    Get the N most recent notes for a project.
+    
+    Args:
+        project_id: The project's ID
+        limit: Maximum number of notes to return (default: 5)
+    
+    Returns:
+        List of note dictionaries, ordered by created_at DESC
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        """
+        SELECT * FROM project_notes
+        WHERE project_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+        """,
+        (project_id, limit)
+    )
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
