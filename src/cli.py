@@ -61,20 +61,35 @@ def cmd_add(args) -> int:
 def cmd_list(args) -> int:
     """Handle 'list' command - show all projects."""
     status = args.status
+    tag = args.tag if hasattr(args, 'tag') else None
     
     try:
-        projects = models.list_projects(status=status)
+        # Fetch projects based on filters
+        if tag:
+            projects = models.list_projects_by_tag(tag, status=status)
+        else:
+            projects = models.list_projects(status=status)
         
         if not projects:
-            if status:
+            if tag and status:
+                print(f"No projects with status '{status}' and tag '{tag}'")
+            elif tag:
+                print(f"No projects with tag: {tag}")
+            elif status:
                 print(f"No projects with status: {status}")
             else:
                 print("No projects found. Create one with: add <name>")
             return 0
         
         # Display header
+        header_parts = []
         if status:
-            print(f"\nProjects (status={status}):")
+            header_parts.append(f"status={status}")
+        if tag:
+            header_parts.append(f"tag={tag}")
+        
+        if header_parts:
+            print(f"\nProjects ({', '.join(header_parts)}):")
         else:
             print("\nAll Projects:")
         print("=" * 80)
@@ -94,6 +109,11 @@ def cmd_list(args) -> int:
             
             if proj['description']:
                 print(f"    {proj['description']}")
+            
+            # Show tags if any
+            project_tags = models.list_project_tags(proj['id'])
+            if project_tags:
+                print(f"    Tags: {', '.join(project_tags)}")
             
             if proj['last_worked_at']:
                 print(f"    Last worked: {proj['last_worked_at']}")
@@ -139,6 +159,11 @@ def cmd_show(args) -> int:
             print(f"  Scope: {project['scope_size']}")
         if project['learning_goal']:
             print(f"  Learning Goal: {project['learning_goal']}")
+        
+        # Display tags
+        project_tags = models.list_project_tags(project_id)
+        if project_tags:
+            print(f"  Tags: {', '.join(project_tags)}")
         
         print("\nLocation:")
         if project['repo_url']:
@@ -643,6 +668,109 @@ def cmd_note_delete(args) -> int:
         return 1
 
 
+def cmd_tag_add(args) -> int:
+    """Handle 'tag add' command - add a tag to a project."""
+    project_id = args.project_id
+    tag_name = args.tag_name.strip().lower()
+    
+    try:
+        # Verify project exists
+        project = models.get_project(project_id)
+        if not project:
+            print(f"[ERROR] Project {project_id} not found", file=sys.stderr)
+            return 1
+        
+        # Add the tag
+        added = models.add_tag_to_project(project_id, tag_name)
+        
+        if added:
+            print(f"[OK] Tag '{tag_name}' added to project: {project['name']}")
+            return 0
+        else:
+            print(f"[INFO] Tag '{tag_name}' already exists on project: {project['name']}")
+            return 0
+        
+    except Exception as e:
+        print(f"[ERROR] Error adding tag: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_tag_remove(args) -> int:
+    """Handle 'tag remove' command - remove a tag from a project."""
+    project_id = args.project_id
+    tag_name = args.tag_name.strip().lower()
+    
+    try:
+        # Verify project exists
+        project = models.get_project(project_id)
+        if not project:
+            print(f"[ERROR] Project {project_id} not found", file=sys.stderr)
+            return 1
+        
+        # Remove the tag
+        removed = models.remove_tag_from_project(project_id, tag_name)
+        
+        if removed:
+            print(f"[OK] Tag '{tag_name}' removed from project: {project['name']}")
+            return 0
+        else:
+            print(f"[ERROR] Tag '{tag_name}' not found on project: {project['name']}", file=sys.stderr)
+            return 1
+        
+    except Exception as e:
+        print(f"[ERROR] Error removing tag: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_tag_list(args) -> int:
+    """Handle 'tag list' command - list all tags or tags for a project."""
+    project_id = args.project_id if hasattr(args, 'project_id') and args.project_id else None
+    
+    try:
+        if project_id:
+            # List tags for a specific project
+            project = models.get_project(project_id)
+            if not project:
+                print(f"[ERROR] Project {project_id} not found", file=sys.stderr)
+                return 1
+            
+            tags = models.list_project_tags(project_id)
+            
+            if not tags:
+                print(f"\nNo tags found for project: {project['name']}")
+                print(f"Add one with: tag add {project_id} <tag_name>")
+                return 0
+            
+            print(f"\nTags for project: {project['name']}")
+            print("=" * 80)
+            for tag in tags:
+                print(f"  • {tag}")
+            print()
+            
+        else:
+            # List all tags with counts
+            tags = models.list_all_tags()
+            
+            if not tags:
+                print("\nNo tags found. Create one by adding it to a project:")
+                print("  tag add <project_id> <tag_name>")
+                return 0
+            
+            print("\nAll Tags:")
+            print("=" * 80)
+            for tag_info in tags:
+                count = tag_info['project_count']
+                plural = "project" if count == 1 else "projects"
+                print(f"  • {tag_info['name']} ({count} {plural})")
+            print()
+        
+        return 0
+        
+    except Exception as e:
+        print(f"[ERROR] Error listing tags: {e}", file=sys.stderr)
+        return 1
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser."""
     parser = argparse.ArgumentParser(
@@ -664,6 +792,10 @@ def create_parser() -> argparse.ArgumentParser:
         "--status",
         choices=["idea", "active", "paused", "archived"],
         help="Filter by status"
+    )
+    parser_list.add_argument(
+        "--tag",
+        help="Filter by tag"
     )
     parser_list.set_defaults(func=cmd_list)
     
@@ -719,6 +851,27 @@ def create_parser() -> argparse.ArgumentParser:
     parser_note_delete = note_subparsers.add_parser("delete", help="Delete a note")
     parser_note_delete.add_argument("note_id", type=int, help="Note ID")
     parser_note_delete.set_defaults(func=cmd_note_delete)
+    
+    # Tag commands
+    parser_tag = subparsers.add_parser("tag", help="Manage project tags")
+    tag_subparsers = parser_tag.add_subparsers(dest="tag_command", help="Tag operations")
+    
+    # Tag add command
+    parser_tag_add = tag_subparsers.add_parser("add", help="Add a tag to a project")
+    parser_tag_add.add_argument("project_id", type=int, help="Project ID")
+    parser_tag_add.add_argument("tag_name", help="Tag name")
+    parser_tag_add.set_defaults(func=cmd_tag_add)
+    
+    # Tag remove command
+    parser_tag_remove = tag_subparsers.add_parser("remove", help="Remove a tag from a project")
+    parser_tag_remove.add_argument("project_id", type=int, help="Project ID")
+    parser_tag_remove.add_argument("tag_name", help="Tag name")
+    parser_tag_remove.set_defaults(func=cmd_tag_remove)
+    
+    # Tag list command
+    parser_tag_list = tag_subparsers.add_parser("list", help="List all tags or tags for a project")
+    parser_tag_list.add_argument("project_id", type=int, nargs='?', help="Optional: Project ID to show tags for")
+    parser_tag_list.set_defaults(func=cmd_tag_list)
     
     return parser
 

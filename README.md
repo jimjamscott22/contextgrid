@@ -31,7 +31,7 @@ ContextGrid is designed for one user: me.
 - Project metadata (name, type, language, stack, location)
 - Clear lifecycle status (idea → active → paused → archived)
 - Timestamped notes and reflections
-- Tag-based filtering
+- Tag-based organization and filtering ✅
 - SQLite-backed, local-first storage
 
 No accounts.  
@@ -120,6 +120,32 @@ python src/main.py update 1
 python src/main.py touch 1
 ```
 
+**Add tags to organize projects:**
+
+```bash
+# Add a tag to a project
+python src/main.py tag add 1 python
+
+# Add multiple tags
+python src/main.py tag add 1 web
+python src/main.py tag add 1 backend
+
+# List all tags
+python src/main.py tag list
+
+# List tags for a specific project
+python src/main.py tag list 1
+
+# Remove a tag
+python src/main.py tag remove 1 python
+
+# Filter projects by tag
+python src/main.py list --tag python
+
+# Combine filters
+python src/main.py list --status active --tag web
+```
+
 **Generate a visual roadmap:**
 
 ```bash
@@ -171,6 +197,66 @@ $ python src/main.py roadmap
 
 ---
 
+## Tag Management
+
+Tags help you organize and filter projects by categories, technologies, or any custom labels.
+
+### Adding Tags
+
+```bash
+# Add a tag to a project
+python src/main.py tag add <project_id> <tag_name>
+
+# Example: tag project 1 with "python" and "web"
+python src/main.py tag add 1 python
+python src/main.py tag add 1 web
+```
+
+### Viewing Tags
+
+```bash
+# List all tags with project counts
+python src/main.py tag list
+
+# Output:
+# All Tags:
+# ================================================================================
+#   • python (3 projects)
+#   • web (2 projects)
+#   • cli (1 project)
+
+# List tags for a specific project
+python src/main.py tag list 1
+
+# Output:
+# Tags for project: ContextGrid
+# ================================================================================
+#   • python
+#   • cli
+```
+
+### Filtering by Tags
+
+```bash
+# Show all projects with a specific tag
+python src/main.py list --tag python
+
+# Combine with status filter
+python src/main.py list --status active --tag web
+```
+
+### Removing Tags
+
+```bash
+# Remove a tag from a project
+python src/main.py tag remove <project_id> <tag_name>
+
+# Example:
+python src/main.py tag remove 1 web
+```
+
+---
+
 ## Roadmap Visualization
 
 ContextGrid can generate a beautiful `ROADMAP.md` file that visualizes all your projects:
@@ -192,7 +278,7 @@ The roadmap is perfect for:
 
 ## Future Plans
 
-- Notes and reflections per project (schema ready, CLI coming soon)
-- Tag-based filtering and search
+- Enhanced search capabilities across projects and notes
 - Timeline view of project activity
 - Web UI or TUI for richer interaction
+- Export/import functionality for backups

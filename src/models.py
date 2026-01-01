@@ -364,3 +364,206 @@ def get_recent_notes(project_id: int, limit: int = 5) -> List[Dict[str, Any]]:
     
     return [dict(row) for row in rows]
 
+
+# =========================
+# Tag Management Functions
+# =========================
+
+def get_or_create_tag(tag_name: str) -> int:
+    """
+    Get a tag ID by name, or create it if it doesn't exist.
+    
+    Args:
+        tag_name: The tag name
+    
+    Returns:
+        The tag's ID
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Try to find existing tag
+    cursor.execute("SELECT id FROM tags WHERE name = ?", (tag_name,))
+    row = cursor.fetchone()
+    
+    if row:
+        tag_id = row['id']
+        conn.close()
+        return tag_id
+    
+    # Create new tag
+    cursor.execute("INSERT INTO tags (name) VALUES (?)", (tag_name,))
+    conn.commit()
+    tag_id = cursor.lastrowid
+    conn.close()
+    
+    return tag_id
+
+
+def add_tag_to_project(project_id: int, tag_name: str) -> bool:
+    """
+    Add a tag to a project.
+    
+    Args:
+        project_id: The project's ID
+        tag_name: The tag name
+    
+    Returns:
+        True if tag was added, False if it was already present
+    """
+    tag_id = get_or_create_tag(tag_name)
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Check if already exists
+    cursor.execute(
+        "SELECT 1 FROM project_tags WHERE project_id = ? AND tag_id = ?",
+        (project_id, tag_id)
+    )
+    
+    if cursor.fetchone():
+        conn.close()
+        return False  # Already exists
+    
+    # Add the tag
+    cursor.execute(
+        "INSERT INTO project_tags (project_id, tag_id) VALUES (?, ?)",
+        (project_id, tag_id)
+    )
+    
+    conn.commit()
+    conn.close()
+    return True
+
+
+def remove_tag_from_project(project_id: int, tag_name: str) -> bool:
+    """
+    Remove a tag from a project.
+    
+    Args:
+        project_id: The project's ID
+        tag_name: The tag name
+    
+    Returns:
+        True if tag was removed, False if it wasn't found
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Find the tag ID
+    cursor.execute("SELECT id FROM tags WHERE name = ?", (tag_name,))
+    row = cursor.fetchone()
+    
+    if not row:
+        conn.close()
+        return False
+    
+    tag_id = row['id']
+    
+    # Remove the association
+    cursor.execute(
+        "DELETE FROM project_tags WHERE project_id = ? AND tag_id = ?",
+        (project_id, tag_id)
+    )
+    
+    conn.commit()
+    rows_affected = cursor.rowcount
+    conn.close()
+    
+    return rows_affected > 0
+
+
+def list_project_tags(project_id: int) -> List[str]:
+    """
+    Get all tags for a specific project.
+    
+    Args:
+        project_id: The project's ID
+    
+    Returns:
+        List of tag names
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        """
+        SELECT tags.name
+        FROM tags
+        JOIN project_tags ON tags.id = project_tags.tag_id
+        WHERE project_tags.project_id = ?
+        ORDER BY tags.name
+        """,
+        (project_id,)
+    )
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [row['name'] for row in rows]
+
+
+def list_all_tags() -> List[Dict[str, Any]]:
+    """
+    Get all tags with project counts.
+    
+    Returns:
+        List of dictionaries with 'name' and 'project_count' fields
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute(
+        """
+        SELECT 
+            tags.name,
+            COUNT(project_tags.project_id) as project_count
+        FROM tags
+        LEFT JOIN project_tags ON tags.id = project_tags.tag_id
+        GROUP BY tags.id, tags.name
+        ORDER BY tags.name
+        """
+    )
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [{'name': row['name'], 'project_count': row['project_count']} for row in rows]
+
+
+def list_projects_by_tag(tag_name: str, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    List all projects that have a specific tag.
+    
+    Args:
+        tag_name: The tag name to filter by
+        status: Optional status filter
+    
+    Returns:
+        List of project dictionaries
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    query = """
+        SELECT DISTINCT projects.*
+        FROM projects
+        JOIN project_tags ON projects.id = project_tags.project_id
+        JOIN tags ON project_tags.tag_id = tags.id
+        WHERE tags.name = ? AND projects.is_archived = 0
+    """
+    params = [tag_name]
+    
+    if status:
+        query += " AND projects.status = ?"
+        params.append(status)
+    
+    query += " ORDER BY projects.last_worked_at DESC, projects.created_at DESC"
+    
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
