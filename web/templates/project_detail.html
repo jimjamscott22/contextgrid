@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.name }} - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="breadcrumb">
+        <a href="/projects">← Back to Projects</a>
+    </div>
+    <div class="project-title-section">
+        <h1>{{ project.name }}</h1>
+        <span class="badge badge-{{ project.status }} large">{{ project.status }}</span>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <div class="detail-main">
+        {% if project.description %}
+        <section class="section">
+            <h2>Description</h2>
+            <p>{{ project.description }}</p>
+        </section>
+        {% endif %}
+        
+        <section class="section">
+            <h2>Metadata</h2>
+            <table class="metadata-table">
+                {% if project.project_type %}
+                <tr>
+                    <td class="label">Type</td>
+                    <td>{{ project.project_type }}</td>
+                </tr>
+                {% endif %}
+                {% if project.primary_language %}
+                <tr>
+                    <td class="label">Language</td>
+                    <td>{{ project.primary_language }}</td>
+                </tr>
+                {% endif %}
+                {% if project.stack %}
+                <tr>
+                    <td class="label">Stack</td>
+                    <td>{{ project.stack }}</td>
+                </tr>
+                {% endif %}
+                {% if project.scope_size %}
+                <tr>
+                    <td class="label">Scope</td>
+                    <td>{{ project.scope_size }}</td>
+                </tr>
+                {% endif %}
+                {% if project.learning_goal %}
+                <tr>
+                    <td class="label">Learning Goal</td>
+                    <td>{{ project.learning_goal }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </section>
+        
+        {% if project.local_path or project.repo_url %}
+        <section class="section">
+            <h2>Location</h2>
+            <table class="metadata-table">
+                {% if project.repo_url %}
+                <tr>
+                    <td class="label">Repository</td>
+                    <td><a href="{{ project.repo_url }}" target="_blank">{{ project.repo_url }}</a></td>
+                </tr>
+                {% endif %}
+                {% if project.local_path %}
+                <tr>
+                    <td class="label">Local Path</td>
+                    <td><code>{{ project.local_path }}</code></td>
+                </tr>
+                {% endif %}
+            </table>
+        </section>
+        {% endif %}
+        
+        {% if notes %}
+        <section class="section">
+            <h2>Notes</h2>
+            <div class="notes-list">
+                {% for note in notes %}
+                <div class="note-card note-{{ note.note_type }}">
+                    <div class="note-header">
+                        <span class="note-type-badge">
+                            {% if note.note_type == 'log' %}📋
+                            {% elif note.note_type == 'idea' %}💡
+                            {% elif note.note_type == 'blocker' %}🚧
+                            {% elif note.note_type == 'reflection' %}🤔
+                            {% endif %}
+                            {{ note.note_type }}
+                        </span>
+                        <span class="note-date">{{ note.created_at[:19] }}</span>
+                    </div>
+                    <div class="note-content">{{ note.content }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </div>
+    
+    <div class="detail-sidebar">
+        <section class="section">
+            <h3>Tags</h3>
+            {% if tags %}
+            <div class="tag-list">
+                {% for tag in tags %}
+                <a href="/projects?tag={{ tag }}" class="tag">{{ tag }}</a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted">No tags</p>
+            {% endif %}
+        </section>
+        
+        <section class="section">
+            <h3>Timestamps</h3>
+            <table class="metadata-table small">
+                <tr>
+                    <td class="label">Created</td>
+                    <td>{{ project.created_at[:10] }}</td>
+                </tr>
+                {% if project.last_worked_at %}
+                <tr>
+                    <td class="label">Last Worked</td>
+                    <td>{{ project.last_worked_at[:10] }}</td>
+                </tr>
+                {% endif %}
+            </table>
+        </section>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Projects - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Projects</h1>
+    <p class="subtitle">
+        {% if current_tag %}Filtered by tag: <strong>{{ current_tag }}</strong>{% endif %}
+        {% if current_status %}Filtered by status: <strong>{{ current_status }}</strong>{% endif %}
+    </p>
+</div>
+
+<div class="filters">
+    <div class="filter-group">
+        <label>Status:</label>
+        <a href="/projects" class="filter-btn {% if not current_status %}active{% endif %}">All</a>
+        <a href="/projects?status=active{% if current_tag %}&tag={{ current_tag }}{% endif %}" class="filter-btn {% if current_status == 'active' %}active{% endif %}">🚀 Active</a>
+        <a href="/projects?status=idea{% if current_tag %}&tag={{ current_tag }}{% endif %}" class="filter-btn {% if current_status == 'idea' %}active{% endif %}">💡 Ideas</a>
+        <a href="/projects?status=paused{% if current_tag %}&tag={{ current_tag }}{% endif %}" class="filter-btn {% if current_status == 'paused' %}active{% endif %}">⏸️ Paused</a>
+        <a href="/projects?status=archived{% if current_tag %}&tag={{ current_tag }}{% endif %}" class="filter-btn {% if current_status == 'archived' %}active{% endif %}">📦 Archived</a>
+    </div>
+</div>
+
+{% if projects %}
+<div class="project-grid">
+    {% for project in projects %}
+    <div class="project-card">
+        <div class="project-header">
+            <h3><a href="/projects/{{ project.id }}">{{ project.name }}</a></h3>
+            <span class="badge badge-{{ project.status }}">{{ project.status }}</span>
+        </div>
+        
+        {% if project.description %}
+        <p class="project-description">{{ project.description }}</p>
+        {% endif %}
+        
+        <div class="project-meta">
+            {% if project.primary_language %}
+            <span class="meta-item">💻 {{ project.primary_language }}</span>
+            {% endif %}
+            {% if project.project_type %}
+            <span class="meta-item">📁 {{ project.project_type }}</span>
+            {% endif %}
+            {% if project.scope_size %}
+            <span class="meta-item">📏 {{ project.scope_size }}</span>
+            {% endif %}
+        </div>
+        
+        <div class="project-footer">
+            {% if project.last_worked_at %}
+            <span class="timestamp">Last worked: {{ project.last_worked_at[:10] }}</span>
+            {% else %}
+            <span class="timestamp">Created: {{ project.created_at[:10] }}</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No projects found{% if current_status %} with status "{{ current_status }}"{% endif %}{% if current_tag %} tagged "{{ current_tag }}"{% endif %}.</p>
+    <p>Create one using the CLI: <code>python3 src/main.py add "Project Name"</code></p>
+</div>
+{% endif %}
+{% endblock %}
+

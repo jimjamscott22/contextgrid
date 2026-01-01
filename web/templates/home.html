@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Home - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <h1>Welcome to ContextGrid</h1>
+    <p class="subtitle">Your personal project tracker</p>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ total_projects }}</div>
+        <div class="stat-label">Total Projects</div>
+    </div>
+    <div class="stat-card active">
+        <div class="stat-value">{{ status_counts.active }}</div>
+        <div class="stat-label">🚀 Active</div>
+    </div>
+    <div class="stat-card idea">
+        <div class="stat-value">{{ status_counts.idea }}</div>
+        <div class="stat-label">💡 Ideas</div>
+    </div>
+    <div class="stat-card paused">
+        <div class="stat-value">{{ status_counts.paused }}</div>
+        <div class="stat-label">⏸️ Paused</div>
+    </div>
+</div>
+
+<section class="section">
+    <h2>Recent Activity</h2>
+    {% if recent_projects %}
+    <div class="project-list">
+        {% for project in recent_projects %}
+        <div class="project-card">
+            <div class="project-header">
+                <h3><a href="/projects/{{ project.id }}">{{ project.name }}</a></h3>
+                <span class="badge badge-{{ project.status }}">{{ project.status }}</span>
+            </div>
+            {% if project.description %}
+            <p class="project-description">{{ project.description }}</p>
+            {% endif %}
+            <div class="project-meta">
+                {% if project.primary_language %}
+                <span class="meta-item">💻 {{ project.primary_language }}</span>
+                {% endif %}
+                {% if project.project_type %}
+                <span class="meta-item">📁 {{ project.project_type }}</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-state">No projects yet. Create one using the CLI: <code>python3 src/main.py add "Project Name"</code></p>
+    {% endif %}
+</section>
+
+<div class="cta-section">
+    <a href="/projects" class="btn btn-primary">View All Projects →</a>
+</div>
+{% endblock %}
+

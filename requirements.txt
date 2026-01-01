@@ -2,11 +2,16 @@
 # Minimal local-first project tracker
 
 # Python version: 3.8+
-# All dependencies are from Python standard library:
+
+# === CLI Dependencies (stdlib only) ===
 # - sqlite3 (database)
 # - argparse (CLI parsing)
 # - datetime (timestamps)
 # - pathlib (file paths)
 
-# No external packages required for MVP
+# === Web UI Dependencies ===
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+jinja2>=3.1.0
+python-multipart>=0.0.6
 
