@@ -75,10 +75,27 @@ contextgrid/
 Clone or download this repository, then ensure you have Python 3.8+ installed:
 
 ```bash
-python --version  # should be 3.8 or higher
+python3 --version  # should be 3.8 or higher
 ```
 
-No external dependencies required - uses Python standard library only.
+### Setup (First Time Only)
+
+```bash
+# Create a virtual environment
+python3 -m venv venv
+
+# Activate it
+source venv/bin/activate  # On Linux/Mac
+# or
+venv\Scripts\activate  # On Windows
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Using the CLI
+
+No installation needed for CLI-only usage (uses Python stdlib only).
 
 ### Basic Usage
 
@@ -194,6 +211,41 @@ $ python src/main.py roadmap
      Projects: 1
      Active: 1, Ideas: 0
 ```
+
+---
+
+## Web UI
+
+ContextGrid now includes a beautiful web interface for browsing and managing your projects!
+
+### Starting the Web UI
+
+```bash
+# Make sure you're in the project directory
+cd contextgrid
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Start the web server
+python3 web/app.py
+
+# Or use uvicorn directly
+uvicorn web.app:app --reload
+```
+
+The web interface will be available at: **http://127.0.0.1:8000**
+
+### Features
+
+- 📊 **Dashboard** - Quick stats and recent activity
+- 📁 **Projects List** - Browse all projects with filters
+- 🏷️ **Tags** - Organize and filter by tags
+- 📝 **Project Details** - View full project information and notes
+- 📱 **Responsive** - Works great on mobile devices
+- 🎨 **Modern Design** - Clean, beautiful interface
+
+The web UI is **read-focused** - for creating/editing projects, use the CLI commands. This keeps the web interface simple and the CLI powerful.
 
 ---
 

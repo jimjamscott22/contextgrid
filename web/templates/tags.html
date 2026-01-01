@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Tags - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Tags</h1>
+    <p class="subtitle">Browse projects by tag</p>
+</div>
+
+{% if tags %}
+<div class="tags-grid">
+    {% for tag in tags %}
+    <a href="/projects?tag={{ tag.name }}" class="tag-card">
+        <h3>{{ tag.name }}</h3>
+        <p class="tag-count">{{ tag.project_count }} project{% if tag.project_count != 1 %}s{% endif %}</p>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No tags yet. Add tags using the CLI: <code>python3 src/main.py tag add &lt;project_id&gt; &lt;tag_name&gt;</code></p>
+</div>
+{% endif %}
+{% endblock %}
+
