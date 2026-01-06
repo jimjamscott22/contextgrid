@@ -635,22 +635,42 @@ def list_projects_by_tag(
     return [dict(row) for row in rows]
 
 
-def search_projects(query: str, status: Optional[str] = None) -> List[Dict[str, Any]]:
+def search_projects(
+    query: str,
+    status: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    sort_by: str = "last_worked_at",
+    sort_order: str = "desc"
+) -> List[Dict[str, Any]]:
     """
     Search for projects across multiple text fields.
     
     Args:
         query: Search query string (case-insensitive)
         status: Optional status filter
+        limit: Maximum number of projects to return (for pagination)
+        offset: Number of projects to skip (for pagination)
+        sort_by: Field to sort by (name, created_at, last_worked_at, status)
+        sort_order: Sort order (asc or desc)
     
     Returns:
         List of project dictionaries matching the search query
     """
     if not query or not query.strip():
-        return list_projects(status=status)
+        return list_projects(status=status, limit=limit, offset=offset, sort_by=sort_by, sort_order=sort_order)
     
     conn = get_connection()
     cursor = conn.cursor()
+    
+    # Validate sort parameters
+    valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
+    if sort_by not in valid_sort_fields:
+        sort_by = "last_worked_at"
+    
+    sort_order = sort_order.lower()
+    if sort_order not in ["asc", "desc"]:
+        sort_order = "desc"
     
     # Build search pattern for LIKE queries
     search_pattern = f"%{query}%"
@@ -681,7 +701,24 @@ def search_projects(query: str, status: Optional[str] = None) -> List[Dict[str, 
         sql += " AND projects.status = ?"
         params.append(status)
     
-    sql += " ORDER BY projects.last_worked_at DESC, projects.created_at DESC"
+    # Add ORDER BY clause
+    if sort_by == "last_worked_at":
+        sql += f" ORDER BY CASE WHEN projects.last_worked_at IS NULL THEN 0 ELSE 1 END {sort_order.upper()}, projects.last_worked_at {sort_order.upper()}"
+    else:
+        sql += f" ORDER BY projects.{sort_by} {sort_order.upper()}"
+    
+    # Add secondary sort
+    if sort_by != "created_at":
+        sql += ", projects.created_at DESC"
+    
+    # Add pagination
+    if limit is not None:
+        sql += " LIMIT ?"
+        params.append(limit)
+        
+        if offset is not None:
+            sql += " OFFSET ?"
+            params.append(offset)
     
     cursor.execute(sql, params)
     rows = cursor.fetchall()

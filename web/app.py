@@ -89,11 +89,16 @@ async def projects_list(
     
     # Fetch projects based on filters
     if search and search.strip():
-        # Search projects
-        projects = models.search_projects(search, status=status)
-        # Manual pagination for search results (since search_projects doesn't support pagination yet)
-        total_count = len(projects)
-        projects = projects[offset:offset + per_page]
+        # Search projects with pagination
+        total_count = models.get_projects_count(status=status, search=search)
+        projects = models.search_projects(
+            search,
+            status=status,
+            limit=per_page,
+            offset=offset,
+            sort_by=sort,
+            sort_order=order
+        )
     elif tag:
         total_count = models.get_projects_count(status=status, tag=tag)
         projects = models.list_projects_by_tag(
