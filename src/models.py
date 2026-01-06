@@ -91,37 +91,67 @@ def get_project(project_id: int) -> Optional[Dict[str, Any]]:
     return None
 
 
-def list_projects(status: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_projects(
+    status: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    sort_by: str = "last_worked_at",
+    sort_order: str = "desc"
+) -> List[Dict[str, Any]]:
     """
     List all projects, optionally filtered by status.
     
     Args:
         status: Filter by status (idea, active, paused, archived)
+        limit: Maximum number of projects to return (for pagination)
+        offset: Number of projects to skip (for pagination)
+        sort_by: Field to sort by (name, created_at, last_worked_at, status)
+        sort_order: Sort order (asc or desc)
     
     Returns:
-        List of project dictionaries, ordered by last_worked_at (most recent first)
+        List of project dictionaries, ordered by the specified sort criteria
     """
     conn = get_connection()
     cursor = conn.cursor()
     
-    if status:
-        cursor.execute(
-            """
-            SELECT * FROM projects 
-            WHERE status = ? AND is_archived = 0
-            ORDER BY last_worked_at DESC, created_at DESC
-            """,
-            (status,)
-        )
-    else:
-        cursor.execute(
-            """
-            SELECT * FROM projects 
-            WHERE is_archived = 0
-            ORDER BY last_worked_at DESC, created_at DESC
-            """
-        )
+    # Validate sort parameters
+    valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
+    if sort_by not in valid_sort_fields:
+        sort_by = "last_worked_at"
     
+    sort_order = sort_order.lower()
+    if sort_order not in ["asc", "desc"]:
+        sort_order = "desc"
+    
+    # Build the query
+    query = "SELECT * FROM projects WHERE is_archived = 0"
+    params = []
+    
+    if status:
+        query += " AND status = ?"
+        params.append(status)
+    
+    # Add ORDER BY clause
+    # Handle NULL values in last_worked_at by treating them as very old
+    if sort_by == "last_worked_at":
+        query += f" ORDER BY CASE WHEN last_worked_at IS NULL THEN 0 ELSE 1 END {sort_order.upper()}, last_worked_at {sort_order.upper()}"
+    else:
+        query += f" ORDER BY {sort_by} {sort_order.upper()}"
+    
+    # Add secondary sort by created_at for consistency
+    if sort_by != "created_at":
+        query += ", created_at DESC"
+    
+    # Add pagination
+    if limit is not None:
+        query += " LIMIT ?"
+        params.append(limit)
+        
+        if offset is not None:
+            query += " OFFSET ?"
+            params.append(offset)
+    
+    cursor.execute(query, params)
     rows = cursor.fetchall()
     conn.close()
     
@@ -532,19 +562,39 @@ def list_all_tags() -> List[Dict[str, Any]]:
     return [{'name': row['name'], 'project_count': row['project_count']} for row in rows]
 
 
-def list_projects_by_tag(tag_name: str, status: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_projects_by_tag(
+    tag_name: str,
+    status: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    sort_by: str = "last_worked_at",
+    sort_order: str = "desc"
+) -> List[Dict[str, Any]]:
     """
     List all projects that have a specific tag.
     
     Args:
         tag_name: The tag name to filter by
         status: Optional status filter
+        limit: Maximum number of projects to return (for pagination)
+        offset: Number of projects to skip (for pagination)
+        sort_by: Field to sort by (name, created_at, last_worked_at, status)
+        sort_order: Sort order (asc or desc)
     
     Returns:
         List of project dictionaries
     """
     conn = get_connection()
     cursor = conn.cursor()
+    
+    # Validate sort parameters
+    valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
+    if sort_by not in valid_sort_fields:
+        sort_by = "last_worked_at"
+    
+    sort_order = sort_order.lower()
+    if sort_order not in ["asc", "desc"]:
+        sort_order = "desc"
     
     query = """
         SELECT DISTINCT projects.*
@@ -559,11 +609,158 @@ def list_projects_by_tag(tag_name: str, status: Optional[str] = None) -> List[Di
         query += " AND projects.status = ?"
         params.append(status)
     
-    query += " ORDER BY projects.last_worked_at DESC, projects.created_at DESC"
+    # Add ORDER BY clause
+    if sort_by == "last_worked_at":
+        query += f" ORDER BY CASE WHEN projects.last_worked_at IS NULL THEN 0 ELSE 1 END {sort_order.upper()}, projects.last_worked_at {sort_order.upper()}"
+    else:
+        query += f" ORDER BY projects.{sort_by} {sort_order.upper()}"
+    
+    # Add secondary sort
+    if sort_by != "created_at":
+        query += ", projects.created_at DESC"
+    
+    # Add pagination
+    if limit is not None:
+        query += " LIMIT ?"
+        params.append(limit)
+        
+        if offset is not None:
+            query += " OFFSET ?"
+            params.append(offset)
     
     cursor.execute(query, params)
     rows = cursor.fetchall()
     conn.close()
     
     return [dict(row) for row in rows]
+
+
+def search_projects(query: str, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    """
+    Search for projects across multiple text fields.
+    
+    Args:
+        query: Search query string (case-insensitive)
+        status: Optional status filter
+    
+    Returns:
+        List of project dictionaries matching the search query
+    """
+    if not query or not query.strip():
+        return list_projects(status=status)
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Build search pattern for LIKE queries
+    search_pattern = f"%{query}%"
+    
+    # Build the SQL query to search across multiple fields
+    sql = """
+        SELECT DISTINCT projects.*
+        FROM projects
+        LEFT JOIN project_tags ON projects.id = project_tags.project_id
+        LEFT JOIN tags ON project_tags.tag_id = tags.id
+        LEFT JOIN project_notes ON projects.id = project_notes.project_id
+        WHERE projects.is_archived = 0
+        AND (
+            projects.name LIKE ? COLLATE NOCASE
+            OR projects.description LIKE ? COLLATE NOCASE
+            OR projects.primary_language LIKE ? COLLATE NOCASE
+            OR projects.stack LIKE ? COLLATE NOCASE
+            OR projects.learning_goal LIKE ? COLLATE NOCASE
+            OR projects.project_type LIKE ? COLLATE NOCASE
+            OR tags.name LIKE ? COLLATE NOCASE
+            OR project_notes.content LIKE ? COLLATE NOCASE
+        )
+    """
+    
+    params = [search_pattern] * 8  # 8 fields to search
+    
+    if status:
+        sql += " AND projects.status = ?"
+        params.append(status)
+    
+    sql += " ORDER BY projects.last_worked_at DESC, projects.created_at DESC"
+    
+    cursor.execute(sql, params)
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def get_projects_count(status: Optional[str] = None, tag: Optional[str] = None, search: Optional[str] = None) -> int:
+    """
+    Get the total count of projects matching the given filters.
+    
+    Args:
+        status: Optional status filter
+        tag: Optional tag filter
+        search: Optional search query
+    
+    Returns:
+        Total count of projects matching the filters
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    if search and search.strip():
+        # Count search results
+        search_pattern = f"%{search}%"
+        sql = """
+            SELECT COUNT(DISTINCT projects.id)
+            FROM projects
+            LEFT JOIN project_tags ON projects.id = project_tags.project_id
+            LEFT JOIN tags ON project_tags.tag_id = tags.id
+            LEFT JOIN project_notes ON projects.id = project_notes.project_id
+            WHERE projects.is_archived = 0
+            AND (
+                projects.name LIKE ? COLLATE NOCASE
+                OR projects.description LIKE ? COLLATE NOCASE
+                OR projects.primary_language LIKE ? COLLATE NOCASE
+                OR projects.stack LIKE ? COLLATE NOCASE
+                OR projects.learning_goal LIKE ? COLLATE NOCASE
+                OR projects.project_type LIKE ? COLLATE NOCASE
+                OR tags.name LIKE ? COLLATE NOCASE
+                OR project_notes.content LIKE ? COLLATE NOCASE
+            )
+        """
+        params = [search_pattern] * 8
+        
+        if status:
+            sql += " AND projects.status = ?"
+            params.append(status)
+        
+        cursor.execute(sql, params)
+    elif tag:
+        # Count by tag
+        sql = """
+            SELECT COUNT(DISTINCT projects.id)
+            FROM projects
+            JOIN project_tags ON projects.id = project_tags.project_id
+            JOIN tags ON project_tags.tag_id = tags.id
+            WHERE tags.name = ? AND projects.is_archived = 0
+        """
+        params = [tag]
+        
+        if status:
+            sql += " AND projects.status = ?"
+            params.append(status)
+        
+        cursor.execute(sql, params)
+    else:
+        # Count all projects
+        if status:
+            cursor.execute(
+                "SELECT COUNT(*) FROM projects WHERE status = ? AND is_archived = 0",
+                (status,)
+            )
+        else:
+            cursor.execute("SELECT COUNT(*) FROM projects WHERE is_archived = 0")
+    
+    count = cursor.fetchone()[0]
+    conn.close()
+    
+    return count
 

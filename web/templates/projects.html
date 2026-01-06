@@ -5,20 +5,76 @@
 {% block content %}
 <div class="page-header">
     <h1>Projects</h1>
-    <p class="subtitle">
-        {% if current_tag %}Filtered by tag: <strong>{{ current_tag }}</strong>{% endif %}
-        {% if current_status %}Filtered by status: <strong>{{ current_status }}</strong>{% endif %}
-    </p>
+    <div class="header-actions">
+        <a href="/projects/new" class="btn btn-primary">+ New Project</a>
+    </div>
+</div>
+
+<!-- Search Box -->
+<div class="search-box">
+    <form action="/projects" method="get" class="search-form">
+        <input 
+            type="text" 
+            name="search" 
+            placeholder="Search projects..." 
+            value="{{ search_query or '' }}"
+            class="search-input"
+        >
+        <button type="submit" class="btn btn-secondary">🔍 Search</button>
+        {% if search_query %}
+        <a href="/projects{% if current_status %}?status={{ current_status }}{% endif %}{% if current_tag %}{% if current_status %}&{% else %}?{% endif %}tag={{ current_tag }}{% endif %}" class="btn btn-link">Clear</a>
+        {% endif %}
+        <!-- Preserve filters -->
+        {% if current_status %}
+        <input type="hidden" name="status" value="{{ current_status }}">
+        {% endif %}
+        {% if current_tag %}
+        <input type="hidden" name="tag" value="{{ current_tag }}">
+        {% endif %}
+        {% if sort %}
+        <input type="hidden" name="sort" value="{{ sort }}">
+        {% endif %}
+        {% if order %}
+        <input type="hidden" name="order" value="{{ order }}">
+        {% endif %}
+    </form>
+</div>
+
+<!-- Search/Filter Status Message -->
+{% if search_query or current_tag or current_status %}
+<p class="subtitle filter-message">
+    {% if search_query %}
+    <strong>{{ total_count }} result{{ 's' if total_count != 1 else '' }} found for "{{ search_query }}"</strong>
+    {% endif %}
+    {% if current_tag %}
+    {% if search_query %} • {% endif %}Filtered by tag: <strong>{{ current_tag }}</strong>
+    {% endif %}
+    {% if current_status %}
+    {% if search_query or current_tag %} • {% endif %}Filtered by status: <strong>{{ current_status }}</strong>
+    {% endif %}
+</p>
+{% endif %}
+
+<!-- Sorting Options -->
+<div class="sorting-controls">
+    <label>Sort by:</label>
+    <select id="sort-select" class="sort-dropdown">
+        <option value="last_worked_at-desc" {% if sort == 'last_worked_at' and order == 'desc' %}selected{% endif %}>Recently Worked</option>
+        <option value="created_at-desc" {% if sort == 'created_at' and order == 'desc' %}selected{% endif %}>Recently Created</option>
+        <option value="name-asc" {% if sort == 'name' and order == 'asc' %}selected{% endif %}>Name (A-Z)</option>
+        <option value="name-desc" {% if sort == 'name' and order == 'desc' %}selected{% endif %}>Name (Z-A)</option>
+        <option value="status-asc" {% if sort == 'status' and order == 'asc' %}selected{% endif %}>Status</option>
+    </select>
 </div>
 
 <div class="filters">
     <div class="filter-group">
         <label>Status:</label>
-        <a href="/projects" class="filter-btn {% if not current_status %}active{% endif %}">All</a>
-        <a href="/projects?status=active{% if current_tag %}&tag={{ current_tag }}{% endif %}" class="filter-btn {% if current_status == 'active' %}active{% endif %}">🚀 Active</a>
-        <a href="/projects?status=idea{% if current_tag %}&tag={{ current_tag }}{% endif %}" class="filter-btn {% if current_status == 'idea' %}active{% endif %}">💡 Ideas</a>
-        <a href="/projects?status=paused{% if current_tag %}&tag={{ current_tag }}{% endif %}" class="filter-btn {% if current_status == 'paused' %}active{% endif %}">⏸️ Paused</a>
-        <a href="/projects?status=archived{% if current_tag %}&tag={{ current_tag }}{% endif %}" class="filter-btn {% if current_status == 'archived' %}active{% endif %}">📦 Archived</a>
+        <a href="/projects{% if current_tag %}?tag={{ current_tag }}{% endif %}{% if search_query %}{% if current_tag %}&{% else %}?{% endif %}search={{ search_query }}{% endif %}{% if sort %}{% if current_tag or search_query %}&{% else %}?{% endif %}sort={{ sort }}&order={{ order }}{% endif %}" class="filter-btn {% if not current_status %}active{% endif %}">All</a>
+        <a href="/projects?status=active{% if current_tag %}&tag={{ current_tag }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}" class="filter-btn {% if current_status == 'active' %}active{% endif %}">🚀 Active</a>
+        <a href="/projects?status=idea{% if current_tag %}&tag={{ current_tag }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}" class="filter-btn {% if current_status == 'idea' %}active{% endif %}">💡 Ideas</a>
+        <a href="/projects?status=paused{% if current_tag %}&tag={{ current_tag }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}" class="filter-btn {% if current_status == 'paused' %}active{% endif %}">⏸️ Paused</a>
+        <a href="/projects?status=archived{% if current_tag %}&tag={{ current_tag }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}" class="filter-btn {% if current_status == 'archived' %}active{% endif %}">📦 Archived</a>
     </div>
 </div>
 
@@ -57,11 +113,64 @@
     </div>
     {% endfor %}
 </div>
-{% else %}
-<div class="empty-state">
-    <p>No projects found{% if current_status %} with status "{{ current_status }}"{% endif %}{% if current_tag %} tagged "{{ current_tag }}"{% endif %}.</p>
-    <p>Create one using the CLI: <code>python3 src/main.py add "Project Name"</code></p>
+
+<!-- Pagination Controls -->
+{% if total_pages > 1 %}
+<div class="pagination">
+    <div class="pagination-info">
+        Page {{ current_page }} of {{ total_pages }} ({{ total_count }} total project{{ 's' if total_count != 1 else '' }})
+    </div>
+    <div class="pagination-controls">
+        {% if has_prev %}
+        <a href="/projects?page={{ current_page - 1 }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_tag %}&tag={{ current_tag }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}" class="btn btn-secondary">&laquo; Previous</a>
+        {% else %}
+        <span class="btn btn-secondary btn-disabled">&laquo; Previous</span>
+        {% endif %}
+        
+        <!-- Page numbers -->
+        <div class="page-numbers">
+            {% for page_num in range(1, total_pages + 1) %}
+                {% if page_num == current_page %}
+                <span class="page-number active">{{ page_num }}</span>
+                {% elif page_num == 1 or page_num == total_pages or (page_num >= current_page - 2 and page_num <= current_page + 2) %}
+                <a href="/projects?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_tag %}&tag={{ current_tag }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}" class="page-number">{{ page_num }}</a>
+                {% elif page_num == current_page - 3 or page_num == current_page + 3 %}
+                <span class="page-ellipsis">...</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        {% if has_next %}
+        <a href="/projects?page={{ current_page + 1 }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_tag %}&tag={{ current_tag }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort %}&sort={{ sort }}&order={{ order }}{% endif %}" class="btn btn-secondary">Next &raquo;</a>
+        {% else %}
+        <span class="btn btn-secondary btn-disabled">Next &raquo;</span>
+        {% endif %}
+    </div>
 </div>
 {% endif %}
+
+{% else %}
+<div class="empty-state">
+    <p>No projects found{% if search_query %} for "{{ search_query }}"{% endif %}{% if current_status %} with status "{{ current_status }}"{% endif %}{% if current_tag %} tagged "{{ current_tag }}"{% endif %}.</p>
+    <p>Create one using: <a href="/projects/new" class="btn btn-primary">+ New Project</a></p>
+</div>
+{% endif %}
+
+<script>
+// Handle sort dropdown change
+document.getElementById('sort-select').addEventListener('change', function() {
+    const value = this.value.split('-');
+    const sort = value[0];
+    const order = value[1];
+    
+    // Build URL with current filters
+    const params = new URLSearchParams(window.location.search);
+    params.set('sort', sort);
+    params.set('order', order);
+    params.set('page', '1'); // Reset to first page when sorting
+    
+    window.location.href = '/projects?' + params.toString();
+});
+</script>
 {% endblock %}
 

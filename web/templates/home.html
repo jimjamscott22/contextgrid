@@ -6,6 +6,10 @@
 <div class="hero">
     <h1>Welcome to ContextGrid</h1>
     <p class="subtitle">Your personal project tracker</p>
+    <div class="hero-actions">
+        <a href="/projects/new" class="btn btn-primary">+ New Project</a>
+        <a href="/projects" class="btn btn-secondary">View All Projects</a>
+    </div>
 </div>
 
 <div class="stats-grid">
@@ -52,12 +56,8 @@
         {% endfor %}
     </div>
     {% else %}
-    <p class="empty-state">No projects yet. Create one using the CLI: <code>python3 src/main.py add "Project Name"</code></p>
+    <p class="empty-state">No projects yet. <a href="/projects/new">Create your first project</a></p>
     {% endif %}
 </section>
-
-<div class="cta-section">
-    <a href="/projects" class="btn btn-primary">View All Projects →</a>
-</div>
 {% endblock %}
 
