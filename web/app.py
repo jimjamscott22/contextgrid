@@ -142,50 +142,6 @@ async def projects_list(
     )
 
 
-@app.get("/projects/{project_id}", response_class=HTMLResponse)
-async def project_detail(request: Request, project_id: int):
-    """Show detailed view of a single project."""
-    project = models.get_project(project_id)
-    
-    if not project:
-        return templates.TemplateResponse(
-            "error.html",
-            {
-                "request": request,
-                "error": f"Project {project_id} not found"
-            },
-            status_code=404
-        )
-    
-    # Get tags and notes
-    project_tags = models.list_project_tags(project_id)
-    notes = models.list_notes(project_id)
-    
-    return templates.TemplateResponse(
-        "project_detail.html",
-        {
-            "request": request,
-            "project": project,
-            "tags": project_tags,
-            "notes": notes
-        }
-    )
-
-
-@app.get("/tags", response_class=HTMLResponse)
-async def tags_list(request: Request):
-    """Browse all tags."""
-    all_tags = models.list_all_tags()
-    
-    return templates.TemplateResponse(
-        "tags.html",
-        {
-            "request": request,
-            "tags": all_tags
-        }
-    )
-
-
 @app.get("/projects/new", response_class=HTMLResponse)
 async def project_new_form(request: Request):
     """Show the new project creation form."""
@@ -311,6 +267,50 @@ async def project_create(
             },
             status_code=500
         )
+
+
+@app.get("/projects/{project_id}", response_class=HTMLResponse)
+async def project_detail(request: Request, project_id: int):
+    """Show detailed view of a single project."""
+    project = models.get_project(project_id)
+    
+    if not project:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error": f"Project {project_id} not found"
+            },
+            status_code=404
+        )
+    
+    # Get tags and notes
+    project_tags = models.list_project_tags(project_id)
+    notes = models.list_notes(project_id)
+    
+    return templates.TemplateResponse(
+        "project_detail.html",
+        {
+            "request": request,
+            "project": project,
+            "tags": project_tags,
+            "notes": notes
+        }
+    )
+
+
+@app.get("/tags", response_class=HTMLResponse)
+async def tags_list(request: Request):
+    """Browse all tags."""
+    all_tags = models.list_all_tags()
+    
+    return templates.TemplateResponse(
+        "tags.html",
+        {
+            "request": request,
+            "tags": all_tags
+        }
+    )
 
 
 # =========================
