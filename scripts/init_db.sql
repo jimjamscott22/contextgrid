@@ -74,3 +74,15 @@ CREATE TABLE IF NOT EXISTS project_tags (
         REFERENCES tags(id)
         ON DELETE CASCADE
 );
+
+-- =========================
+-- Indexes for Performance
+-- =========================
+CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(name);
+CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
+CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at);
+CREATE INDEX IF NOT EXISTS idx_projects_last_worked_at ON projects(last_worked_at);
+CREATE INDEX IF NOT EXISTS idx_projects_is_archived ON projects(is_archived);
+CREATE INDEX IF NOT EXISTS idx_project_notes_project_id ON project_notes(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_tags_project_id ON project_tags(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_tags_tag_id ON project_tags(tag_id);

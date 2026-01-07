@@ -771,6 +771,64 @@ def cmd_tag_list(args) -> int:
         return 1
 
 
+def cmd_search(args) -> int:
+    """Handle 'search' command - search projects by keyword."""
+    query = args.query
+    status = args.status if hasattr(args, 'status') else None
+    
+    try:
+        # Search projects
+        projects = models.search_projects(query, status=status)
+        
+        if not projects:
+            if status:
+                print(f"No projects found matching '{query}' with status '{status}'")
+            else:
+                print(f"No projects found matching '{query}'")
+            return 0
+        
+        # Display header
+        count = len(projects)
+        plural = "result" if count == 1 else "results"
+        print(f"\n{count} {plural} found for '{query}'")
+        if status:
+            print(f"(filtered by status: {status})")
+        print("=" * 80)
+        
+        # Display each project (same format as list command)
+        for proj in projects:
+            print(f"\n[{proj['id']}] {proj['name']}")
+            print(f"    Status: {proj['status']}", end="")
+            
+            if proj['project_type']:
+                print(f" | Type: {proj['project_type']}", end="")
+            
+            if proj['primary_language']:
+                print(f" | Language: {proj['primary_language']}", end="")
+            
+            print()  # newline
+            
+            if proj['description']:
+                print(f"    {proj['description']}")
+            
+            # Show tags if any
+            project_tags = models.list_project_tags(proj['id'])
+            if project_tags:
+                print(f"    Tags: {', '.join(project_tags)}")
+            
+            if proj['last_worked_at']:
+                print(f"    Last worked: {proj['last_worked_at']}")
+            else:
+                print(f"    Created: {proj['created_at']}")
+        
+        print()
+        return 0
+        
+    except Exception as e:
+        print(f"[ERROR] Error searching projects: {e}", file=sys.stderr)
+        return 1
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser."""
     parser = argparse.ArgumentParser(
@@ -798,6 +856,16 @@ def create_parser() -> argparse.ArgumentParser:
         help="Filter by tag"
     )
     parser_list.set_defaults(func=cmd_list)
+    
+    # Search command
+    parser_search = subparsers.add_parser("search", help="Search projects by keyword")
+    parser_search.add_argument("query", help="Search query (searches name, description, notes, tags, etc.)")
+    parser_search.add_argument(
+        "--status",
+        choices=["idea", "active", "paused", "archived"],
+        help="Filter by status"
+    )
+    parser_search.set_defaults(func=cmd_search)
     
     # Show command
     parser_show = subparsers.add_parser("show", help="Show project details")

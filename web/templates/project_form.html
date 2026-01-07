@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}New Project - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Create New Project</h1>
+    <p class="subtitle">Add a new project to your tracker</p>
+</div>
+
+{% if error %}
+<div class="error-message">
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<form action="/projects/new" method="post" class="project-form">
+    <div class="form-section">
+        <h2>Basic Information</h2>
+        
+        <div class="form-group">
+            <label for="name" class="required">Project Name</label>
+            <input 
+                type="text" 
+                id="name" 
+                name="name" 
+                value="{{ form_data.name or '' }}" 
+                required
+                class="form-control"
+                placeholder="Enter project name"
+            >
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea 
+                id="description" 
+                name="description" 
+                rows="3"
+                class="form-control"
+                placeholder="Brief description of the project"
+            >{{ form_data.description or '' }}</textarea>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status" class="form-control">
+                    <option value="idea" {% if form_data.status == 'idea' or not form_data.status %}selected{% endif %}>💡 Idea</option>
+                    <option value="active" {% if form_data.status == 'active' %}selected{% endif %}>🚀 Active</option>
+                    <option value="paused" {% if form_data.status == 'paused' %}selected{% endif %}>⏸️ Paused</option>
+                    <option value="archived" {% if form_data.status == 'archived' %}selected{% endif %}>📦 Archived</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="project_type">Project Type</label>
+                <select id="project_type" name="project_type" class="form-control">
+                    <option value="">Select type...</option>
+                    <option value="web" {% if form_data.project_type == 'web' %}selected{% endif %}>Web</option>
+                    <option value="cli" {% if form_data.project_type == 'cli' %}selected{% endif %}>CLI</option>
+                    <option value="library" {% if form_data.project_type == 'library' %}selected{% endif %}>Library</option>
+                    <option value="homelab" {% if form_data.project_type == 'homelab' %}selected{% endif %}>Homelab</option>
+                    <option value="research" {% if form_data.project_type == 'research' %}selected{% endif %}>Research</option>
+                    <option value="other" {% if form_data.project_type == 'other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Technical Details</h2>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label for="primary_language">Primary Language</label>
+                <input 
+                    type="text" 
+                    id="primary_language" 
+                    name="primary_language" 
+                    value="{{ form_data.primary_language or '' }}"
+                    class="form-control"
+                    placeholder="e.g., Python, JavaScript, Go"
+                >
+            </div>
+            
+            <div class="form-group">
+                <label for="scope_size">Scope Size</label>
+                <select id="scope_size" name="scope_size" class="form-control">
+                    <option value="">Select scope...</option>
+                    <option value="tiny" {% if form_data.scope_size == 'tiny' %}selected{% endif %}>Tiny</option>
+                    <option value="medium" {% if form_data.scope_size == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="long-haul" {% if form_data.scope_size == 'long-haul' %}selected{% endif %}>Long-haul</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="stack">Stack/Technology</label>
+            <input 
+                type="text" 
+                id="stack" 
+                name="stack" 
+                value="{{ form_data.stack or '' }}"
+                class="form-control"
+                placeholder="e.g., FastAPI + SQLite, React + Node.js"
+            >
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Location</h2>
+        
+        <div class="form-group">
+            <label for="repo_url">Repository URL</label>
+            <input 
+                type="url" 
+                id="repo_url" 
+                name="repo_url" 
+                value="{{ form_data.repo_url or '' }}"
+                class="form-control"
+                placeholder="https://github.com/username/repo"
+            >
+            <small class="form-help">Must start with http://, https://, or git@</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="local_path">Local Path</label>
+            <input 
+                type="text" 
+                id="local_path" 
+                name="local_path" 
+                value="{{ form_data.local_path or '' }}"
+                class="form-control"
+                placeholder="/path/to/project"
+            >
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Learning & Goals</h2>
+        
+        <div class="form-group">
+            <label for="learning_goal">Learning Goal</label>
+            <textarea 
+                id="learning_goal" 
+                name="learning_goal" 
+                rows="3"
+                class="form-control"
+                placeholder="What are you trying to learn or achieve with this project?"
+            >{{ form_data.learning_goal or '' }}</textarea>
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Create Project</button>
+        <a href="/projects" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<script>
+// Client-side validation for URL field
+document.getElementById('repo_url').addEventListener('blur', function() {
+    const url = this.value.trim();
+    if (url && !(url.startsWith('http://') || url.startsWith('https://') || url.startsWith('git@'))) {
+        this.setCustomValidity('Repository URL must start with http://, https://, or git@');
+    } else {
+        this.setCustomValidity('');
+    }
+});
+
+// Clear validation on input
+document.getElementById('repo_url').addEventListener('input', function() {
+    this.setCustomValidity('');
+});
+</script>
+{% endblock %}

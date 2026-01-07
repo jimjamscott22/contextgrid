@@ -3,11 +3,12 @@ ContextGrid Web UI
 FastAPI application for browsing and managing projects
 """
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
+from typing import Optional
 import sys
 
 # Add src to path to import our existing models
@@ -68,13 +69,60 @@ async def home(request: Request):
 
 
 @app.get("/projects", response_class=HTMLResponse)
-async def projects_list(request: Request, status: str = None, tag: str = None):
-    """List all projects with optional filtering."""
+async def projects_list(
+    request: Request,
+    status: str = None,
+    tag: str = None,
+    search: str = None,
+    page: int = 1,
+    sort: str = "last_worked_at",
+    order: str = "desc"
+):
+    """List all projects with optional filtering, search, pagination, and sorting."""
+    # Validate page number
+    if page < 1:
+        page = 1
+    
+    # Pagination settings
+    per_page = 15
+    offset = (page - 1) * per_page
+    
     # Fetch projects based on filters
-    if tag:
-        projects = models.list_projects_by_tag(tag, status=status)
+    if search and search.strip():
+        # Search projects with pagination
+        total_count = models.get_projects_count(status=status, search=search)
+        projects = models.search_projects(
+            search,
+            status=status,
+            limit=per_page,
+            offset=offset,
+            sort_by=sort,
+            sort_order=order
+        )
+    elif tag:
+        total_count = models.get_projects_count(status=status, tag=tag)
+        projects = models.list_projects_by_tag(
+            tag,
+            status=status,
+            limit=per_page,
+            offset=offset,
+            sort_by=sort,
+            sort_order=order
+        )
     else:
-        projects = models.list_projects(status=status)
+        total_count = models.get_projects_count(status=status)
+        projects = models.list_projects(
+            status=status,
+            limit=per_page,
+            offset=offset,
+            sort_by=sort,
+            sort_order=order
+        )
+    
+    # Calculate pagination info
+    total_pages = (total_count + per_page - 1) // per_page  # Ceiling division
+    has_prev = page > 1
+    has_next = page < total_pages
     
     # Get all tags for filter UI
     all_tags = models.list_all_tags()
@@ -86,9 +134,144 @@ async def projects_list(request: Request, status: str = None, tag: str = None):
             "projects": projects,
             "all_tags": all_tags,
             "current_status": status,
-            "current_tag": tag
+            "current_tag": tag,
+            "search_query": search,
+            "current_page": page,
+            "total_pages": total_pages,
+            "total_count": total_count,
+            "has_prev": has_prev,
+            "has_next": has_next,
+            "sort": sort,
+            "order": order
         }
     )
+
+
+@app.get("/projects/new", response_class=HTMLResponse)
+async def project_new_form(request: Request):
+    """Show the new project creation form."""
+    return templates.TemplateResponse(
+        "project_form.html",
+        {
+            "request": request,
+            "error": None,
+            "form_data": {}
+        }
+    )
+
+
+@app.post("/projects/new")
+async def project_create(
+    request: Request,
+    name: str = Form(...),
+    description: Optional[str] = Form(None),
+    status: str = Form("idea"),
+    project_type: Optional[str] = Form(None),
+    primary_language: Optional[str] = Form(None),
+    stack: Optional[str] = Form(None),
+    repo_url: Optional[str] = Form(None),
+    local_path: Optional[str] = Form(None),
+    scope_size: Optional[str] = Form(None),
+    learning_goal: Optional[str] = Form(None)
+):
+    """Handle project creation form submission."""
+    # Validate required fields
+    if not name or not name.strip():
+        return templates.TemplateResponse(
+            "project_form.html",
+            {
+                "request": request,
+                "error": "Project name is required",
+                "form_data": {
+                    "name": name,
+                    "description": description,
+                    "status": status,
+                    "project_type": project_type,
+                    "primary_language": primary_language,
+                    "stack": stack,
+                    "repo_url": repo_url,
+                    "local_path": local_path,
+                    "scope_size": scope_size,
+                    "learning_goal": learning_goal
+                }
+            },
+            status_code=400
+        )
+    
+    # Validate URL format if provided
+    if repo_url and repo_url.strip():
+        repo_url = repo_url.strip()
+        if not (repo_url.startswith("http://") or repo_url.startswith("https://") or repo_url.startswith("git@")):
+            return templates.TemplateResponse(
+                "project_form.html",
+                {
+                    "request": request,
+                    "error": "Repository URL must start with http://, https://, or git@",
+                    "form_data": {
+                        "name": name,
+                        "description": description,
+                        "status": status,
+                        "project_type": project_type,
+                        "primary_language": primary_language,
+                        "stack": stack,
+                        "repo_url": repo_url,
+                        "local_path": local_path,
+                        "scope_size": scope_size,
+                        "learning_goal": learning_goal
+                    }
+                },
+                status_code=400
+            )
+    
+    # Clean up empty strings to None
+    description = description.strip() if description and description.strip() else None
+    project_type = project_type.strip() if project_type and project_type.strip() else None
+    primary_language = primary_language.strip() if primary_language and primary_language.strip() else None
+    stack = stack.strip() if stack and stack.strip() else None
+    repo_url = repo_url.strip() if repo_url and repo_url.strip() else None
+    local_path = local_path.strip() if local_path and local_path.strip() else None
+    scope_size = scope_size.strip() if scope_size and scope_size.strip() else None
+    learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
+    
+    try:
+        # Create the project
+        project_id = models.create_project(
+            name=name.strip(),
+            description=description,
+            status=status,
+            project_type=project_type,
+            primary_language=primary_language,
+            stack=stack,
+            repo_url=repo_url,
+            local_path=local_path,
+            scope_size=scope_size,
+            learning_goal=learning_goal
+        )
+        
+        # Redirect to the new project's detail page
+        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        
+    except Exception as e:
+        return templates.TemplateResponse(
+            "project_form.html",
+            {
+                "request": request,
+                "error": f"Error creating project: {str(e)}",
+                "form_data": {
+                    "name": name,
+                    "description": description,
+                    "status": status,
+                    "project_type": project_type,
+                    "primary_language": primary_language,
+                    "stack": stack,
+                    "repo_url": repo_url,
+                    "local_path": local_path,
+                    "scope_size": scope_size,
+                    "learning_goal": learning_goal
+                }
+            },
+            status_code=500
+        )
 
 
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
