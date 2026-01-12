@@ -1,11 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}New Project - ContextGrid{% endblock %}
+{% block title %}Edit {{ project.name }} - ContextGrid{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h1>Create New Project</h1>
-    <p class="subtitle">Add a new project to your tracker</p>
+    <div>
+        <div class="breadcrumb">
+            <a href="/projects/{{ project.id }}">← Back to Project</a>
+        </div>
+        <h1>Edit Project</h1>
+        <p class="subtitle">Update details for {{ project.name }}</p>
+    </div>
 </div>
 
 {% if error %}
@@ -14,17 +19,17 @@
 </div>
 {% endif %}
 
-<form action="/projects/new" method="post" class="project-form">
+<form action="/projects/{{ project.id }}/edit" method="post" class="project-form">
     <div class="form-section">
         <h2>Basic Information</h2>
         
         <div class="form-group">
             <label for="name" class="required">Project Name</label>
-            <input 
-                type="text" 
-                id="name" 
-                name="name" 
-                value="{{ form_data.name or '' }}" 
+            <input
+                type="text"
+                id="name"
+                name="name"
+                value="{{ form_data.name or '' }}"
                 required
                 class="form-control"
                 placeholder="Enter project name"
@@ -33,9 +38,9 @@
         
         <div class="form-group">
             <label for="description">Description</label>
-            <textarea 
-                id="description" 
-                name="description" 
+            <textarea
+                id="description"
+                name="description"
                 rows="3"
                 class="form-control"
                 placeholder="Brief description of the project"
@@ -74,10 +79,10 @@
         <div class="form-row">
             <div class="form-group">
                 <label for="primary_language">Primary Language</label>
-                <input 
-                    type="text" 
-                    id="primary_language" 
-                    name="primary_language" 
+                <input
+                    type="text"
+                    id="primary_language"
+                    name="primary_language"
                     value="{{ form_data.primary_language or '' }}"
                     class="form-control"
                     placeholder="e.g., Python, JavaScript, Go"
@@ -97,10 +102,10 @@
         
         <div class="form-group">
             <label for="stack">Stack/Technology</label>
-            <input 
-                type="text" 
-                id="stack" 
-                name="stack" 
+            <input
+                type="text"
+                id="stack"
+                name="stack"
                 value="{{ form_data.stack or '' }}"
                 class="form-control"
                 placeholder="e.g., FastAPI + SQLite, React + Node.js"
@@ -113,10 +118,10 @@
         
         <div class="form-group">
             <label for="repo_url">Repository URL</label>
-            <input 
-                type="text" 
-                id="repo_url" 
-                name="repo_url" 
+            <input
+                type="text"
+                id="repo_url"
+                name="repo_url"
                 value="{{ form_data.repo_url or '' }}"
                 class="form-control"
                 placeholder="https://github.com/username/repo"
@@ -126,10 +131,10 @@
         
         <div class="form-group">
             <label for="local_path">Local Path</label>
-            <input 
-                type="text" 
-                id="local_path" 
-                name="local_path" 
+            <input
+                type="text"
+                id="local_path"
+                name="local_path"
                 value="{{ form_data.local_path or '' }}"
                 class="form-control"
                 placeholder="/path/to/project"
@@ -142,9 +147,9 @@
         
         <div class="form-group">
             <label for="learning_goal">Learning Goal</label>
-            <textarea 
-                id="learning_goal" 
-                name="learning_goal" 
+            <textarea
+                id="learning_goal"
+                name="learning_goal"
                 rows="3"
                 class="form-control"
                 placeholder="What are you trying to learn or achieve with this project?"
@@ -153,8 +158,8 @@
     </div>
     
     <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Create Project</button>
-        <a href="/projects" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="/projects/{{ project.id }}" class="btn btn-secondary">Cancel</a>
     </div>
 </form>
 

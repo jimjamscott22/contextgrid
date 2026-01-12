@@ -274,6 +274,184 @@ async def project_create(
         )
 
 
+@app.get("/projects/{project_id}/edit", response_class=HTMLResponse)
+async def project_edit_form(request: Request, project_id: int):
+    """Show the project edit form."""
+    project = models.get_project(project_id)
+
+    if not project:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error": f"Project {project_id} not found"
+            },
+            status_code=404
+        )
+
+    return templates.TemplateResponse(
+        "project_edit.html",
+        {
+            "request": request,
+            "error": None,
+            "form_data": project,
+            "project": project
+        }
+    )
+
+
+@app.post("/projects/{project_id}/edit")
+async def project_update(
+    request: Request,
+    project_id: int,
+    name: str = Form(...),
+    description: Optional[str] = Form(None),
+    status: str = Form("idea"),
+    project_type: Optional[str] = Form(None),
+    primary_language: Optional[str] = Form(None),
+    stack: Optional[str] = Form(None),
+    repo_url: Optional[str] = Form(None),
+    local_path: Optional[str] = Form(None),
+    scope_size: Optional[str] = Form(None),
+    learning_goal: Optional[str] = Form(None)
+):
+    """Handle project edit form submission."""
+    project = models.get_project(project_id)
+    if not project:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error": f"Project {project_id} not found"
+            },
+            status_code=404
+        )
+
+    if not name or not name.strip():
+        return templates.TemplateResponse(
+            "project_edit.html",
+            {
+                "request": request,
+                "error": "Project name is required",
+                "form_data": {
+                    "id": project_id,
+                    "name": name,
+                    "description": description,
+                    "status": status,
+                    "project_type": project_type,
+                    "primary_language": primary_language,
+                    "stack": stack,
+                    "repo_url": repo_url,
+                    "local_path": local_path,
+                    "scope_size": scope_size,
+                    "learning_goal": learning_goal
+                },
+                "project": project
+            },
+            status_code=400
+        )
+
+    if repo_url and repo_url.strip():
+        repo_url = repo_url.strip()
+        if not (repo_url.startswith("http://") or repo_url.startswith("https://") or repo_url.startswith("git@")):
+            return templates.TemplateResponse(
+                "project_edit.html",
+                {
+                    "request": request,
+                    "error": "Repository URL must start with http://, https://, or git@",
+                    "form_data": {
+                        "id": project_id,
+                        "name": name,
+                        "description": description,
+                        "status": status,
+                        "project_type": project_type,
+                        "primary_language": primary_language,
+                        "stack": stack,
+                        "repo_url": repo_url,
+                        "local_path": local_path,
+                        "scope_size": scope_size,
+                        "learning_goal": learning_goal
+                    },
+                    "project": project
+                },
+                status_code=400
+            )
+
+    description = description.strip() if description and description.strip() else None
+    project_type = project_type.strip() if project_type and project_type.strip() else None
+    primary_language = primary_language.strip() if primary_language and primary_language.strip() else None
+    stack = stack.strip() if stack and stack.strip() else None
+    repo_url = repo_url.strip() if repo_url and repo_url.strip() else None
+    local_path = local_path.strip() if local_path and local_path.strip() else None
+    scope_size = scope_size.strip() if scope_size and scope_size.strip() else None
+    learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
+
+    try:
+        updated = models.update_project(
+            project_id,
+            name=name.strip(),
+            description=description,
+            status=status,
+            project_type=project_type,
+            primary_language=primary_language,
+            stack=stack,
+            repo_url=repo_url,
+            local_path=local_path,
+            scope_size=scope_size,
+            learning_goal=learning_goal
+        )
+
+        if not updated:
+            return templates.TemplateResponse(
+                "project_edit.html",
+                {
+                    "request": request,
+                    "error": "No changes were saved",
+                    "form_data": {
+                        "id": project_id,
+                        "name": name,
+                        "description": description,
+                        "status": status,
+                        "project_type": project_type,
+                        "primary_language": primary_language,
+                        "stack": stack,
+                        "repo_url": repo_url,
+                        "local_path": local_path,
+                        "scope_size": scope_size,
+                        "learning_goal": learning_goal
+                    },
+                    "project": project
+                },
+                status_code=400
+            )
+
+        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+
+    except Exception as e:
+        return templates.TemplateResponse(
+            "project_edit.html",
+            {
+                "request": request,
+                "error": f"Error updating project: {str(e)}",
+                "form_data": {
+                    "id": project_id,
+                    "name": name,
+                    "description": description,
+                    "status": status,
+                    "project_type": project_type,
+                    "primary_language": primary_language,
+                    "stack": stack,
+                    "repo_url": repo_url,
+                    "local_path": local_path,
+                    "scope_size": scope_size,
+                    "learning_goal": learning_goal
+                },
+                "project": project
+            },
+            status_code=500
+        )
+
+
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 async def project_detail(request: Request, project_id: int):
     """Show detailed view of a single project."""
@@ -331,4 +509,3 @@ async def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
-

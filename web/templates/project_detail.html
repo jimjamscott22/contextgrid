@@ -4,12 +4,17 @@
 
 {% block content %}
 <div class="page-header">
-    <div class="breadcrumb">
-        <a href="/projects">← Back to Projects</a>
+    <div>
+        <div class="breadcrumb">
+            <a href="/projects">← Back to Projects</a>
+        </div>
+        <div class="project-title-section">
+            <h1>{{ project.name }}</h1>
+            <span class="badge badge-{{ project.status }} large">{{ project.status }}</span>
+        </div>
     </div>
-    <div class="project-title-section">
-        <h1>{{ project.name }}</h1>
-        <span class="badge badge-{{ project.status }} large">{{ project.status }}</span>
+    <div class="header-actions">
+        <a href="/projects/{{ project.id }}/edit" class="btn btn-secondary">Edit Project</a>
     </div>
 </div>
 
@@ -135,4 +140,3 @@
     </div>
 </div>
 {% endblock %}
-
