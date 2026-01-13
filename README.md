@@ -26,25 +26,64 @@ ContextGrid is designed for one user: me.
 
 ---
 
-## Core Features (Planned)
+## Core Features
 
-- Project metadata (name, type, language, stack, location)
-- Clear lifecycle status (idea → active → paused → archived)
-- Timestamped notes and reflections
-- Tag-based organization and filtering ✅
-- SQLite-backed, local-first storage
+- ✅ Project metadata (name, type, language, stack, location)
+- ✅ Clear lifecycle status (idea → active → paused → archived)
+- ✅ Timestamped notes and reflections
+- ✅ Tag-based organization and filtering
+- ✅ REST API for programmatic access
+- ✅ MySQL-backed, production-ready storage
+- ✅ Command-line interface
+- ✅ Web-based interface
+- ✅ Cross-device access via API
 
-No accounts.  
-No authentication.  
-No cloud dependency.
+Simple to use, powerful to extend.
+
+No accounts required.  
+No cloud dependency.  
+Your data, your control.
+
+---
+
+## Architecture
+
+ContextGrid now uses an API-based architecture that enables cross-device access and scalability:
+
+```
+┌─────────────┐         ┌─────────────┐
+│     CLI     │────────▶│             │
+└─────────────┘         │             │
+                        │  API Server │         ┌──────────┐
+┌─────────────┐         │   (FastAPI) │────────▶│  MySQL   │
+│   Web UI    │────────▶│             │         │ Database │
+└─────────────┘         │             │         └──────────┘
+                        └─────────────┘
+```
+
+**Components:**
+- **CLI** (`src/main.py`, `src/cli.py`): Command-line interface that makes HTTP requests to the API
+- **Web UI** (`web/app.py`): Web-based interface for browsing projects
+- **API Server** (`api/server.py`): FastAPI REST API handling all business logic
+- **Database**: MySQL database for persistent storage
+
+### Benefits
+
+- **Cross-device access**: Access your projects from any machine with network access
+- **Scalability**: API server can handle multiple clients simultaneously
+- **Separation of concerns**: Clean separation between UI, business logic, and data storage
+- **Future-proof**: Easy to add mobile apps, integrations, or new clients
 
 ---
 
 ## Tech Stack
 
-- **Language:** Python
-- **Database:** SQLite
-- **Interface:** CLI initially (API/UI later if it earns its keep)
+- **Language:** Python 3.8+
+- **Database:** MySQL 8.0+
+- **API Framework:** FastAPI
+- **Web Server:** Uvicorn
+- **Database Driver:** PyMySQL
+- **CLI:** Pure Python with argparse
 
 ---
 
@@ -53,51 +92,202 @@ No cloud dependency.
 ```text
 contextgrid/
 ├── README.md
-├── .gitignore
-├── requirements.txt         # dependencies (stdlib only for now)
-├── data/
-│   └── projects.db          # local only (not committed)
+├── API.md                        # API documentation
+├── .env.example                  # Example environment variables
+├── requirements.txt              # Python dependencies
+├── api/
+│   ├── __init__.py
+│   ├── server.py                 # FastAPI application
+│   ├── db.py                     # MySQL database layer
+│   ├── models.py                 # Pydantic models
+│   └── config.py                 # Configuration management
 ├── src/
-│   ├── main.py              # entry point
-│   ├── db.py                # DB connection + initialization
-│   ├── models.py            # schema helpers / queries
-│   └── cli.py               # command-line interface
+│   ├── main.py                   # CLI entry point
+│   ├── cli.py                    # CLI commands
+│   ├── api_client.py             # HTTP client for API
+│   ├── models.py                 # Model wrappers
+│   └── db.py                     # Legacy SQLite support
+├── web/
+│   ├── app.py                    # Web UI
+│   ├── static/                   # CSS, JS, images
+│   └── templates/                # Jinja2 templates
 └── scripts/
-    └── init_db.sql          # database schema
+    ├── init_db.sql               # SQLite schema (legacy)
+    ├── init_mysql.sql            # MySQL schema
+    └── migrate_sqlite_to_mysql.py # Migration tool
 ```
 
 ---
 
 ## Quick Start
 
+### Prerequisites
+
+1. **Python 3.8+**
+   ```bash
+   python3 --version  # should be 3.8 or higher
+   ```
+
+2. **MySQL 8.0+**
+   ```bash
+   mysql --version
+   ```
+
 ### Installation
 
-Clone or download this repository, then ensure you have Python 3.8+ installed:
+Clone or download this repository:
 
 ```bash
-python3 --version  # should be 3.8 or higher
+git clone https://github.com/yourusername/contextgrid.git
+cd contextgrid
 ```
 
-### Setup (First Time Only)
+### Setup
+
+#### 1. Create Virtual Environment
 
 ```bash
-# Create a virtual environment
 python3 -m venv venv
-
-# Activate it
 source venv/bin/activate  # On Linux/Mac
 # or
-venv\Scripts\activate  # On Windows
+venv\Scripts\activate     # On Windows
+```
 
-# Install dependencies
+#### 2. Install Dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
+#### 3. Set Up MySQL Database
+
+Create a MySQL database and user:
+
+```sql
+CREATE DATABASE contextgrid;
+CREATE USER 'contextgrid_user'@'localhost' IDENTIFIED BY 'your_secure_password';
+GRANT ALL PRIVILEGES ON contextgrid.* TO 'contextgrid_user'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+#### 4. Configure Environment
+
+Copy the example environment file and update with your settings:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set your database credentials:
+
+```bash
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=contextgrid
+DB_USER=contextgrid_user
+DB_PASSWORD=your_secure_password
+
+API_HOST=0.0.0.0
+API_PORT=8000
+API_ENDPOINT=http://localhost:8000
+```
+
+#### 5. Initialize Database
+
+The API server automatically creates tables on first run. Just start the server:
+
+```bash
+python api/server.py
+```
+
+Alternatively, you can manually run the schema:
+
+```bash
+mysql -u contextgrid_user -p contextgrid < scripts/init_mysql.sql
+```
+
+#### 6. Migrate Existing Data (Optional)
+
+If you have existing SQLite data to migrate:
+
+```bash
+python scripts/migrate_sqlite_to_mysql.py
+```
+
+---
+
+## Running ContextGrid
+
+### Start the API Server
+
+```bash
+python api/server.py
+```
+
+The API will be available at `http://localhost:8000`.
+API documentation is available at `http://localhost:8000/docs`.
+
 ### Using the CLI
 
-No installation needed for CLI-only usage (uses Python stdlib only).
+With the API server running, use the CLI:
 
-### Basic Usage
+```bash
+python src/main.py add "My Project"
+python src/main.py list
+python src/main.py show 1
+```
+
+All CLI commands now communicate with the API server.
+
+### Start the Web UI (Optional)
+
+In a separate terminal:
+
+```bash
+python web/app.py
+```
+
+The web interface will be available at `http://localhost:8080`.
+
+---
+
+## API Server
+
+The API server provides a REST API for all project management operations.
+
+### Endpoints
+
+See [API.md](API.md) for complete API documentation.
+
+**Key Endpoints:**
+- `GET /api/health` - Health check
+- `GET /api/projects` - List projects
+- `POST /api/projects` - Create project
+- `PUT /api/projects/{id}` - Update project
+- `DELETE /api/projects/{id}` - Delete project
+- `POST /api/projects/{id}/touch` - Update last worked timestamp
+- `GET /api/tags` - List tags
+- `POST /api/projects/{id}/tags` - Add tag
+- `GET /api/projects/{id}/notes` - List notes
+- `POST /api/projects/{id}/notes` - Add note
+
+### Configuration
+
+Configure the API server via environment variables in `.env`:
+
+- `API_HOST`: API server host (default: `0.0.0.0`)
+- `API_PORT`: API server port (default: `8000`)
+- `DB_HOST`: MySQL host (default: `localhost`)
+- `DB_PORT`: MySQL port (default: `3306`)
+- `DB_NAME`: MySQL database name
+- `DB_USER`: MySQL username
+- `DB_PASSWORD`: MySQL password
+
+---
+
+## CLI Usage
+
+### Using the CLI
 
 **Create your first project:**
 
@@ -216,25 +406,21 @@ $ python src/main.py roadmap
 
 ## Web UI
 
-ContextGrid now includes a beautiful web interface for browsing and managing your projects!
+ContextGrid includes a beautiful web interface for browsing and managing your projects.
 
 ### Starting the Web UI
 
 ```bash
-# Make sure you're in the project directory
-cd contextgrid
+# Make sure the API server is running first!
+python api/server.py
 
-# Activate virtual environment
-source venv/bin/activate
-
-# Start the web server
-python3 web/app.py
-
-# Or use uvicorn directly
-uvicorn web.app:app --reload
+# Then in another terminal, start the web UI
+python web/app.py
 ```
 
-The web interface will be available at: **http://127.0.0.1:8000**
+The web interface will be available at: **http://127.0.0.1:8080**
+
+**Note:** The Web UI requires the API server to be running on `http://localhost:8000`.
 
 ### Features
 
@@ -330,7 +516,104 @@ The roadmap is perfect for:
 
 ## Future Plans
 
-- Enhanced search capabilities across projects and notes
+- Enhanced full-text search across projects and notes via API
 - Timeline view of project activity
-- Web UI or TUI for richer interaction
+- Authentication and multi-user support
 - Export/import functionality for backups
+- Mobile app
+- Desktop app (Electron or Tauri)
+- Integration with Git for auto-tracking
+- Webhooks for external integrations
+
+---
+
+## Troubleshooting
+
+### API Server Won't Start
+
+**Problem:** `Database connection failed` error
+
+**Solution:**
+1. Check that MySQL is running: `systemctl status mysql` (Linux) or `brew services list` (Mac)
+2. Verify database credentials in `.env` file
+3. Ensure database exists: `mysql -u root -p -e "SHOW DATABASES;"`
+4. Test connection: `mysql -u contextgrid_user -p contextgrid`
+
+### CLI Commands Fail
+
+**Problem:** `Cannot connect to API server` error
+
+**Solution:**
+1. Ensure API server is running: `python api/server.py`
+2. Check `API_ENDPOINT` in `.env` matches the server address
+3. Verify API server is listening: `curl http://localhost:8000/api/health`
+
+### Web UI Shows Empty Data
+
+**Problem:** Web UI loads but shows no projects
+
+**Solution:**
+1. Verify API server is running on the expected port (8000)
+2. Check browser console for errors (F12)
+3. Ensure Web UI is configured to connect to the correct API endpoint
+
+### Migration Issues
+
+**Problem:** Migration script fails
+
+**Solution:**
+1. Ensure SQLite database exists at `data/projects.db`
+2. Verify MySQL database is empty or doesn't have conflicting data
+3. Check that user has sufficient permissions on MySQL database
+4. Run migration with verbose output for debugging
+
+### Port Conflicts
+
+**Problem:** `Address already in use` error
+
+**Solution:**
+1. API server uses port 8000, Web UI uses port 8080
+2. Change ports in `.env` or when starting servers
+3. Kill existing processes: `lsof -i :8000` and `kill <PID>`
+
+---
+
+## Development
+
+### Running Tests
+
+```bash
+# TODO: Add tests
+pytest
+```
+
+### Code Style
+
+This project uses:
+- PEP 8 for Python code style
+- Type hints where appropriate
+- Docstrings for all public functions
+
+### Contributing
+
+This is a personal project, but suggestions and feedback are welcome!
+
+---
+
+## License
+
+[License information here]
+
+---
+
+## Acknowledgments
+
+Built with:
+- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
+- [PyMySQL](https://github.com/PyMySQL/PyMySQL) - Pure Python MySQL client
+- [Pydantic](https://pydantic-docs.helpmanual.io/) - Data validation
+- [Uvicorn](https://www.uvicorn.org/) - ASGI server
+
+---
+
+*ContextGrid - Track what you're building, where it lives, and what's next.*
