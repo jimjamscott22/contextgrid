@@ -355,6 +355,39 @@ async def create_note(project_id: int, note: NoteCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/notes/{note_id}", response_model=NoteResponse)
+async def get_note(note_id: int):
+    """Get a single note by ID."""
+    try:
+        note = db.get_note(note_id)
+        
+        if not note:
+            raise HTTPException(status_code=404, detail=f"Note {note_id} not found")
+        
+        return note
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/notes/{note_id}", response_model=MessageResponse)
+async def delete_note(note_id: int):
+    """Delete a note by ID."""
+    try:
+        success = db.delete_note(note_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Note {note_id} not found")
+        
+        return MessageResponse(message=f"Note {note_id} deleted successfully")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # =========================
 # Main Entry Point
 # =========================
