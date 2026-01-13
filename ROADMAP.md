@@ -1,6 +1,6 @@
 # Project Roadmap
 
-*Generated: 2025-12-24 07:37 UTC*
+*Generated: 2026-01-13 00:56 UTC*
 
 A visual overview of all projects tracked in ContextGrid.
 
@@ -19,40 +19,37 @@ A visual overview of all projects tracked in ContextGrid.
 
 *Currently in development*
 
-### ContextGrid
+### Test Project
 
-> Personal project tracker
-
-| Property | Value |
-|----------|-------|
-| **ID** | `2` |
-| **Status** | `active` |
-| **Type** | cli |
-| **Language** | Python |
-| **Stack** | SQLite |
-| **Scope** | medium |
-| **Learning Goal** | Build a thinking tool for tracking projects |
-| **Path** | `d:\Code\Python\PythonApps\contextgrid` |
-| **Created** | 2025-12-24 |
-| **Last Worked** | 2025-12-24 |
-
----
-
-### ContextGrid
-
-> Personal project tracker
+> A test project via API
 
 | Property | Value |
 |----------|-------|
 | **ID** | `1` |
 | **Status** | `active` |
-| **Type** | cli |
+| **Type** | web |
 | **Language** | Python |
-| **Stack** | SQLite |
+| **Created** | 2026-01-13 |
+| **Last Worked** | 2026-01-13 |
+
+---
+
+### CLI Test Project
+
+> Testing project creation via CLI
+
+| Property | Value |
+|----------|-------|
+| **ID** | `2` |
+| **Status** | `active` |
+| **Type** | web |
+| **Language** | Python |
+| **Stack** | FastAPI + MySQL |
 | **Scope** | medium |
-| **Learning Goal** | Build a thinking tool for tracking projects |
-| **Path** | `d:\Code\Python\PythonApps\contextgrid` |
-| **Created** | 2025-12-24 |
+| **Learning Goal** | Learning API architecture |
+| **Path** | `/home/test/projects/test` |
+| **Repository** | https://github.com/test/test |
+| **Created** | 2026-01-13 |
 
 ---
 
@@ -61,63 +58,21 @@ A visual overview of all projects tracked in ContextGrid.
 
 *Concepts waiting to be started*
 
-### JobScout
-
-> Web scraper for job listings
-
-| Property | Value |
-|----------|-------|
-| **ID** | `3` |
-| **Status** | `idea` |
-| **Type** | web |
-| **Language** | Python |
-| **Scope** | tiny |
-| **Learning Goal** | Learn BeautifulSoup and async requests |
-| **Created** | 2025-12-24 |
-
----
+_No projects in this status._
 
 
 ## ⏸️ Paused Projects
 
 *On hold for now*
 
-### HomeAutomation
-
-> Raspberry Pi home automation system
-
-| Property | Value |
-|----------|-------|
-| **ID** | `4` |
-| **Status** | `paused` |
-| **Type** | homelab |
-| **Language** | Python |
-| **Stack** | RPi + MQTT + Home Assistant |
-| **Scope** | long-haul |
-| **Path** | `/home/pi/automation` |
-| **Created** | 2025-12-24 |
-
----
+_No projects in this status._
 
 
 ## 📦 Archived Projects
 
 *Completed or shelved*
 
-### TodoCLI
-
-> Simple command-line todo list
-
-| Property | Value |
-|----------|-------|
-| **ID** | `5` |
-| **Status** | `archived` |
-| **Type** | cli |
-| **Language** | Python |
-| **Scope** | tiny |
-| **Created** | 2025-12-24 |
-
----
+_No projects in this status._
 
 
 ## 📊 Summary
@@ -125,10 +80,10 @@ A visual overview of all projects tracked in ContextGrid.
 | Status | Count |
 |--------|-------|
 | Active | 2 |
-| Idea | 1 |
-| Paused | 1 |
-| Archived | 1 |
-| **Total** | **5** |
+| Idea | 0 |
+| Paused | 0 |
+| Archived | 0 |
+| **Total** | **2** |
 
 ---
 

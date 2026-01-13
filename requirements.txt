@@ -3,15 +3,21 @@
 
 # Python version: 3.8+
 
-# === CLI Dependencies (stdlib only) ===
-# - sqlite3 (database)
-# - argparse (CLI parsing)
-# - datetime (timestamps)
-# - pathlib (file paths)
-
-# === Web UI Dependencies ===
+# === Core API Dependencies ===
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+pymysql>=1.1.0
+requests>=2.31.0
+
+# === Web UI Dependencies ===
 jinja2>=3.1.0
 python-multipart>=0.0.6
+
+# === Legacy CLI Dependencies (for backward compatibility) ===
+# - sqlite3 (database) - stdlib
+# - argparse (CLI parsing) - stdlib
+# - datetime (timestamps) - stdlib
+# - pathlib (file paths) - stdlib
 
