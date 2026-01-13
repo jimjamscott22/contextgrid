@@ -5,6 +5,7 @@ FastAPI application providing REST API for project management
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from typing import Optional
 import sys
 
@@ -18,11 +19,41 @@ from api.config import config
 from api import db
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database on startup."""
+    try:
+        # Validate configuration
+        is_valid, error = config.validate()
+        if not is_valid:
+            message = f"Configuration error: {error}"
+            print(message, file=sys.stderr)
+            raise RuntimeError(message)
+
+        # Test database connection
+        success, error = db.test_connection()
+        if not success:
+            message = f"Database connection failed: {error}"
+            print(message, file=sys.stderr)
+            raise RuntimeError(message)
+
+        # Initialize schema
+        db.initialize_database()
+        print("Database initialized successfully")
+    except Exception as e:
+        if not isinstance(e, RuntimeError):
+            print(f"Startup error: {e}", file=sys.stderr)
+        raise
+
+    yield
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="ContextGrid API",
     description="REST API for personal project tracking and management",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Add CORS middleware for web UI
@@ -38,31 +69,6 @@ app.add_middleware(
 # =========================
 # Startup and Health Check
 # =========================
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on startup."""
-    try:
-        # Validate configuration
-        is_valid, error = config.validate()
-        if not is_valid:
-            print(f"Configuration error: {error}", file=sys.stderr)
-            sys.exit(1)
-        
-        # Test database connection
-        success, error = db.test_connection()
-        if not success:
-            print(f"Database connection failed: {error}", file=sys.stderr)
-            sys.exit(1)
-        
-        # Initialize schema
-        db.initialize_database()
-        print("Database initialized successfully")
-        
-    except Exception as e:
-        print(f"Startup error: {e}", file=sys.stderr)
-        sys.exit(1)
-
 
 @app.get("/api/health", response_model=HealthResponse)
 async def health_check():
@@ -87,12 +93,12 @@ async def health_check():
 
 @app.get("/api/projects", response_model=ProjectListResponse)
 async def list_projects(
-    status: Optional[str] = Query(None, regex="^(idea|active|paused|archived)$"),
+    status: Optional[str] = Query(None, pattern="^(idea|active|paused|archived)$"),
     tag: Optional[str] = Query(None),
     limit: Optional[int] = Query(None, ge=1, le=100),
     offset: Optional[int] = Query(None, ge=0),
-    sort_by: str = Query("last_worked_at", regex="^(name|created_at|last_worked_at|status)$"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$")
+    sort_by: str = Query("last_worked_at", pattern="^(name|created_at|last_worked_at|status)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$")
 ):
     """
     List all projects with optional filtering and pagination.
