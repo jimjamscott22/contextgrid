@@ -31,6 +31,20 @@ MYSQL_SCHEMA_PATH = BASE_DIR / "scripts" / "init_mysql.sql"
 
 
 # =========================
+# Helper Functions
+# =========================
+
+def _datetime_for_sqlite() -> str:
+    """Get current UTC datetime as ISO string for SQLite."""
+    return datetime.utcnow().isoformat()
+
+
+def _datetime_for_mysql():
+    """Get current UTC datetime object for MySQL."""
+    return datetime.utcnow()
+
+
+# =========================
 # Abstract Database Interface
 # =========================
 
@@ -205,7 +219,7 @@ class SQLiteBackend(DatabaseBackend):
                 (
                     name, description, status, project_type,
                     primary_language, stack, repo_url, local_path,
-                    scope_size, learning_goal, datetime.utcnow().isoformat()
+                    scope_size, learning_goal, _datetime_for_sqlite()
                 )
             )
             return cursor.lastrowid
@@ -221,6 +235,7 @@ class SQLiteBackend(DatabaseBackend):
                      limit: Optional[int] = None, offset: Optional[int] = None,
                      sort_by: str = "last_worked_at", sort_order: str = "desc") -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
+        # Validate and sanitize sort parameters to prevent SQL injection
         valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
         if sort_by not in valid_sort_fields:
             sort_by = "last_worked_at"
@@ -247,15 +262,19 @@ class SQLiteBackend(DatabaseBackend):
                 query += " AND status = ?"
                 params.append(status)
             
-            # Add ORDER BY clause
+            # Build ORDER BY clause using validated sort parameters
+            # Note: sort_by and sort_order are validated above, safe to use in f-string
             if sort_by == "last_worked_at":
-                query += f" ORDER BY CASE WHEN last_worked_at IS NULL THEN 0 ELSE 1 END {sort_order}, last_worked_at {sort_order}"
+                # Special handling for NULL last_worked_at values
+                order_clause = f" ORDER BY CASE WHEN last_worked_at IS NULL THEN 0 ELSE 1 END {sort_order}, last_worked_at {sort_order}"
             else:
-                query += f" ORDER BY {sort_by} {sort_order}"
+                order_clause = f" ORDER BY {sort_by} {sort_order}"
             
             # Add secondary sort
             if sort_by != "created_at":
-                query += ", created_at DESC"
+                order_clause += ", created_at DESC"
+            
+            query += order_clause
             
             # Add pagination
             if limit is not None:
@@ -305,7 +324,7 @@ class SQLiteBackend(DatabaseBackend):
     
     def update_last_worked(self, project_id: int) -> Tuple[bool, Optional[str]]:
         """Update the last_worked_at timestamp for a project."""
-        now = datetime.utcnow().isoformat()
+        now = _datetime_for_sqlite()
         
         with self._get_cursor() as cursor:
             cursor.execute(
@@ -416,7 +435,7 @@ class SQLiteBackend(DatabaseBackend):
                 INSERT INTO project_notes (project_id, note_type, content, created_at)
                 VALUES (?, ?, ?, ?)
                 """,
-                (project_id, note_type, content, datetime.utcnow().isoformat())
+                (project_id, note_type, content, _datetime_for_sqlite())
             )
             return cursor.lastrowid
     
@@ -537,7 +556,7 @@ class MySQLBackend(DatabaseBackend):
                 (
                     name, description, status, project_type,
                     primary_language, stack, repo_url, local_path,
-                    scope_size, learning_goal, datetime.utcnow()
+                    scope_size, learning_goal, _datetime_for_mysql()
                 )
             )
             return cursor.lastrowid
@@ -559,6 +578,7 @@ class MySQLBackend(DatabaseBackend):
                      limit: Optional[int] = None, offset: Optional[int] = None,
                      sort_by: str = "last_worked_at", sort_order: str = "desc") -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
+        # Validate and sanitize sort parameters to prevent SQL injection
         valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
         if sort_by not in valid_sort_fields:
             sort_by = "last_worked_at"
@@ -585,15 +605,19 @@ class MySQLBackend(DatabaseBackend):
                 query += " AND status = %s"
                 params.append(status)
             
-            # Add ORDER BY clause
+            # Build ORDER BY clause using validated sort parameters
+            # Note: sort_by and sort_order are validated above, safe to use in f-string
             if sort_by == "last_worked_at":
-                query += f" ORDER BY CASE WHEN last_worked_at IS NULL THEN 0 ELSE 1 END {sort_order}, last_worked_at {sort_order}"
+                # Special handling for NULL last_worked_at values
+                order_clause = f" ORDER BY CASE WHEN last_worked_at IS NULL THEN 0 ELSE 1 END {sort_order}, last_worked_at {sort_order}"
             else:
-                query += f" ORDER BY {sort_by} {sort_order}"
+                order_clause = f" ORDER BY {sort_by} {sort_order}"
             
             # Add secondary sort
             if sort_by != "created_at":
-                query += ", created_at DESC"
+                order_clause += ", created_at DESC"
+            
+            query += order_clause
             
             # Add pagination
             if limit is not None:
@@ -651,7 +675,7 @@ class MySQLBackend(DatabaseBackend):
     
     def update_last_worked(self, project_id: int) -> Tuple[bool, Optional[str]]:
         """Update the last_worked_at timestamp for a project."""
-        now = datetime.utcnow()
+        now = _datetime_for_mysql()
         
         with self._get_cursor() as cursor:
             cursor.execute(
@@ -762,7 +786,7 @@ class MySQLBackend(DatabaseBackend):
                 INSERT INTO project_notes (project_id, note_type, content, created_at)
                 VALUES (%s, %s, %s, %s)
                 """,
-                (project_id, note_type, content, datetime.utcnow())
+                (project_id, note_type, content, _datetime_for_mysql())
             )
             return cursor.lastrowid
     

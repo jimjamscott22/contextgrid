@@ -5,6 +5,7 @@ Handles environment variables and provides sensible defaults.
 
 import os
 from pathlib import Path
+from typing import Tuple
 from dotenv import load_dotenv
 
 # Load environment variables from .env file if it exists
@@ -55,7 +56,7 @@ class Config:
     MYSQL_DATABASE: str = os.getenv("MYSQL_DATABASE", "contextgrid")
     
     @classmethod
-    def validate(cls) -> tuple[bool, str]:
+    def validate(cls) -> Tuple[bool, str]:
         """
         Validate configuration settings.
         

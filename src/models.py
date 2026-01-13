@@ -9,6 +9,7 @@ All functions maintain the same signatures for backward compatibility.
 """
 
 import os
+import sys
 from typing import Optional, List, Dict, Any
 
 # Import configuration
@@ -26,8 +27,13 @@ else:
     # Initialize database on first use
     try:
         _db_backend.initialize_database()
-    except Exception:
-        pass  # May already be initialized
+    except Exception as e:
+        # Log error but continue - database may already be initialized
+        print(f"Warning: Database initialization encountered an issue: {e}", file=sys.stderr)
+        # Try to test connection to verify database is accessible
+        success, error = _db_backend.test_connection()
+        if not success:
+            raise Exception(f"Cannot connect to database: {error}")
 
 
 def _handle_error(e: Exception):
