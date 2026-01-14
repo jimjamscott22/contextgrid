@@ -3,13 +3,10 @@ API client for ContextGrid CLI.
 Handles HTTP requests to the API server.
 """
 
-import os
 import requests
 from typing import Optional, List, Dict, Any
 
-
-# API endpoint configuration
-API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8000")
+from config import config
 
 
 class APIError(Exception):
@@ -25,9 +22,9 @@ class APIClient:
         Initialize API client.
         
         Args:
-            base_url: Base URL for API endpoint (default: from environment or localhost)
+            base_url: Base URL for API endpoint (default: from config)
         """
-        self.base_url = base_url or API_ENDPOINT
+        self.base_url = base_url or config.API_URL
         self.base_url = self.base_url.rstrip('/')
     
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
