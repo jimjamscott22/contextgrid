@@ -17,7 +17,7 @@ class ProjectBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     status: str = Field(default="idea", pattern="^(idea|active|paused|archived)$")
-    project_type: Optional[str] = Field(None, pattern="^(web|cli|library|homelab|research)?$")
+    project_type: Optional[str] = Field(None, pattern="^(web|cli|library|homelab|research|other)?$")
     primary_language: Optional[str] = None
     stack: Optional[str] = None
     repo_url: Optional[str] = None
@@ -36,7 +36,7 @@ class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     status: Optional[str] = Field(None, pattern="^(idea|active|paused|archived)$")
-    project_type: Optional[str] = Field(None, pattern="^(web|cli|library|homelab|research)?$")
+    project_type: Optional[str] = Field(None, pattern="^(web|cli|library|homelab|research|other)?$")
     primary_language: Optional[str] = None
     stack: Optional[str] = None
     repo_url: Optional[str] = None
