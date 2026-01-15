@@ -221,7 +221,8 @@ python scripts/migrate_sqlite_to_mysql.py
 ### Start the API Server
 
 ```bash
-python api/server.py
+# Run as a module
+python -m api.server
 ```
 
 The API will be available at `http://localhost:8000`.
