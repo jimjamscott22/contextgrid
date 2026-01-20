@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from typing import Optional
+from starlette.concurrency import run_in_threadpool
 import sys
 
 # Add src to path to import our existing models
@@ -23,6 +24,9 @@ app = FastAPI(
     description="Personal project tracker - Local-first web interface",
     version="1.0.0"
 )
+
+# Close the shared async API client when the app shuts down
+app.add_event_handler("shutdown", models.aclose_client)
 
 # Setup static files and templates
 STATIC_DIR = Path(__file__).parent / "static"
@@ -39,8 +43,8 @@ templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Home page with dashboard overview."""
-    # Get project counts by status
-    all_projects = models.list_projects()
+    # Get project counts by status (run blocking model call in threadpool)
+    all_projects = await run_in_threadpool(models.list_projects)
     
     status_counts = {
         "active": 0,
@@ -87,36 +91,42 @@ async def projects_list(
     per_page = 15
     offset = (page - 1) * per_page
     
-    # Fetch projects based on filters
+    # Fetch projects based on filters (run blocking model calls in threadpool)
     if search and search.strip():
         # Search projects with pagination
-        total_count = models.get_projects_count(status=status, search=search)
-        projects = models.search_projects(
-            search,
-            status=status,
-            limit=per_page,
-            offset=offset,
-            sort_by=sort,
-            sort_order=order
+        total_count = await run_in_threadpool(models.get_projects_count, status, None, search)
+        projects = await run_in_threadpool(
+            lambda: models.search_projects(
+                search,
+                status=status,
+                limit=per_page,
+                offset=offset,
+                sort_by=sort,
+                sort_order=order
+            )
         )
     elif tag:
-        total_count = models.get_projects_count(status=status, tag=tag)
-        projects = models.list_projects_by_tag(
-            tag,
-            status=status,
-            limit=per_page,
-            offset=offset,
-            sort_by=sort,
-            sort_order=order
+        total_count = await run_in_threadpool(models.get_projects_count, status, tag)
+        projects = await run_in_threadpool(
+            lambda: models.list_projects_by_tag(
+                tag,
+                status=status,
+                limit=per_page,
+                offset=offset,
+                sort_by=sort,
+                sort_order=order
+            )
         )
     else:
-        total_count = models.get_projects_count(status=status)
-        projects = models.list_projects(
-            status=status,
-            limit=per_page,
-            offset=offset,
-            sort_by=sort,
-            sort_order=order
+        total_count = await run_in_threadpool(models.get_projects_count, status, None)
+        projects = await run_in_threadpool(
+            lambda: models.list_projects(
+                status=status,
+                limit=per_page,
+                offset=offset,
+                sort_by=sort,
+                sort_order=order
+            )
         )
     
     # Calculate pagination info
@@ -125,7 +135,7 @@ async def projects_list(
     has_next = page < total_pages
     
     # Get all tags for filter UI
-    all_tags = models.list_all_tags()
+    all_tags = await run_in_threadpool(models.list_all_tags)
     
     return templates.TemplateResponse(
         "projects.html",
@@ -234,18 +244,20 @@ async def project_create(
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
     
     try:
-        # Create the project
-        project_id = models.create_project(
-            name=name.strip(),
-            description=description,
-            status=status,
-            project_type=project_type,
-            primary_language=primary_language,
-            stack=stack,
-            repo_url=repo_url,
-            local_path=local_path,
-            scope_size=scope_size,
-            learning_goal=learning_goal
+        # Create the project (run blocking create in threadpool)
+        project_id = await run_in_threadpool(
+            lambda: models.create_project(
+                name=name.strip(),
+                description=description,
+                status=status,
+                project_type=project_type,
+                primary_language=primary_language,
+                stack=stack,
+                repo_url=repo_url,
+                local_path=local_path,
+                scope_size=scope_size,
+                learning_goal=learning_goal
+            )
         )
         
         # Redirect to the new project's detail page
@@ -277,7 +289,7 @@ async def project_create(
 @app.get("/projects/{project_id}/edit", response_class=HTMLResponse)
 async def project_edit_form(request: Request, project_id: int):
     """Show the project edit form."""
-    project = models.get_project(project_id)
+    project = await run_in_threadpool(models.get_project, project_id)
 
     if not project:
         return templates.TemplateResponse(
@@ -316,7 +328,7 @@ async def project_update(
     learning_goal: Optional[str] = Form(None)
 ):
     """Handle project edit form submission."""
-    project = models.get_project(project_id)
+    project = await run_in_threadpool(models.get_project, project_id)
     if not project:
         return templates.TemplateResponse(
             "error.html",
@@ -387,7 +399,8 @@ async def project_update(
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
 
     try:
-        updated = models.update_project(
+        updated = await run_in_threadpool(
+            models.update_project,
             project_id,
             name=name.strip(),
             description=description,
@@ -398,7 +411,7 @@ async def project_update(
             repo_url=repo_url,
             local_path=local_path,
             scope_size=scope_size,
-            learning_goal=learning_goal
+            learning_goal=learning_goal,
         )
 
         if not updated:
@@ -455,7 +468,7 @@ async def project_update(
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 async def project_detail(request: Request, project_id: int):
     """Show detailed view of a single project."""
-    project = models.get_project(project_id)
+    project = await run_in_threadpool(models.get_project, project_id)
     
     if not project:
         return templates.TemplateResponse(
@@ -467,9 +480,9 @@ async def project_detail(request: Request, project_id: int):
             status_code=404
         )
     
-    # Get tags and notes
-    project_tags = models.list_project_tags(project_id)
-    notes = models.list_notes(project_id)
+    # Get tags and notes via async client
+    project_tags = await run_in_threadpool(models.list_project_tags, project_id)
+    notes = await run_in_threadpool(models.list_notes, project_id)
     
     return templates.TemplateResponse(
         "project_detail.html",
@@ -482,10 +495,20 @@ async def project_detail(request: Request, project_id: int):
     )
 
 
+@app.post("/projects/{project_id}/delete")
+async def project_delete(project_id: int):
+    """Delete a project."""
+    try:
+        await run_in_threadpool(models.delete_project, project_id)
+        return RedirectResponse(url="/projects", status_code=303)
+    except Exception as e:
+        return RedirectResponse(url="/projects", status_code=303)
+
+
 @app.get("/tags", response_class=HTMLResponse)
 async def tags_list(request: Request):
     """Browse all tags."""
-    all_tags = models.list_all_tags()
+    all_tags = await run_in_threadpool(models.list_all_tags)
     
     return templates.TemplateResponse(
         "tags.html",
