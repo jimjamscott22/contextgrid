@@ -9,14 +9,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from typing import Optional
-from starlette.concurrency import run_in_threadpool
 import sys
 
 # Add src to path to import our existing models
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-import models
+import async_models as models
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -43,8 +42,8 @@ templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Home page with dashboard overview."""
-    # Get project counts by status (run blocking model call in threadpool)
-    all_projects = await run_in_threadpool(models.list_projects)
+    # Get project counts by status
+    all_projects = await models.list_projects()
     
     status_counts = {
         "active": 0,
@@ -91,42 +90,36 @@ async def projects_list(
     per_page = 15
     offset = (page - 1) * per_page
     
-    # Fetch projects based on filters (run blocking model calls in threadpool)
+    # Fetch projects based on filters
     if search and search.strip():
         # Search projects with pagination
-        total_count = await run_in_threadpool(models.get_projects_count, status, None, search)
-        projects = await run_in_threadpool(
-            lambda: models.search_projects(
-                search,
-                status=status,
-                limit=per_page,
-                offset=offset,
-                sort_by=sort,
-                sort_order=order
-            )
+        total_count = await models.get_projects_count(status, None, search)
+        projects = await models.search_projects(
+            search,
+            status=status,
+            limit=per_page,
+            offset=offset,
+            sort_by=sort,
+            sort_order=order
         )
     elif tag:
-        total_count = await run_in_threadpool(models.get_projects_count, status, tag)
-        projects = await run_in_threadpool(
-            lambda: models.list_projects_by_tag(
-                tag,
-                status=status,
-                limit=per_page,
-                offset=offset,
-                sort_by=sort,
-                sort_order=order
-            )
+        total_count = await models.get_projects_count(status, tag)
+        projects = await models.list_projects_by_tag(
+            tag,
+            status=status,
+            limit=per_page,
+            offset=offset,
+            sort_by=sort,
+            sort_order=order
         )
     else:
-        total_count = await run_in_threadpool(models.get_projects_count, status, None)
-        projects = await run_in_threadpool(
-            lambda: models.list_projects(
-                status=status,
-                limit=per_page,
-                offset=offset,
-                sort_by=sort,
-                sort_order=order
-            )
+        total_count = await models.get_projects_count(status, None)
+        projects = await models.list_projects(
+            status=status,
+            limit=per_page,
+            offset=offset,
+            sort_by=sort,
+            sort_order=order
         )
     
     # Calculate pagination info
@@ -135,7 +128,7 @@ async def projects_list(
     has_next = page < total_pages
     
     # Get all tags for filter UI
-    all_tags = await run_in_threadpool(models.list_all_tags)
+    all_tags = await models.list_all_tags()
     
     return templates.TemplateResponse(
         "projects.html",
@@ -244,20 +237,18 @@ async def project_create(
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
     
     try:
-        # Create the project (run blocking create in threadpool)
-        project_id = await run_in_threadpool(
-            lambda: models.create_project(
-                name=name.strip(),
-                description=description,
-                status=status,
-                project_type=project_type,
-                primary_language=primary_language,
-                stack=stack,
-                repo_url=repo_url,
-                local_path=local_path,
-                scope_size=scope_size,
-                learning_goal=learning_goal
-            )
+        # Create the project
+        project_id = await models.create_project(
+            name=name.strip(),
+            description=description,
+            status=status,
+            project_type=project_type,
+            primary_language=primary_language,
+            stack=stack,
+            repo_url=repo_url,
+            local_path=local_path,
+            scope_size=scope_size,
+            learning_goal=learning_goal
         )
         
         # Redirect to the new project's detail page
@@ -289,7 +280,7 @@ async def project_create(
 @app.get("/projects/{project_id}/edit", response_class=HTMLResponse)
 async def project_edit_form(request: Request, project_id: int):
     """Show the project edit form."""
-    project = await run_in_threadpool(models.get_project, project_id)
+    project = await models.get_project(project_id)
 
     if not project:
         return templates.TemplateResponse(
@@ -326,9 +317,9 @@ async def project_update(
     local_path: Optional[str] = Form(None),
     scope_size: Optional[str] = Form(None),
     learning_goal: Optional[str] = Form(None)
-):
+):  
     """Handle project edit form submission."""
-    project = await run_in_threadpool(models.get_project, project_id)
+    project = await models.get_project(project_id)
     if not project:
         return templates.TemplateResponse(
             "error.html",
@@ -399,8 +390,7 @@ async def project_update(
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
 
     try:
-        updated = await run_in_threadpool(
-            models.update_project,
+        updated = await models.update_project(
             project_id,
             name=name.strip(),
             description=description,
@@ -468,7 +458,7 @@ async def project_update(
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 async def project_detail(request: Request, project_id: int):
     """Show detailed view of a single project."""
-    project = await run_in_threadpool(models.get_project, project_id)
+    project = await models.get_project(project_id)
     
     if not project:
         return templates.TemplateResponse(
@@ -481,8 +471,8 @@ async def project_detail(request: Request, project_id: int):
         )
     
     # Get tags and notes via async client
-    project_tags = await run_in_threadpool(models.list_project_tags, project_id)
-    notes = await run_in_threadpool(models.list_notes, project_id)
+    project_tags = await models.list_project_tags(project_id)
+    notes = await models.list_notes(project_id)
     
     return templates.TemplateResponse(
         "project_detail.html",
@@ -499,7 +489,7 @@ async def project_detail(request: Request, project_id: int):
 async def project_delete(project_id: int):
     """Delete a project."""
     try:
-        await run_in_threadpool(models.delete_project, project_id)
+        await models.delete_project(project_id)
         return RedirectResponse(url="/projects", status_code=303)
     except Exception as e:
         return RedirectResponse(url="/projects", status_code=303)
@@ -508,7 +498,7 @@ async def project_delete(project_id: int):
 @app.get("/tags", response_class=HTMLResponse)
 async def tags_list(request: Request):
     """Browse all tags."""
-    all_tags = await run_in_threadpool(models.list_all_tags)
+    all_tags = await models.list_all_tags()
     
     return templates.TemplateResponse(
         "tags.html",
