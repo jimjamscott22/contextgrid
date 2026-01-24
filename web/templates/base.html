@@ -29,6 +29,13 @@
     <nav class="navbar">
         <div class="container">
             <div class="nav-brand">
+                <button
+                    type="button"
+                    id="sidebar-toggle"
+                    class="btn btn-secondary btn-compact sidebar-toggle"
+                    aria-label="Toggle sidebar"
+                    title="Toggle sidebar"
+                >☰</button>
                 <a href="/">📦 ContextGrid</a>
             </div>
             <div class="nav-actions">
@@ -48,9 +55,41 @@
         </div>
     </nav>
 
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
+    <!-- Sidebar Overlay (for mobile) -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3>Projects</h3>
+            <button
+                type="button"
+                id="sidebar-close"
+                class="btn btn-secondary btn-compact"
+                aria-label="Close sidebar"
+                title="Close sidebar"
+            >✕</button>
+        </div>
+
+        <div class="sidebar-search">
+            <input
+                type="text"
+                id="sidebar-search-input"
+                class="sidebar-search-input"
+                placeholder="Search projects..."
+            >
+        </div>
+
+        <div class="sidebar-content" id="sidebar-projects">
+            <div class="sidebar-loading">Loading projects...</div>
+        </div>
+    </aside>
+
+    <div class="page-wrapper">
+        <main class="container">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
 
     <footer class="footer">
         <div class="container">
@@ -122,6 +161,224 @@
                     });
                 }
             }
+        })();
+    </script>
+    <script>
+        (() => {
+            // Sidebar functionality
+            const sidebar = document.getElementById("sidebar");
+            const sidebarToggle = document.getElementById("sidebar-toggle");
+            const sidebarClose = document.getElementById("sidebar-close");
+            const sidebarOverlay = document.getElementById("sidebar-overlay");
+            const sidebarContent = document.getElementById("sidebar-projects");
+            const searchInput = document.getElementById("sidebar-search-input");
+
+            if (!sidebar || !sidebarToggle) return;
+
+            let storage = null;
+            try {
+                storage = localStorage;
+            } catch (error) {
+                storage = null;
+            }
+
+            let allProjects = [];
+            let filteredProjects = [];
+
+            // Get/set sidebar state
+            const getSidebarState = () => (storage ? storage.getItem("cg-sidebar") : null);
+            const setSidebarState = (state) => {
+                if (storage) storage.setItem("cg-sidebar", state);
+            };
+
+            // Toggle sidebar
+            const openSidebar = () => {
+                sidebar.classList.add("sidebar-open");
+                sidebarOverlay.classList.add("active");
+                document.body.style.overflow = "hidden";
+                setSidebarState("open");
+            };
+
+            const closeSidebar = () => {
+                sidebar.classList.remove("sidebar-open");
+                sidebarOverlay.classList.remove("active");
+                document.body.style.overflow = "";
+                setSidebarState("closed");
+            };
+
+            const toggleSidebar = () => {
+                if (sidebar.classList.contains("sidebar-open")) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            };
+
+            // Event listeners
+            sidebarToggle.addEventListener("click", toggleSidebar);
+            if (sidebarClose) sidebarClose.addEventListener("click", closeSidebar);
+            sidebarOverlay.addEventListener("click", closeSidebar);
+
+            // Close sidebar on ESC key
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape" && sidebar.classList.contains("sidebar-open")) {
+                    closeSidebar();
+                }
+            });
+
+            // Restore sidebar state on desktop
+            const restoreSidebarState = () => {
+                if (window.innerWidth >= 1024) {
+                    const state = getSidebarState();
+                    if (state === "open" || state === null) {
+                        sidebar.classList.add("sidebar-open");
+                        document.body.style.overflow = "";
+                    }
+                }
+            };
+
+            // Fetch and render projects
+            const fetchProjects = async () => {
+                try {
+                    const response = await fetch("/api/projects?limit=1000&sort=last_worked");
+                    if (!response.ok) throw new Error("Failed to fetch projects");
+
+                    const data = await response.json();
+                    allProjects = data.projects || [];
+                    filteredProjects = [...allProjects];
+                    renderProjects();
+                } catch (error) {
+                    console.error("Error fetching projects:", error);
+                    sidebarContent.innerHTML = '<div class="sidebar-error">Failed to load projects</div>';
+                }
+            };
+
+            // Group projects by status
+            const groupByStatus = (projects) => {
+                const groups = {
+                    active: [],
+                    idea: [],
+                    paused: [],
+                    archived: []
+                };
+
+                projects.forEach(project => {
+                    const status = project.status || "idea";
+                    if (groups[status]) {
+                        groups[status].push(project);
+                    }
+                });
+
+                return groups;
+            };
+
+            // Render projects in sidebar
+            const renderProjects = () => {
+                if (filteredProjects.length === 0) {
+                    sidebarContent.innerHTML = '<div class="sidebar-empty">No projects found</div>';
+                    return;
+                }
+
+                const grouped = groupByStatus(filteredProjects);
+                let html = '';
+
+                const statusOrder = ['active', 'idea', 'paused', 'archived'];
+                const statusLabels = {
+                    active: 'Active',
+                    idea: 'Ideas',
+                    paused: 'Paused',
+                    archived: 'Archived'
+                };
+
+                statusOrder.forEach(status => {
+                    const projects = grouped[status];
+                    if (projects.length > 0) {
+                        html += `
+                            <div class="sidebar-group">
+                                <div class="sidebar-group-header">
+                                    <span class="sidebar-group-title">${statusLabels[status]}</span>
+                                    <span class="sidebar-group-count">${projects.length}</span>
+                                </div>
+                                <ul class="sidebar-project-list">
+                        `;
+
+                        projects.forEach(project => {
+                            const lastWorked = project.last_worked_at
+                                ? new Date(project.last_worked_at).toLocaleDateString()
+                                : 'Never';
+
+                            html += `
+                                <li class="sidebar-project-item">
+                                    <a href="/projects/${project.id}" class="sidebar-project-link">
+                                        <span class="sidebar-project-name">${escapeHtml(project.name)}</span>
+                                        <span class="sidebar-project-meta">${lastWorked}</span>
+                                    </a>
+                                </li>
+                            `;
+                        });
+
+                        html += `
+                                </ul>
+                            </div>
+                        `;
+                    }
+                });
+
+                sidebarContent.innerHTML = html;
+            };
+
+            // Search functionality
+            const filterProjects = (query) => {
+                if (!query.trim()) {
+                    filteredProjects = [...allProjects];
+                } else {
+                    const lowerQuery = query.toLowerCase();
+                    filteredProjects = allProjects.filter(project =>
+                        project.name.toLowerCase().includes(lowerQuery) ||
+                        (project.description && project.description.toLowerCase().includes(lowerQuery))
+                    );
+                }
+                renderProjects();
+            };
+
+            // Debounce search input
+            let searchTimeout;
+            if (searchInput) {
+                searchInput.addEventListener("input", (e) => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        filterProjects(e.target.value);
+                    }, 300);
+                });
+            }
+
+            // HTML escape utility
+            const escapeHtml = (text) => {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            };
+
+            // Handle window resize
+            let resizeTimeout;
+            window.addEventListener("resize", () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (window.innerWidth >= 1024) {
+                        sidebarOverlay.classList.remove("active");
+                        document.body.style.overflow = "";
+                    } else {
+                        if (sidebar.classList.contains("sidebar-open")) {
+                            sidebarOverlay.classList.add("active");
+                            document.body.style.overflow = "hidden";
+                        }
+                    }
+                }, 100);
+            });
+
+            // Initialize
+            restoreSidebarState();
+            fetchProjects();
         })();
     </script>
 </body>
