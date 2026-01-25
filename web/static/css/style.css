@@ -737,6 +737,18 @@ h3 {
     margin-bottom: var(--space-md);
 }
 
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.section-header h3 {
+    margin: 0;
+}
+
 .metadata-table {
     width: 100%;
     border-collapse: collapse;
@@ -763,6 +775,46 @@ h3 {
 .metadata-table.small td {
     padding: 0.375rem 0;
     font-size: 0.875rem;
+}
+
+.screenshot-grid {
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.screenshot-card {
+    margin: 0;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.screenshot-link {
+    display: block;
+}
+
+.screenshot-card img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: var(--color-border);
+    transition: transform 0.2s ease;
+}
+
+.screenshot-link:hover img {
+    transform: scale(1.02);
+}
+
+.screenshot-card figcaption {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--color-text-secondary);
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
 }
 
 /* ===========================

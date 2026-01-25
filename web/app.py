@@ -8,8 +8,16 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict
+import os
 import sys
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE = BASE_DIR / ".env"
+
+if ENV_FILE.exists():
+    load_dotenv(ENV_FILE, override=True)
 
 # Add src to path to import our existing models
 src_path = Path(__file__).parent.parent / "src"
@@ -33,6 +41,31 @@ TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
+templates.env.globals["api_base_url"] = os.getenv("API_ENDPOINT", "http://localhost:8000").rstrip("/")
+
+SCREENSHOTS_DIR = STATIC_DIR / "screenshots"
+
+
+def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:
+    """Return screenshots for a project from web/static/screenshots/<project_id>/."""
+    project_dir = SCREENSHOTS_DIR / str(project_id)
+    if not project_dir.is_dir():
+        return []
+
+    allowed_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+    screenshots = []
+    for path in sorted(project_dir.iterdir(), key=lambda p: p.name.lower()):
+        if not path.is_file() or path.suffix.lower() not in allowed_exts:
+            continue
+        label = path.stem.replace("_", " ").replace("-", " ").strip()
+        screenshots.append(
+            {
+                "url": f"/static/screenshots/{project_id}/{path.name}",
+                "label": label,
+            }
+        )
+
+    return screenshots
 
 
 # =========================
@@ -474,13 +507,16 @@ async def project_detail(request: Request, project_id: int):
     project_tags = await models.list_project_tags(project_id)
     notes = await models.list_notes(project_id)
     
+    screenshots = get_project_screenshots(project_id)
+
     return templates.TemplateResponse(
         "project_detail.html",
         {
             "request": request,
             "project": project,
             "tags": project_tags,
-            "notes": notes
+            "notes": notes,
+            "screenshots": screenshots,
         }
     )
 
@@ -521,4 +557,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8080)
+    uvicorn.run(app, host="127.0.0.1", port=8081)

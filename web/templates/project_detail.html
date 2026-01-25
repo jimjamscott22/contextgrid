@@ -124,6 +124,31 @@
             <p class="muted">No tags</p>
             {% endif %}
         </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h3>Screenshots</h3>
+                {% if screenshots %}
+                <span class="muted">{{ screenshots | length }}</span>
+                {% endif %}
+            </div>
+            {% if screenshots %}
+            <div class="screenshot-grid">
+                {% for shot in screenshots %}
+                <figure class="screenshot-card">
+                    <a class="screenshot-link" href="{{ shot.url }}" target="_blank" rel="noopener">
+                        <img src="{{ shot.url }}" alt="{{ shot.label or 'Screenshot' }}" loading="lazy" decoding="async">
+                    </a>
+                    {% if shot.label %}
+                    <figcaption>{{ shot.label }}</figcaption>
+                    {% endif %}
+                </figure>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted">No screenshots yet.</p>
+            {% endif %}
+        </section>
         
         <section class="section">
             <h3>Timestamps</h3>

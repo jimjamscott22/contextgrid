@@ -240,7 +240,7 @@
             // Fetch and render projects
             const fetchProjects = async () => {
                 try {
-                    const response = await fetch("/api/projects?limit=1000&sort=last_worked");
+                    const response = await fetch("{{ api_base_url }}/api/projects?limit=100&sort_by=last_worked_at&sort_order=desc");
                     if (!response.ok) throw new Error("Failed to fetch projects");
 
                     const data = await response.json();
