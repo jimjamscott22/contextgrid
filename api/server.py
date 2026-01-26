@@ -19,7 +19,9 @@ from api.models import (
     ProjectCreate, ProjectUpdate, ProjectResponse, ProjectListResponse,
     NoteCreate, NoteResponse, NoteListResponse,
     TagCreate, TagResponse, TagListResponse, TagSimple,
-    HealthResponse, MessageResponse, TouchResponse
+    HealthResponse, MessageResponse, TouchResponse,
+    RelationshipCreate, RelationshipResponse, RelationshipListResponse,
+    GraphNode, GraphEdge, GraphDataResponse
 )
 from api.config import config
 from api import db
@@ -388,16 +390,262 @@ async def delete_note(note_id: int):
     """Delete a note by ID."""
     try:
         success = db.delete_note(note_id)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail=f"Note {note_id} not found")
-        
+
         return MessageResponse(message=f"Note {note_id} deleted successfully")
-        
+
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# Relationship Endpoints
+# =========================
+
+@app.get("/api/projects/{project_id}/relationships", response_model=RelationshipListResponse)
+async def get_project_relationships(project_id: int):
+    """Get all relationships for a specific project (both outgoing and incoming)."""
+    try:
+        # Check if project exists
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        relationships = db.list_project_relationships(project_id)
+        return RelationshipListResponse(relationships=relationships, total=len(relationships))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/relationships", response_model=RelationshipResponse, status_code=201)
+async def create_relationship(project_id: int, relationship: RelationshipCreate):
+    """Create a new relationship from this project to another."""
+    try:
+        # Check if source project exists
+        source_project = db.get_project(project_id)
+        if not source_project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        # Check if target project exists
+        target_project = db.get_project(relationship.target_project_id)
+        if not target_project:
+            raise HTTPException(status_code=404, detail=f"Target project {relationship.target_project_id} not found")
+
+        # Prevent self-relationships
+        if project_id == relationship.target_project_id:
+            raise HTTPException(status_code=400, detail="Cannot create relationship to self")
+
+        # Check if relationship already exists
+        if db.relationship_exists(project_id, relationship.target_project_id, relationship.relationship_type):
+            raise HTTPException(status_code=409, detail="Relationship already exists")
+
+        # Create the relationship
+        relationship_id = db.create_relationship(
+            source_project_id=project_id,
+            target_project_id=relationship.target_project_id,
+            relationship_type=relationship.relationship_type
+        )
+
+        # Fetch and return the created relationship
+        created_relationship = db.get_relationship(relationship_id)
+        return created_relationship
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/relationships/{relationship_id}", response_model=MessageResponse)
+async def delete_relationship(relationship_id: int):
+    """Delete a relationship by ID."""
+    try:
+        success = db.delete_relationship(relationship_id)
+
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Relationship {relationship_id} not found")
+
+        return MessageResponse(message=f"Relationship {relationship_id} deleted successfully")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# Graph Data Endpoints
+# =========================
+
+@app.get("/api/graph", response_model=GraphDataResponse)
+async def get_full_graph(include_inferred: bool = Query(True)):
+    """
+    Get full graph data for visualization.
+
+    Query Parameters:
+    - include_inferred: Whether to include auto-inferred relationships (default: True)
+    """
+    try:
+        graph_data = db.get_graph_data()
+
+        # Build nodes
+        nodes = [
+            GraphNode(
+                id=p['id'],
+                label=p['name'],
+                status=p['status'],
+                project_type=p.get('project_type'),
+                primary_language=p.get('primary_language')
+            )
+            for p in graph_data['nodes']
+        ]
+
+        # Build explicit edges
+        edges = [
+            GraphEdge(
+                source=e['source_project_id'],
+                target=e['target_project_id'],
+                relationship_type=e['relationship_type'],
+                is_inferred=False
+            )
+            for e in graph_data['explicit_edges']
+        ]
+
+        # Add inferred edges if requested
+        if include_inferred:
+            inferred_edges = _compute_inferred_edges(graph_data['nodes'])
+            edges.extend(inferred_edges)
+
+        return GraphDataResponse(nodes=nodes, edges=edges)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/projects/{project_id}/graph", response_model=GraphDataResponse)
+async def get_project_graph(project_id: int, include_inferred: bool = Query(True)):
+    """
+    Get graph data for a specific project and its related projects.
+
+    Returns the project and all directly connected projects (1 hop).
+    """
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        # Get explicit relationships
+        relationships = db.list_project_relationships(project_id)
+
+        # Collect connected project IDs
+        connected_ids = {project_id}
+        for rel in relationships:
+            connected_ids.add(rel['target_project_id'])
+
+        # Get inferred connections if requested
+        inferred_edges = []
+        if include_inferred:
+            # Projects sharing tags
+            tag_matches = db.get_projects_sharing_tags(project_id)
+            for match in tag_matches:
+                connected_ids.add(match['id'])
+                inferred_edges.append(GraphEdge(
+                    source=project_id,
+                    target=match['id'],
+                    relationship_type='shared_tags',
+                    is_inferred=True
+                ))
+
+            # Projects with same language
+            if project.get('primary_language'):
+                lang_matches = db.get_projects_by_language(project['primary_language'], project_id)
+                for match in lang_matches:
+                    connected_ids.add(match['id'])
+                    # Avoid duplicate edges
+                    if not any(e.target == match['id'] and e.relationship_type == 'same_language' for e in inferred_edges):
+                        inferred_edges.append(GraphEdge(
+                            source=project_id,
+                            target=match['id'],
+                            relationship_type='same_language',
+                            is_inferred=True
+                        ))
+
+        # Build nodes for all connected projects
+        nodes = []
+        for pid in connected_ids:
+            p = db.get_project(pid)
+            if p:
+                nodes.append(GraphNode(
+                    id=p['id'],
+                    label=p['name'],
+                    status=p['status'],
+                    project_type=p.get('project_type'),
+                    primary_language=p.get('primary_language')
+                ))
+
+        # Build explicit edges
+        explicit_edges = [
+            GraphEdge(
+                source=project_id if rel['direction'] == 'outgoing' else rel['target_project_id'],
+                target=rel['target_project_id'] if rel['direction'] == 'outgoing' else project_id,
+                relationship_type=rel['relationship_type'],
+                is_inferred=False
+            )
+            for rel in relationships
+        ]
+
+        edges = explicit_edges + inferred_edges
+
+        return GraphDataResponse(nodes=nodes, edges=edges)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _compute_inferred_edges(projects: list) -> list[GraphEdge]:
+    """
+    Compute inferred edges based on shared attributes.
+
+    Inferred relationship types:
+    - same_language: Projects using the same primary language
+    """
+    edges = []
+    seen_pairs = set()
+
+    # Group projects by language
+    by_language = {}
+    for p in projects:
+        lang = p.get('primary_language')
+        if lang:
+            if lang not in by_language:
+                by_language[lang] = []
+            by_language[lang].append(p['id'])
+
+    # Create edges for same language
+    for lang, project_ids in by_language.items():
+        if len(project_ids) > 1:
+            for i, pid1 in enumerate(project_ids):
+                for pid2 in project_ids[i+1:]:
+                    pair = tuple(sorted([pid1, pid2]))
+                    if pair not in seen_pairs:
+                        seen_pairs.add(pair)
+                        edges.append(GraphEdge(
+                            source=pid1,
+                            target=pid2,
+                            relationship_type='same_language',
+                            is_inferred=True
+                        ))
+
+    return edges
 
 
 # =========================

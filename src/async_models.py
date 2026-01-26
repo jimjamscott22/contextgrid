@@ -216,3 +216,53 @@ async def get_projects_count(
 
 async def aclose_client() -> None:
     await aclose_async_api_client()
+
+
+# =========================
+# Relationship Operations
+# =========================
+
+async def create_relationship(
+    project_id: int, target_project_id: int, relationship_type: str
+) -> int:
+    valid_types = ["related_to", "depends_on", "part_of"]
+    if relationship_type not in valid_types:
+        raise ValueError(
+            f"Invalid relationship_type: {relationship_type}. Must be one of: {', '.join(valid_types)}"
+        )
+    try:
+        return await _client.create_relationship(project_id, target_project_id, relationship_type)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def list_project_relationships(project_id: int) -> List[Dict[str, Any]]:
+    try:
+        return await _client.list_project_relationships(project_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def delete_relationship(relationship_id: int) -> bool:
+    try:
+        return await _client.delete_relationship(relationship_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+# =========================
+# Graph Operations
+# =========================
+
+async def get_full_graph(include_inferred: bool = True) -> Dict[str, Any]:
+    try:
+        return await _client.get_full_graph(include_inferred)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def get_project_graph(project_id: int, include_inferred: bool = True) -> Dict[str, Any]:
+    try:
+        return await _client.get_project_graph(project_id, include_inferred)
+    except APIError as e:
+        _handle_api_error(e)

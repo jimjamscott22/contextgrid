@@ -487,10 +487,215 @@ def get_note(note_id: int) -> Optional[Dict[str, Any]]:
 def delete_note(note_id: int) -> bool:
     """
     Delete a note by ID.
-    
+
     Returns:
         True if deleted, False if not found
     """
     with get_db_cursor() as cursor:
         cursor.execute("DELETE FROM project_notes WHERE id = %s", (note_id,))
         return cursor.rowcount > 0
+
+
+# =========================
+# Relationship Operations
+# =========================
+
+def create_relationship(source_project_id: int, target_project_id: int, relationship_type: str) -> int:
+    """
+    Create a relationship between two projects.
+
+    Returns:
+        The new relationship's ID
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO project_relationships (source_project_id, target_project_id, relationship_type, created_at)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (source_project_id, target_project_id, relationship_type, datetime.utcnow())
+        )
+        return cursor.lastrowid
+
+
+def get_relationship(relationship_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch a single relationship by ID.
+
+    Returns:
+        Dictionary of relationship fields with target project name, or None if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT r.*, p.name as target_project_name
+            FROM project_relationships r
+            JOIN projects p ON r.target_project_id = p.id
+            WHERE r.id = %s
+            """,
+            (relationship_id,)
+        )
+        row = cursor.fetchone()
+        if row and row['created_at']:
+            row['created_at'] = row['created_at'].isoformat()
+            row['direction'] = 'outgoing'
+        return row
+
+
+def list_project_relationships(project_id: int) -> List[Dict[str, Any]]:
+    """
+    Get all relationships for a project (both outgoing and incoming).
+
+    Returns:
+        List of relationship dictionaries with target project names
+    """
+    with get_db_cursor() as cursor:
+        # Get outgoing relationships (where this project is the source)
+        cursor.execute(
+            """
+            SELECT r.*, p.name as target_project_name, 'outgoing' as direction
+            FROM project_relationships r
+            JOIN projects p ON r.target_project_id = p.id
+            WHERE r.source_project_id = %s
+            ORDER BY r.created_at DESC
+            """,
+            (project_id,)
+        )
+        outgoing = cursor.fetchall()
+
+        # Get incoming relationships (where this project is the target)
+        cursor.execute(
+            """
+            SELECT r.id, r.target_project_id as source_project_id, r.source_project_id as target_project_id,
+                   r.relationship_type, r.created_at, p.name as target_project_name, 'incoming' as direction
+            FROM project_relationships r
+            JOIN projects p ON r.source_project_id = p.id
+            WHERE r.target_project_id = %s
+            ORDER BY r.created_at DESC
+            """,
+            (project_id,)
+        )
+        incoming = cursor.fetchall()
+
+        all_relationships = list(outgoing) + list(incoming)
+
+        for row in all_relationships:
+            if row['created_at']:
+                row['created_at'] = row['created_at'].isoformat()
+
+        return all_relationships
+
+
+def delete_relationship(relationship_id: int) -> bool:
+    """
+    Delete a relationship by ID.
+
+    Returns:
+        True if deleted, False if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("DELETE FROM project_relationships WHERE id = %s", (relationship_id,))
+        return cursor.rowcount > 0
+
+
+def relationship_exists(source_project_id: int, target_project_id: int, relationship_type: str) -> bool:
+    """
+    Check if a specific relationship already exists.
+
+    Returns:
+        True if exists, False otherwise
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT 1 FROM project_relationships
+            WHERE source_project_id = %s AND target_project_id = %s AND relationship_type = %s
+            """,
+            (source_project_id, target_project_id, relationship_type)
+        )
+        return cursor.fetchone() is not None
+
+
+# =========================
+# Graph Data Operations
+# =========================
+
+def get_graph_data() -> Dict[str, Any]:
+    """
+    Get all data needed for the full project graph.
+
+    Returns:
+        Dict with 'nodes' (projects) and 'explicit_edges' (relationships)
+    """
+    with get_db_cursor() as cursor:
+        # Get all non-archived projects as nodes
+        cursor.execute(
+            """
+            SELECT id, name, status, project_type, primary_language, stack
+            FROM projects
+            WHERE is_archived = 0
+            """
+        )
+        nodes = cursor.fetchall()
+
+        # Get all explicit relationships as edges
+        cursor.execute(
+            """
+            SELECT r.source_project_id, r.target_project_id, r.relationship_type
+            FROM project_relationships r
+            JOIN projects p1 ON r.source_project_id = p1.id
+            JOIN projects p2 ON r.target_project_id = p2.id
+            WHERE p1.is_archived = 0 AND p2.is_archived = 0
+            """
+        )
+        explicit_edges = cursor.fetchall()
+
+        return {
+            'nodes': list(nodes),
+            'explicit_edges': list(explicit_edges)
+        }
+
+
+def get_projects_sharing_tags(project_id: int) -> List[Dict[str, Any]]:
+    """
+    Get projects that share tags with the given project.
+
+    Returns:
+        List of projects with shared_tags count
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT DISTINCT p.id, p.name, COUNT(pt2.tag_id) as shared_tags
+            FROM projects p
+            JOIN project_tags pt2 ON p.id = pt2.project_id
+            WHERE pt2.tag_id IN (
+                SELECT tag_id FROM project_tags WHERE project_id = %s
+            )
+            AND p.id != %s
+            AND p.is_archived = 0
+            GROUP BY p.id, p.name
+            ORDER BY shared_tags DESC
+            """,
+            (project_id, project_id)
+        )
+        return list(cursor.fetchall())
+
+
+def get_projects_by_language(primary_language: str, exclude_project_id: int) -> List[Dict[str, Any]]:
+    """
+    Get projects using the same primary language.
+
+    Returns:
+        List of project dictionaries
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT id, name
+            FROM projects
+            WHERE primary_language = %s AND id != %s AND is_archived = 0
+            """,
+            (primary_language, exclude_project_id)
+        )
+        return list(cursor.fetchall())

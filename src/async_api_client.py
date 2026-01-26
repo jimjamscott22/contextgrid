@@ -139,6 +139,40 @@ class AsyncAPIClient:
         notes = await self.list_notes(project_id)
         return notes[:limit]
 
+    # =========================
+    # Relationship Methods
+    # =========================
+
+    async def create_relationship(
+        self, project_id: int, target_project_id: int, relationship_type: str
+    ) -> int:
+        data = await self._request(
+            "POST",
+            f"/api/projects/{project_id}/relationships",
+            json={"target_project_id": target_project_id, "relationship_type": relationship_type},
+        )
+        return data["id"]
+
+    async def list_project_relationships(self, project_id: int) -> List[Dict[str, Any]]:
+        data = await self._request("GET", f"/api/projects/{project_id}/relationships")
+        return data["relationships"]
+
+    async def delete_relationship(self, relationship_id: int) -> bool:
+        result = await self._request("DELETE", f"/api/relationships/{relationship_id}")
+        return result is not None
+
+    # =========================
+    # Graph Methods
+    # =========================
+
+    async def get_full_graph(self, include_inferred: bool = True) -> Dict[str, Any]:
+        params = {"include_inferred": str(include_inferred).lower()}
+        return await self._request("GET", "/api/graph", params=params)
+
+    async def get_project_graph(self, project_id: int, include_inferred: bool = True) -> Dict[str, Any]:
+        params = {"include_inferred": str(include_inferred).lower()}
+        return await self._request("GET", f"/api/projects/{project_id}/graph", params=params)
+
     async def aclose(self) -> None:
         await self._client.aclose()
 

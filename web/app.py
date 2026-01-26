@@ -569,12 +569,23 @@ async def project_upload_screenshot(
 async def tags_list(request: Request):
     """Browse all tags."""
     all_tags = await models.list_all_tags()
-    
+
     return templates.TemplateResponse(
         "tags.html",
         {
             "request": request,
             "tags": all_tags
+        }
+    )
+
+
+@app.get("/graph", response_class=HTMLResponse)
+async def graph_view(request: Request):
+    """Full project dependency graph visualization."""
+    return templates.TemplateResponse(
+        "graph.html",
+        {
+            "request": request
         }
     )
 

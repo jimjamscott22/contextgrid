@@ -157,7 +157,55 @@
             <p class="muted">No screenshots yet.</p>
             {% endif %}
         </section>
-        
+
+        <section class="section">
+            <div class="section-header">
+                <h3>Relationships</h3>
+                <button type="button" class="btn btn-secondary btn-compact" id="add-relationship-btn">+ Add</button>
+            </div>
+
+            <div id="relationships-list" class="relationships-list">
+                <div class="relationships-loading">Loading...</div>
+            </div>
+
+            <!-- Add Relationship Modal -->
+            <div id="relationship-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h3>Add Relationship</h3>
+                    <form id="relationship-form">
+                        <div class="form-group">
+                            <label for="target-project">Target Project</label>
+                            <select id="target-project" class="form-control" required>
+                                <option value="">Select a project...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="relationship-type">Relationship Type</label>
+                            <select id="relationship-type" class="form-control" required>
+                                <option value="related_to">Related To</option>
+                                <option value="depends_on">Depends On</option>
+                                <option value="part_of">Part Of</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Add Relationship</button>
+                            <button type="button" class="btn btn-secondary" id="close-modal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h3>Related Projects</h3>
+                <a href="/graph" class="btn btn-link btn-compact">View Full Graph</a>
+            </div>
+            <div id="mini-graph" class="mini-graph-container">
+                <div class="graph-loading">Loading graph...</div>
+            </div>
+        </section>
+
         <section class="section">
             <h3>Timestamps</h3>
             <table class="metadata-table small">
@@ -175,4 +223,314 @@
         </section>
     </div>
 </div>
+
+<!-- vis.js Network via CDN for mini-graph -->
+<script type="text/javascript" src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+
+<script>
+(() => {
+    const projectId = {{ project.id }};
+    const apiBase = '{{ api_base_url }}';
+
+    const statusColors = {
+        'active': '#10B981',
+        'idea': '#F59E0B',
+        'paused': '#6B7280',
+        'archived': '#9CA3AF'
+    };
+
+    const edgeColors = {
+        'depends_on': '#3B82F6',
+        'related_to': '#8B5CF6',
+        'part_of': '#10B981',
+        'shared_tags': '#9CA3AF',
+        'same_language': '#6B7280'
+    };
+
+    const relationshipLabels = {
+        'depends_on': 'depends on',
+        'related_to': 'related to',
+        'part_of': 'part of'
+    };
+
+    // Detect theme
+    const isDarkTheme = () => {
+        return document.documentElement.getAttribute('data-theme') === 'dark';
+    };
+
+    const getThemeColors = () => {
+        if (isDarkTheme()) {
+            return {
+                background: '#121826',
+                text: '#F3F4F6',
+                border: '#263041'
+            };
+        }
+        return {
+            background: '#FFFFFF',
+            text: '#111827',
+            border: '#E5E7EB'
+        };
+    };
+
+    // ========================
+    // Relationships List
+    // ========================
+    const relationshipsList = document.getElementById('relationships-list');
+    const addRelationshipBtn = document.getElementById('add-relationship-btn');
+    const relationshipModal = document.getElementById('relationship-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+    const relationshipForm = document.getElementById('relationship-form');
+    const targetProjectSelect = document.getElementById('target-project');
+
+    async function loadRelationships() {
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/relationships`);
+            if (!response.ok) throw new Error('Failed to fetch relationships');
+
+            const data = await response.json();
+            renderRelationships(data.relationships);
+        } catch (error) {
+            console.error('Error loading relationships:', error);
+            relationshipsList.innerHTML = '<p class="muted">Failed to load relationships</p>';
+        }
+    }
+
+    function renderRelationships(relationships) {
+        if (relationships.length === 0) {
+            relationshipsList.innerHTML = '<p class="muted">No relationships yet</p>';
+            return;
+        }
+
+        let html = '';
+        relationships.forEach(rel => {
+            const label = relationshipLabels[rel.relationship_type] || rel.relationship_type;
+            const directionIcon = rel.direction === 'outgoing' ? '→' : '←';
+
+            html += `
+                <div class="relationship-item">
+                    <div class="relationship-info">
+                        <span class="relationship-type">${label}</span>
+                        <span class="relationship-direction">${directionIcon}</span>
+                        <a href="/projects/${rel.target_project_id}" class="relationship-target">${escapeHtml(rel.target_project_name)}</a>
+                    </div>
+                    <button type="button" class="relationship-delete" data-id="${rel.id}" title="Remove relationship">×</button>
+                </div>
+            `;
+        });
+
+        relationshipsList.innerHTML = html;
+
+        // Attach delete handlers
+        relationshipsList.querySelectorAll('.relationship-delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const relId = btn.dataset.id;
+                if (confirm('Remove this relationship?')) {
+                    try {
+                        const response = await fetch(`${apiBase}/api/relationships/${relId}`, {
+                            method: 'DELETE'
+                        });
+                        if (response.ok) {
+                            loadRelationships();
+                            loadMiniGraph();
+                        }
+                    } catch (error) {
+                        console.error('Error deleting relationship:', error);
+                    }
+                }
+            });
+        });
+    }
+
+    // Modal handling
+    addRelationshipBtn.addEventListener('click', async () => {
+        // Load projects for dropdown
+        try {
+            const response = await fetch(`${apiBase}/api/projects?limit=100`);
+            const data = await response.json();
+
+            targetProjectSelect.innerHTML = '<option value="">Select a project...</option>';
+            data.projects.forEach(p => {
+                if (p.id !== projectId) {
+                    targetProjectSelect.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
+                }
+            });
+        } catch (error) {
+            console.error('Error loading projects:', error);
+        }
+
+        relationshipModal.style.display = 'flex';
+    });
+
+    closeModalBtn.addEventListener('click', () => {
+        relationshipModal.style.display = 'none';
+    });
+
+    relationshipModal.addEventListener('click', (e) => {
+        if (e.target === relationshipModal) {
+            relationshipModal.style.display = 'none';
+        }
+    });
+
+    relationshipForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const targetId = parseInt(targetProjectSelect.value);
+        const relType = document.getElementById('relationship-type').value;
+
+        if (!targetId) {
+            alert('Please select a target project');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/relationships`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    target_project_id: targetId,
+                    relationship_type: relType
+                })
+            });
+
+            if (response.ok) {
+                relationshipModal.style.display = 'none';
+                loadRelationships();
+                loadMiniGraph();
+            } else {
+                const err = await response.json();
+                alert(err.detail || 'Failed to create relationship');
+            }
+        } catch (error) {
+            console.error('Error creating relationship:', error);
+            alert('Failed to create relationship');
+        }
+    });
+
+    // ========================
+    // Mini Graph
+    // ========================
+    const miniGraphContainer = document.getElementById('mini-graph');
+    let miniNetwork = null;
+
+    async function loadMiniGraph() {
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/graph?include_inferred=true`);
+            if (!response.ok) throw new Error('Failed to fetch graph data');
+
+            const data = await response.json();
+
+            if (data.nodes.length <= 1) {
+                miniGraphContainer.innerHTML = '<p class="muted" style="text-align: center; padding: 2rem 0;">No related projects found</p>';
+                return;
+            }
+
+            renderMiniGraph(data);
+        } catch (error) {
+            console.error('Error loading mini graph:', error);
+            miniGraphContainer.innerHTML = '<p class="muted">Failed to load graph</p>';
+        }
+    }
+
+    function renderMiniGraph(data) {
+        const themeColors = getThemeColors();
+
+        const nodes = new vis.DataSet(data.nodes.map(node => ({
+            id: node.id,
+            label: node.label,
+            color: {
+                background: node.id === projectId
+                    ? '#3B82F6'  // Highlight current project
+                    : (statusColors[node.status] || '#9CA3AF'),
+                border: node.id === projectId ? '#1D4ED8' : themeColors.border,
+                highlight: {
+                    background: node.id === projectId ? '#3B82F6' : (statusColors[node.status] || '#9CA3AF'),
+                    border: '#3B82F6'
+                }
+            },
+            font: {
+                color: themeColors.text,
+                size: node.id === projectId ? 14 : 12
+            },
+            size: node.id === projectId ? 25 : 15,
+            borderWidth: node.id === projectId ? 3 : 2
+        })));
+
+        const edges = new vis.DataSet(data.edges.map((edge, idx) => ({
+            id: idx,
+            from: edge.source,
+            to: edge.target,
+            color: {
+                color: edgeColors[edge.relationship_type] || '#9CA3AF',
+                highlight: '#3B82F6'
+            },
+            dashes: edge.is_inferred,
+            arrows: edge.relationship_type === 'depends_on' ? { to: { enabled: true, scaleFactor: 0.6 } } : undefined,
+            width: edge.is_inferred ? 1 : 2
+        })));
+
+        const options = {
+            nodes: {
+                shape: 'dot',
+                borderWidth: 2
+            },
+            edges: {
+                smooth: { type: 'continuous' }
+            },
+            physics: {
+                enabled: true,
+                stabilization: {
+                    iterations: 100
+                },
+                barnesHut: {
+                    gravitationalConstant: -2000,
+                    springLength: 100,
+                    springConstant: 0.05
+                }
+            },
+            interaction: {
+                hover: true,
+                zoomView: false,
+                dragView: true
+            }
+        };
+
+        miniGraphContainer.innerHTML = '';
+        miniNetwork = new vis.Network(miniGraphContainer, { nodes, edges }, options);
+
+        miniNetwork.on('click', function(params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                if (nodeId !== projectId) {
+                    window.location.href = `/projects/${nodeId}`;
+                }
+            }
+        });
+
+        miniNetwork.on('stabilizationIterationsDone', function() {
+            miniNetwork.setOptions({ physics: { enabled: false } });
+            miniNetwork.fit({ animation: { duration: 300 } });
+        });
+    }
+
+    // HTML escape utility
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Initialize
+    loadRelationships();
+    loadMiniGraph();
+
+    // Theme change listener
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            setTimeout(loadMiniGraph, 100);
+        });
+    }
+})();
+</script>
 {% endblock %}
