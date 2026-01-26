@@ -27,7 +27,7 @@ class Config:
     DB_HOST: str = os.getenv("DB_HOST", "localhost")
     DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
     DB_NAME: str = os.getenv("DB_NAME", "contextgrid")
-    DB_USER: str = os.getenv("DB_USER", "contextgrid_user")
+    DB_USER: str = os.getenv("DB_USER", "root")
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
     
     # Connection Pool Configuration

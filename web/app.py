@@ -3,19 +3,28 @@ ContextGrid Web UI
 FastAPI application for browsing and managing projects
 """
 
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List, Dict
+import os
 import sys
+import shutil
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+ENV_FILE = BASE_DIR / ".env"
+
+if ENV_FILE.exists():
+    load_dotenv(ENV_FILE, override=True)
 
 # Add src to path to import our existing models
 src_path = Path(__file__).parent.parent / "src"
 sys.path.insert(0, str(src_path))
 
-import models
+import async_models as models
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -24,12 +33,40 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Close the shared async API client when the app shuts down
+app.add_event_handler("shutdown", models.aclose_client)
+
 # Setup static files and templates
 STATIC_DIR = Path(__file__).parent / "static"
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
+templates.env.globals["api_base_url"] = os.getenv("API_ENDPOINT", "http://localhost:8000").rstrip("/")
+
+SCREENSHOTS_DIR = STATIC_DIR / "screenshots"
+
+
+def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:
+    """Return screenshots for a project from web/static/screenshots/<project_id>/."""
+    project_dir = SCREENSHOTS_DIR / str(project_id)
+    if not project_dir.is_dir():
+        return []
+
+    allowed_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+    screenshots = []
+    for path in sorted(project_dir.iterdir(), key=lambda p: p.name.lower()):
+        if not path.is_file() or path.suffix.lower() not in allowed_exts:
+            continue
+        label = path.stem.replace("_", " ").replace("-", " ").strip()
+        screenshots.append(
+            {
+                "url": f"/static/screenshots/{project_id}/{path.name}",
+                "label": label,
+            }
+        )
+
+    return screenshots
 
 
 # =========================
@@ -40,7 +77,7 @@ templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 async def home(request: Request):
     """Home page with dashboard overview."""
     # Get project counts by status
-    all_projects = models.list_projects()
+    all_projects = await models.list_projects()
     
     status_counts = {
         "active": 0,
@@ -90,8 +127,8 @@ async def projects_list(
     # Fetch projects based on filters
     if search and search.strip():
         # Search projects with pagination
-        total_count = models.get_projects_count(status=status, search=search)
-        projects = models.search_projects(
+        total_count = await models.get_projects_count(status, None, search)
+        projects = await models.search_projects(
             search,
             status=status,
             limit=per_page,
@@ -100,8 +137,8 @@ async def projects_list(
             sort_order=order
         )
     elif tag:
-        total_count = models.get_projects_count(status=status, tag=tag)
-        projects = models.list_projects_by_tag(
+        total_count = await models.get_projects_count(status, tag)
+        projects = await models.list_projects_by_tag(
             tag,
             status=status,
             limit=per_page,
@@ -110,8 +147,8 @@ async def projects_list(
             sort_order=order
         )
     else:
-        total_count = models.get_projects_count(status=status)
-        projects = models.list_projects(
+        total_count = await models.get_projects_count(status, None)
+        projects = await models.list_projects(
             status=status,
             limit=per_page,
             offset=offset,
@@ -125,7 +162,7 @@ async def projects_list(
     has_next = page < total_pages
     
     # Get all tags for filter UI
-    all_tags = models.list_all_tags()
+    all_tags = await models.list_all_tags()
     
     return templates.TemplateResponse(
         "projects.html",
@@ -170,7 +207,6 @@ async def project_create(
     primary_language: Optional[str] = Form(None),
     stack: Optional[str] = Form(None),
     repo_url: Optional[str] = Form(None),
-    local_path: Optional[str] = Form(None),
     scope_size: Optional[str] = Form(None),
     learning_goal: Optional[str] = Form(None)
 ):
@@ -190,7 +226,6 @@ async def project_create(
                     "primary_language": primary_language,
                     "stack": stack,
                     "repo_url": repo_url,
-                    "local_path": local_path,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal
                 }
@@ -215,7 +250,6 @@ async def project_create(
                         "primary_language": primary_language,
                         "stack": stack,
                         "repo_url": repo_url,
-                        "local_path": local_path,
                         "scope_size": scope_size,
                         "learning_goal": learning_goal
                     }
@@ -229,13 +263,12 @@ async def project_create(
     primary_language = primary_language.strip() if primary_language and primary_language.strip() else None
     stack = stack.strip() if stack and stack.strip() else None
     repo_url = repo_url.strip() if repo_url and repo_url.strip() else None
-    local_path = local_path.strip() if local_path and local_path.strip() else None
     scope_size = scope_size.strip() if scope_size and scope_size.strip() else None
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
     
     try:
         # Create the project
-        project_id = models.create_project(
+        project_id = await models.create_project(
             name=name.strip(),
             description=description,
             status=status,
@@ -243,7 +276,7 @@ async def project_create(
             primary_language=primary_language,
             stack=stack,
             repo_url=repo_url,
-            local_path=local_path,
+            local_path=None,
             scope_size=scope_size,
             learning_goal=learning_goal
         )
@@ -265,7 +298,6 @@ async def project_create(
                     "primary_language": primary_language,
                     "stack": stack,
                     "repo_url": repo_url,
-                    "local_path": local_path,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal
                 }
@@ -277,7 +309,7 @@ async def project_create(
 @app.get("/projects/{project_id}/edit", response_class=HTMLResponse)
 async def project_edit_form(request: Request, project_id: int):
     """Show the project edit form."""
-    project = models.get_project(project_id)
+    project = await models.get_project(project_id)
 
     if not project:
         return templates.TemplateResponse(
@@ -311,12 +343,11 @@ async def project_update(
     primary_language: Optional[str] = Form(None),
     stack: Optional[str] = Form(None),
     repo_url: Optional[str] = Form(None),
-    local_path: Optional[str] = Form(None),
     scope_size: Optional[str] = Form(None),
     learning_goal: Optional[str] = Form(None)
-):
+):  
     """Handle project edit form submission."""
-    project = models.get_project(project_id)
+    project = await models.get_project(project_id)
     if not project:
         return templates.TemplateResponse(
             "error.html",
@@ -342,7 +373,6 @@ async def project_update(
                     "primary_language": primary_language,
                     "stack": stack,
                     "repo_url": repo_url,
-                    "local_path": local_path,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal
                 },
@@ -368,7 +398,6 @@ async def project_update(
                         "primary_language": primary_language,
                         "stack": stack,
                         "repo_url": repo_url,
-                        "local_path": local_path,
                         "scope_size": scope_size,
                         "learning_goal": learning_goal
                     },
@@ -382,12 +411,11 @@ async def project_update(
     primary_language = primary_language.strip() if primary_language and primary_language.strip() else None
     stack = stack.strip() if stack and stack.strip() else None
     repo_url = repo_url.strip() if repo_url and repo_url.strip() else None
-    local_path = local_path.strip() if local_path and local_path.strip() else None
     scope_size = scope_size.strip() if scope_size and scope_size.strip() else None
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
 
     try:
-        updated = models.update_project(
+        updated = await models.update_project(
             project_id,
             name=name.strip(),
             description=description,
@@ -396,9 +424,9 @@ async def project_update(
             primary_language=primary_language,
             stack=stack,
             repo_url=repo_url,
-            local_path=local_path,
+            local_path=None,
             scope_size=scope_size,
-            learning_goal=learning_goal
+            learning_goal=learning_goal,
         )
 
         if not updated:
@@ -416,7 +444,6 @@ async def project_update(
                         "primary_language": primary_language,
                         "stack": stack,
                         "repo_url": repo_url,
-                        "local_path": local_path,
                         "scope_size": scope_size,
                         "learning_goal": learning_goal
                     },
@@ -442,7 +469,6 @@ async def project_update(
                     "primary_language": primary_language,
                     "stack": stack,
                     "repo_url": repo_url,
-                    "local_path": local_path,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal
                 },
@@ -455,7 +481,7 @@ async def project_update(
 @app.get("/projects/{project_id}", response_class=HTMLResponse)
 async def project_detail(request: Request, project_id: int):
     """Show detailed view of a single project."""
-    project = models.get_project(project_id)
+    project = await models.get_project(project_id)
     
     if not project:
         return templates.TemplateResponse(
@@ -467,31 +493,99 @@ async def project_detail(request: Request, project_id: int):
             status_code=404
         )
     
-    # Get tags and notes
-    project_tags = models.list_project_tags(project_id)
-    notes = models.list_notes(project_id)
+    # Get tags and notes via async client
+    project_tags = await models.list_project_tags(project_id)
+    notes = await models.list_notes(project_id)
     
+    screenshots = get_project_screenshots(project_id)
+
     return templates.TemplateResponse(
         "project_detail.html",
         {
             "request": request,
             "project": project,
             "tags": project_tags,
-            "notes": notes
+            "notes": notes,
+            "screenshots": screenshots,
         }
     )
+
+
+@app.post("/projects/{project_id}/delete")
+async def project_delete(project_id: int):
+    """Delete a project."""
+    try:
+        await models.delete_project(project_id)
+        return RedirectResponse(url="/projects", status_code=303)
+    except Exception as e:
+        return RedirectResponse(url="/projects", status_code=303)
+
+
+@app.post("/projects/{project_id}/screenshots")
+async def project_upload_screenshot(
+    request: Request,
+    project_id: int,
+    file: UploadFile = File(...)
+):
+    """Handle screenshot upload."""
+    try:
+        # Create screenshots directory for project if it doesn't exist
+        project_dir = SCREENSHOTS_DIR / str(project_id)
+        project_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Validate file type
+        if not file.content_type.startswith("image/"):
+            return templates.TemplateResponse(
+                "error.html",
+                {
+                    "request": request,
+                    "error": "File must be an image"
+                },
+                status_code=400
+            )
+            
+        # Secure filename (simple version)
+        filename = Path(file.filename).name
+        file_path = project_dir / filename
+        
+        # Save file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        
+    except Exception as e:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error": f"Error uploading screenshot: {str(e)}"
+            },
+            status_code=500
+        )
 
 
 @app.get("/tags", response_class=HTMLResponse)
 async def tags_list(request: Request):
     """Browse all tags."""
-    all_tags = models.list_all_tags()
-    
+    all_tags = await models.list_all_tags()
+
     return templates.TemplateResponse(
         "tags.html",
         {
             "request": request,
             "tags": all_tags
+        }
+    )
+
+
+@app.get("/graph", response_class=HTMLResponse)
+async def graph_view(request: Request):
+    """Full project dependency graph visualization."""
+    return templates.TemplateResponse(
+        "graph.html",
+        {
+            "request": request
         }
     )
 
@@ -508,4 +602,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8080)
+    uvicorn.run(app, host="127.0.0.1", port=8081)

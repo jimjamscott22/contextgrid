@@ -85,3 +85,27 @@ CREATE TABLE IF NOT EXISTS project_tags (
     INDEX idx_project_tags_project_id (project_id),
     INDEX idx_project_tags_tag_id (tag_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =========================
+-- Project Relationships Table
+-- =========================
+CREATE TABLE IF NOT EXISTS project_relationships (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    source_project_id INT NOT NULL,
+    target_project_id INT NOT NULL,
+    relationship_type ENUM('related_to', 'depends_on', 'part_of') NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (source_project_id)
+        REFERENCES projects(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (target_project_id)
+        REFERENCES projects(id)
+        ON DELETE CASCADE,
+
+    UNIQUE KEY unique_relationship (source_project_id, target_project_id, relationship_type),
+
+    INDEX idx_project_relationships_source (source_project_id),
+    INDEX idx_project_relationships_target (target_project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -152,7 +152,7 @@ Create a new project.
 **Optional Fields:**
 - `description` (string): Project description
 - `status` (string): One of `idea`, `active`, `paused`, `archived`. Default: `idea`
-- `project_type` (string): One of `web`, `cli`, `library`, `homelab`, `research`
+- `project_type` (string): One of `web`, `cli`, `school`, `homelab`, `desktop`
 - `primary_language` (string): Programming language
 - `stack` (string): Technology stack
 - `repo_url` (string): Repository URL
@@ -497,9 +497,9 @@ Currently, there is no rate limiting implemented. This may change in future vers
 ### Project Type Values
 - `web`: Web application
 - `cli`: Command-line tool
-- `library`: Library or package
+- `school`: School project
 - `homelab`: Home lab infrastructure
-- `research`: Research or experimental project
+- `desktop`: Desktop application
 
 ### Scope Size Values
 - `tiny`: Quick, small project

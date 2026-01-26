@@ -22,7 +22,7 @@ def cmd_add(args) -> int:
     print("\nStatus options: idea, active, paused, archived")
     status = input("Status [idea]: ").strip() or "idea"
     
-    print("\nType options: web, cli, library, homelab, research")
+    print("\nType options: web, cli, school, homelab, desktop")
     project_type = input("Type (optional): ").strip() or None
     
     primary_language = input("Primary language (optional): ").strip() or None
@@ -249,7 +249,7 @@ def cmd_update(args) -> int:
         if new_status:
             updates['status'] = new_status
         
-        print("\nType options: web, cli, library, homelab, research")
+        print("\nType options: web, cli, school, homelab, desktop")
         new_type = input(f"Type [{project['project_type'] or ''}]: ").strip()
         if new_type:
             updates['project_type'] = new_type

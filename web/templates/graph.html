@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Project Graph - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Project Dependency Graph</h1>
+        <p class="subtitle">Visualize relationships between your projects</p>
+    </div>
+    <div class="header-actions">
+        <div class="graph-controls">
+            <label class="graph-control-label">
+                <input type="checkbox" id="show-inferred" checked>
+                Show inferred relationships
+            </label>
+        </div>
+    </div>
+</div>
+
+<div class="graph-legend">
+    <h3>Legend</h3>
+    <div class="legend-items">
+        <div class="legend-section">
+            <strong>Node Colors (Status)</strong>
+            <span class="legend-item"><span class="legend-dot" style="background: #10B981;"></span> Active</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #F59E0B;"></span> Idea</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #6B7280;"></span> Paused</span>
+            <span class="legend-item"><span class="legend-dot" style="background: #9CA3AF;"></span> Archived</span>
+        </div>
+        <div class="legend-section">
+            <strong>Edge Types (Explicit)</strong>
+            <span class="legend-item"><span class="legend-line" style="border-color: #3B82F6;"></span> depends_on</span>
+            <span class="legend-item"><span class="legend-line" style="border-color: #8B5CF6;"></span> related_to</span>
+            <span class="legend-item"><span class="legend-line" style="border-color: #10B981;"></span> part_of</span>
+        </div>
+        <div class="legend-section">
+            <strong>Edge Types (Inferred)</strong>
+            <span class="legend-item"><span class="legend-line legend-dashed" style="border-color: #9CA3AF;"></span> shared_tags</span>
+            <span class="legend-item"><span class="legend-line legend-dashed" style="border-color: #6B7280;"></span> same_language</span>
+        </div>
+    </div>
+</div>
+
+<div id="graph-container" class="graph-container">
+    <div class="graph-loading">Loading graph data...</div>
+</div>
+
+<!-- vis.js Network via CDN -->
+<script type="text/javascript" src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+
+<script>
+(() => {
+    const container = document.getElementById('graph-container');
+    const showInferredCheckbox = document.getElementById('show-inferred');
+    let network = null;
+
+    const statusColors = {
+        'active': '#10B981',
+        'idea': '#F59E0B',
+        'paused': '#6B7280',
+        'archived': '#9CA3AF'
+    };
+
+    const edgeColors = {
+        'depends_on': '#3B82F6',
+        'related_to': '#8B5CF6',
+        'part_of': '#10B981',
+        'shared_tags': '#9CA3AF',
+        'same_language': '#6B7280'
+    };
+
+    // Detect theme
+    const isDarkTheme = () => {
+        return document.documentElement.getAttribute('data-theme') === 'dark';
+    };
+
+    const getThemeColors = () => {
+        if (isDarkTheme()) {
+            return {
+                background: '#121826',
+                text: '#F3F4F6',
+                border: '#263041'
+            };
+        }
+        return {
+            background: '#FFFFFF',
+            text: '#111827',
+            border: '#E5E7EB'
+        };
+    };
+
+    async function loadGraph() {
+        const includeInferred = showInferredCheckbox.checked;
+
+        try {
+            container.innerHTML = '<div class="graph-loading">Loading graph data...</div>';
+
+            const response = await fetch(`{{ api_base_url }}/api/graph?include_inferred=${includeInferred}`);
+            if (!response.ok) throw new Error('Failed to fetch graph data');
+
+            const data = await response.json();
+
+            if (data.nodes.length === 0) {
+                container.innerHTML = '<div class="graph-empty">No projects found. Create some projects to see the graph!</div>';
+                return;
+            }
+
+            renderGraph(data);
+        } catch (error) {
+            console.error('Error loading graph:', error);
+            container.innerHTML = '<div class="graph-error">Failed to load graph data. Make sure the API server is running.</div>';
+        }
+    }
+
+    function renderGraph(data) {
+        const themeColors = getThemeColors();
+
+        // Transform nodes for vis.js
+        const nodes = new vis.DataSet(data.nodes.map(node => ({
+            id: node.id,
+            label: node.label,
+            color: {
+                background: statusColors[node.status] || '#9CA3AF',
+                border: themeColors.border,
+                highlight: {
+                    background: statusColors[node.status] || '#9CA3AF',
+                    border: '#3B82F6'
+                },
+                hover: {
+                    background: statusColors[node.status] || '#9CA3AF',
+                    border: '#3B82F6'
+                }
+            },
+            font: {
+                color: themeColors.text,
+                size: 14,
+                face: 'system-ui, -apple-system, sans-serif'
+            },
+            title: `<strong>${node.label}</strong><br>` +
+                   `Status: ${node.status}<br>` +
+                   (node.primary_language ? `Language: ${node.primary_language}<br>` : '') +
+                   (node.project_type ? `Type: ${node.project_type}` : '')
+        })));
+
+        // Transform edges for vis.js
+        const edges = new vis.DataSet(data.edges.map((edge, idx) => ({
+            id: idx,
+            from: edge.source,
+            to: edge.target,
+            color: {
+                color: edgeColors[edge.relationship_type] || '#9CA3AF',
+                highlight: '#3B82F6',
+                hover: '#3B82F6'
+            },
+            dashes: edge.is_inferred,
+            arrows: edge.relationship_type === 'depends_on' ? { to: { enabled: true, scaleFactor: 0.8 } } : undefined,
+            title: edge.relationship_type.replace(/_/g, ' '),
+            width: edge.is_inferred ? 1 : 2,
+            smooth: {
+                type: 'continuous'
+            }
+        })));
+
+        const options = {
+            nodes: {
+                shape: 'dot',
+                size: 20,
+                borderWidth: 2,
+                shadow: {
+                    enabled: true,
+                    color: 'rgba(0,0,0,0.2)',
+                    size: 5,
+                    x: 2,
+                    y: 2
+                }
+            },
+            edges: {
+                smooth: {
+                    type: 'continuous',
+                    roundness: 0.5
+                },
+                width: 2
+            },
+            physics: {
+                enabled: true,
+                stabilization: {
+                    enabled: true,
+                    iterations: 150,
+                    updateInterval: 25
+                },
+                barnesHut: {
+                    gravitationalConstant: -3000,
+                    centralGravity: 0.3,
+                    springLength: 150,
+                    springConstant: 0.04,
+                    damping: 0.09
+                }
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 200,
+                hideEdgesOnDrag: true,
+                multiselect: true,
+                navigationButtons: true,
+                keyboard: {
+                    enabled: true
+                }
+            }
+        };
+
+        // Clear container and create network
+        container.innerHTML = '';
+        network = new vis.Network(container, { nodes, edges }, options);
+
+        // Handle node clicks - navigate to project detail
+        network.on('click', function(params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                window.location.href = `/projects/${nodeId}`;
+            }
+        });
+
+        // Show loading overlay during stabilization
+        network.on('stabilizationProgress', function(params) {
+            const progress = Math.round(params.iterations / params.total * 100);
+            // Could show progress indicator here if needed
+        });
+
+        network.on('stabilizationIterationsDone', function() {
+            network.setOptions({ physics: { enabled: false } });
+        });
+    }
+
+    // Initial load
+    loadGraph();
+
+    // Reload on checkbox change
+    showInferredCheckbox.addEventListener('change', loadGraph);
+
+    // Theme change listener - reload graph when theme changes
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            // Small delay to let theme change apply
+            setTimeout(loadGraph, 100);
+        });
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+        if (network) {
+            network.fit();
+        }
+    });
+})();
+</script>
+{% endblock %}

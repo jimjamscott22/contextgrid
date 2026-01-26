@@ -380,7 +380,8 @@ python src/main.py show 1
 #### Start the API Server
 
 ```bash
-python api/server.py
+# Run as a module
+python -m api.server
 ```
 
 The API will be available at `http://localhost:8000`.
