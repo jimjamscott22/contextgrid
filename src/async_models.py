@@ -76,6 +76,13 @@ async def update_project(project_id: int, **kwargs) -> bool:
         _handle_api_error(e)
 
 
+async def delete_project(project_id: int) -> bool:
+    try:
+        return await _client.delete_project(project_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
 async def update_last_worked(project_id: int) -> bool:
     try:
         return await _client.update_last_worked(project_id)

@@ -3,7 +3,7 @@ ContextGrid Web UI
 FastAPI application for browsing and managing projects
 """
 
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional, List, Dict
 import os
 import sys
+import shutil
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -206,7 +207,6 @@ async def project_create(
     primary_language: Optional[str] = Form(None),
     stack: Optional[str] = Form(None),
     repo_url: Optional[str] = Form(None),
-    local_path: Optional[str] = Form(None),
     scope_size: Optional[str] = Form(None),
     learning_goal: Optional[str] = Form(None)
 ):
@@ -226,7 +226,6 @@ async def project_create(
                     "primary_language": primary_language,
                     "stack": stack,
                     "repo_url": repo_url,
-                    "local_path": local_path,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal
                 }
@@ -251,7 +250,6 @@ async def project_create(
                         "primary_language": primary_language,
                         "stack": stack,
                         "repo_url": repo_url,
-                        "local_path": local_path,
                         "scope_size": scope_size,
                         "learning_goal": learning_goal
                     }
@@ -265,7 +263,6 @@ async def project_create(
     primary_language = primary_language.strip() if primary_language and primary_language.strip() else None
     stack = stack.strip() if stack and stack.strip() else None
     repo_url = repo_url.strip() if repo_url and repo_url.strip() else None
-    local_path = local_path.strip() if local_path and local_path.strip() else None
     scope_size = scope_size.strip() if scope_size and scope_size.strip() else None
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
     
@@ -279,7 +276,7 @@ async def project_create(
             primary_language=primary_language,
             stack=stack,
             repo_url=repo_url,
-            local_path=local_path,
+            local_path=None,
             scope_size=scope_size,
             learning_goal=learning_goal
         )
@@ -301,7 +298,6 @@ async def project_create(
                     "primary_language": primary_language,
                     "stack": stack,
                     "repo_url": repo_url,
-                    "local_path": local_path,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal
                 }
@@ -347,7 +343,6 @@ async def project_update(
     primary_language: Optional[str] = Form(None),
     stack: Optional[str] = Form(None),
     repo_url: Optional[str] = Form(None),
-    local_path: Optional[str] = Form(None),
     scope_size: Optional[str] = Form(None),
     learning_goal: Optional[str] = Form(None)
 ):  
@@ -378,7 +373,6 @@ async def project_update(
                     "primary_language": primary_language,
                     "stack": stack,
                     "repo_url": repo_url,
-                    "local_path": local_path,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal
                 },
@@ -404,7 +398,6 @@ async def project_update(
                         "primary_language": primary_language,
                         "stack": stack,
                         "repo_url": repo_url,
-                        "local_path": local_path,
                         "scope_size": scope_size,
                         "learning_goal": learning_goal
                     },
@@ -418,7 +411,6 @@ async def project_update(
     primary_language = primary_language.strip() if primary_language and primary_language.strip() else None
     stack = stack.strip() if stack and stack.strip() else None
     repo_url = repo_url.strip() if repo_url and repo_url.strip() else None
-    local_path = local_path.strip() if local_path and local_path.strip() else None
     scope_size = scope_size.strip() if scope_size and scope_size.strip() else None
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
 
@@ -432,7 +424,7 @@ async def project_update(
             primary_language=primary_language,
             stack=stack,
             repo_url=repo_url,
-            local_path=local_path,
+            local_path=None,
             scope_size=scope_size,
             learning_goal=learning_goal,
         )
@@ -452,7 +444,6 @@ async def project_update(
                         "primary_language": primary_language,
                         "stack": stack,
                         "repo_url": repo_url,
-                        "local_path": local_path,
                         "scope_size": scope_size,
                         "learning_goal": learning_goal
                     },
@@ -478,7 +469,6 @@ async def project_update(
                     "primary_language": primary_language,
                     "stack": stack,
                     "repo_url": repo_url,
-                    "local_path": local_path,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal
                 },
@@ -529,6 +519,50 @@ async def project_delete(project_id: int):
         return RedirectResponse(url="/projects", status_code=303)
     except Exception as e:
         return RedirectResponse(url="/projects", status_code=303)
+
+
+@app.post("/projects/{project_id}/screenshots")
+async def project_upload_screenshot(
+    request: Request,
+    project_id: int,
+    file: UploadFile = File(...)
+):
+    """Handle screenshot upload."""
+    try:
+        # Create screenshots directory for project if it doesn't exist
+        project_dir = SCREENSHOTS_DIR / str(project_id)
+        project_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Validate file type
+        if not file.content_type.startswith("image/"):
+            return templates.TemplateResponse(
+                "error.html",
+                {
+                    "request": request,
+                    "error": "File must be an image"
+                },
+                status_code=400
+            )
+            
+        # Secure filename (simple version)
+        filename = Path(file.filename).name
+        file_path = project_dir / filename
+        
+        # Save file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+            
+        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        
+    except Exception as e:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error": f"Error uploading screenshot: {str(e)}"
+            },
+            status_code=500
+        )
 
 
 @app.get("/tags", response_class=HTMLResponse)

@@ -132,6 +132,14 @@
                 <span class="muted">{{ screenshots | length }}</span>
                 {% endif %}
             </div>
+
+            <div style="margin-bottom: 1rem;">
+                <form action="/projects/{{ project.id }}/screenshots" method="post" enctype="multipart/form-data" style="display: flex; gap: 0.5rem;">
+                    <input type="file" name="file" accept="image/*" required class="form-control" style="padding: 0.4rem;">
+                    <button type="submit" class="btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.9rem;">Upload</button>
+                </form>
+            </div>
+
             {% if screenshots %}
             <div class="screenshot-grid">
                 {% for shot in screenshots %}
