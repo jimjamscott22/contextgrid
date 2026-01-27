@@ -94,6 +94,10 @@ async def home(request: Request):
     # Get recent projects (last worked on)
     recent_projects = all_projects[:5]  # Already sorted by last_worked_at
     
+    # Add screenshots to each project
+    for project in recent_projects:
+        project['screenshots'] = get_project_screenshots(project['id'])
+    
     return templates.TemplateResponse(
         "home.html",
         {

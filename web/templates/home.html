@@ -41,6 +41,17 @@
                 <h3><a href="/projects/{{ project.id }}">{{ project.name }}</a></h3>
                 <span class="badge badge-{{ project.status }}">{{ project.status }}</span>
             </div>
+            
+            {% if project.screenshots %}
+            <div class="project-screenshots-preview">
+                {% for shot in project.screenshots[:3] %}
+                <a href="/projects/{{ project.id }}" class="screenshot-thumb">
+                    <img src="{{ shot.url }}" alt="{{ shot.label or 'Screenshot' }}" loading="lazy">
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
             {% if project.description %}
             <p class="project-description">{{ project.description }}</p>
             {% endif %}

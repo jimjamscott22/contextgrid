@@ -1342,6 +1342,91 @@ select.form-control {
 }
 
 /* ===========================
+   Screenshot Displays
+   =========================== */
+
+.screenshots-main-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--space-lg);
+    margin-top: var(--space-md);
+}
+
+.screenshot-large {
+    margin: 0;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s;
+}
+
+.screenshot-large:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.screenshot-large a {
+    display: block;
+}
+
+.screenshot-large img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: contain;
+    background: var(--color-bg);
+}
+
+.screenshot-large figcaption {
+    padding: var(--space-sm);
+    font-size: 0.9rem;
+    color: var(--color-text-secondary);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+}
+
+.project-screenshots-preview {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: var(--space-md);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.screenshot-thumb {
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    display: block;
+    background: var(--color-border);
+    border-radius: var(--radius-sm);
+}
+
+.screenshot-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.2s;
+}
+
+.screenshot-thumb:hover img {
+    transform: scale(1.1);
+}
+
+/* Single screenshot display */
+.project-screenshots-preview:has(:only-child) {
+    grid-template-columns: 1fr;
+}
+
+/* Two screenshots display */
+.project-screenshots-preview:has(:nth-child(2):last-child) {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* ===========================
    Responsive Design
    =========================== */
 
@@ -1407,6 +1492,18 @@ select.form-control {
     .hero-actions .btn {
         width: 100%;
         text-align: center;
+    }
+    
+    .screenshots-main-display {
+        grid-template-columns: 1fr;
+    }
+    
+    .project-screenshots-preview {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .project-screenshots-preview:has(:only-child) {
+        grid-template-columns: 1fr;
     }
 }
 

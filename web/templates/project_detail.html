@@ -109,6 +109,24 @@
             </div>
         </section>
         {% endif %}
+        
+        {% if screenshots %}
+        <section class="section">
+            <h2>Screenshots</h2>
+            <div class="screenshots-main-display">
+                {% for shot in screenshots %}
+                <figure class="screenshot-large">
+                    <a href="{{ shot.url }}" target="_blank" rel="noopener">
+                        <img src="{{ shot.url }}" alt="{{ shot.label or 'Screenshot' }}" loading="lazy">
+                    </a>
+                    {% if shot.label %}
+                    <figcaption>{{ shot.label }}</figcaption>
+                    {% endif %}
+                </figure>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
     </div>
     
     <div class="detail-sidebar">
