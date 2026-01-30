@@ -304,15 +304,15 @@
                         `;
 
                         projects.forEach(project => {
-                            const lastWorked = project.last_worked_at
-                                ? new Date(project.last_worked_at).toLocaleDateString()
-                                : 'Never';
+                            const lastViewed = project.last_worked_at
+                                ? `Last viewed: ${new Date(project.last_worked_at).toLocaleDateString()}`
+                                : 'Last viewed: Never';
 
                             html += `
                                 <li class="sidebar-project-item">
                                     <a href="/projects/${project.id}" class="sidebar-project-link">
                                         <span class="sidebar-project-name">${escapeHtml(project.name)}</span>
-                                        <span class="sidebar-project-meta">${lastWorked}</span>
+                                        <span class="sidebar-project-meta">${lastViewed}</span>
                                     </a>
                                 </li>
                             `;

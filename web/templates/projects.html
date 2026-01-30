@@ -59,7 +59,7 @@
 <div class="sorting-controls">
     <label>Sort by:</label>
     <select id="sort-select" class="sort-dropdown">
-        <option value="last_worked_at-desc" {% if sort == 'last_worked_at' and order == 'desc' %}selected{% endif %}>Recently Worked</option>
+        <option value="last_worked_at-desc" {% if sort == 'last_worked_at' and order == 'desc' %}selected{% endif %}>Recently Viewed</option>
         <option value="created_at-desc" {% if sort == 'created_at' and order == 'desc' %}selected{% endif %}>Recently Created</option>
         <option value="name-asc" {% if sort == 'name' and order == 'asc' %}selected{% endif %}>Name (A-Z)</option>
         <option value="name-desc" {% if sort == 'name' and order == 'desc' %}selected{% endif %}>Name (Z-A)</option>
@@ -105,7 +105,7 @@
         
         <div class="project-footer">
             {% if project.last_worked_at %}
-            <span class="timestamp">Last worked: {{ project.last_worked_at[:10] }}</span>
+            <span class="timestamp">Last viewed: {{ project.last_worked_at[:10] }}</span>
             {% else %}
             <span class="timestamp">Created: {{ project.created_at[:10] }}</span>
             {% endif %}

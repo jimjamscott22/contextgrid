@@ -168,6 +168,9 @@
                     {% if shot.label %}
                     <figcaption>{{ shot.label }}</figcaption>
                     {% endif %}
+                    <form action="/projects/{{ project.id }}/screenshots/{{ shot.filename }}/delete" method="post" style="margin-top: 0.5rem;">
+                        <button type="submit" class="btn btn-danger btn-compact" onclick="return confirm('Delete this screenshot?')">Delete</button>
+                    </form>
                 </figure>
                 {% endfor %}
             </div>
@@ -233,7 +236,7 @@
                 </tr>
                 {% if project.last_worked_at %}
                 <tr>
-                    <td class="label">Last Worked</td>
+                    <td class="label">Last Viewed</td>
                     <td>{{ project.last_worked_at[:10] }}</td>
                 </tr>
                 {% endif %}

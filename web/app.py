@@ -63,6 +63,7 @@ def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:
             {
                 "url": f"/static/screenshots/{project_id}/{path.name}",
                 "label": label,
+                "filename": path.name,
             }
         )
 
@@ -497,6 +498,15 @@ async def project_detail(request: Request, project_id: int):
             status_code=404
         )
     
+    # Update last viewed timestamp
+    try:
+        await models.update_last_worked(project_id)
+        # Refresh project data to get updated timestamp
+        project = await models.get_project(project_id)
+    except Exception as e:
+        # Don't fail the request if touch fails, just log it
+        print(f"Warning: Failed to update last_worked_at: {e}")
+    
     # Get tags and notes via async client
     project_tags = await models.list_project_tags(project_id)
     notes = await models.list_notes(project_id)
@@ -564,6 +574,46 @@ async def project_upload_screenshot(
             {
                 "request": request,
                 "error": f"Error uploading screenshot: {str(e)}"
+            },
+            status_code=500
+        )
+
+
+@app.post("/projects/{project_id}/screenshots/{filename}/delete")
+async def project_delete_screenshot(
+    request: Request,
+    project_id: int,
+    filename: str
+):
+    """Handle screenshot deletion."""
+    try:
+        # Construct the file path
+        project_dir = SCREENSHOTS_DIR / str(project_id)
+        file_path = project_dir / filename
+        
+        # Security check: ensure the file is within the project directory
+        if not file_path.resolve().is_relative_to(project_dir.resolve()):
+            return templates.TemplateResponse(
+                "error.html",
+                {
+                    "request": request,
+                    "error": "Invalid file path"
+                },
+                status_code=400
+            )
+        
+        # Delete the file if it exists
+        if file_path.exists() and file_path.is_file():
+            file_path.unlink()
+        
+        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        
+    except Exception as e:
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "error": f"Error deleting screenshot: {str(e)}"
             },
             status_code=500
         )
