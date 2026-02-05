@@ -385,6 +385,31 @@ async def get_note(note_id: int):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.put("/api/notes/{note_id}", response_model=NoteResponse)
+async def update_note(note_id: int, note: NoteCreate):
+    """Update a note by ID."""
+    try:
+        # Check if note exists
+        existing_note = db.get_note(note_id)
+        if not existing_note:
+            raise HTTPException(status_code=404, detail=f"Note {note_id} not found")
+        
+        # Update the note
+        success = db.update_note(note_id, content=note.content, note_type=note.note_type)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update note")
+        
+        # Fetch and return the updated note
+        updated_note = db.get_note(note_id)
+        return updated_note
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.delete("/api/notes/{note_id}", response_model=MessageResponse)
 async def delete_note(note_id: int):
     """Delete a note by ID."""

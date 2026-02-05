@@ -86,6 +86,32 @@
         </section>
         {% endif %}
         
+        <!-- Future Ideas Section -->
+        <section class="future-ideas-section">
+            <div class="future-ideas-header">
+                <h2><span class="future-ideas-icon">💡</span> Future Development Ideas</h2>
+            </div>
+            <p style="color: var(--color-text-secondary); margin-bottom: var(--space-lg); font-size: 0.95rem;">
+                Capture your ideas for future enhancements, features, or improvements for this project.
+            </p>
+            
+            <div class="future-ideas-add-form">
+                <textarea 
+                    id="future-idea-input" 
+                    placeholder="What's your idea for improving this project? Be as detailed or brief as you like..."
+                    rows="3"
+                ></textarea>
+                <div class="future-ideas-form-actions">
+                    <button type="button" class="btn btn-secondary btn-compact" onclick="clearFutureIdea()">Clear</button>
+                    <button type="button" class="btn btn-primary btn-compact" onclick="addFutureIdea()">Add Idea</button>
+                </div>
+            </div>
+            
+            <div id="future-ideas-list" class="future-ideas-list">
+                <!-- Future ideas will be loaded here -->
+            </div>
+        </section>
+        
         {% if notes %}
         <section class="section">
             <h2>Notes</h2>
@@ -552,6 +578,213 @@
             setTimeout(loadMiniGraph, 100);
         });
     }
+})();
+
+// ========================
+// Future Ideas Management
+// ========================
+(function() {
+    const projectId = {{ project.id }};
+    const apiBase = '{{ api_base_url }}';
+    const futureIdeasList = document.getElementById('future-ideas-list');
+    const futureIdeaInput = document.getElementById('future-idea-input');
+
+    // Load future ideas
+    async function loadFutureIdeas() {
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/notes`);
+            if (!response.ok) throw new Error('Failed to fetch notes');
+            
+            const data = await response.json();
+            // Filter for future_idea type notes
+            const futureIdeas = data.notes.filter(note => note.note_type === 'future_idea');
+            
+            renderFutureIdeas(futureIdeas);
+        } catch (error) {
+            console.error('Error loading future ideas:', error);
+            futureIdeasList.innerHTML = '<div class="future-ideas-empty"><p>Failed to load ideas</p></div>';
+        }
+    }
+
+    // Render future ideas
+    function renderFutureIdeas(ideas) {
+        if (ideas.length === 0) {
+            futureIdeasList.innerHTML = `
+                <div class="future-ideas-empty">
+                    <div class="future-ideas-empty-icon">💭</div>
+                    <p>No future ideas yet. Start by adding your first idea above!</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        ideas.forEach(idea => {
+            const date = new Date(idea.created_at);
+            const formattedDate = date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            html += `
+                <div class="future-idea-card" data-id="${idea.id}">
+                    <div class="future-idea-header">
+                        <div class="future-idea-meta">
+                            <span class="future-idea-icon">💡</span>
+                            <span class="future-idea-date">${formattedDate}</span>
+                        </div>
+                        <div class="future-idea-actions">
+                            <button type="button" class="future-idea-action-btn" onclick="editFutureIdea(${idea.id})" title="Edit">
+                                ✏️ Edit
+                            </button>
+                            <button type="button" class="future-idea-action-btn delete" onclick="deleteFutureIdea(${idea.id})" title="Delete">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                    <div class="future-idea-content" id="content-${idea.id}">
+                        ${escapeHtml(idea.content)}
+                    </div>
+                    <div class="future-idea-edit-form" id="edit-form-${idea.id}">
+                        <textarea id="edit-textarea-${idea.id}" rows="3">${escapeHtml(idea.content)}</textarea>
+                        <div class="future-idea-edit-actions">
+                            <button type="button" class="btn btn-secondary btn-compact" onclick="cancelEditFutureIdea(${idea.id})">Cancel</button>
+                            <button type="button" class="btn btn-primary btn-compact" onclick="saveFutureIdea(${idea.id})">Save</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        futureIdeasList.innerHTML = html;
+    }
+
+    // Add future idea
+    window.addFutureIdea = async function() {
+        const content = futureIdeaInput.value.trim();
+        if (!content) {
+            alert('Please enter an idea before adding.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/notes`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: content,
+                    note_type: 'future_idea'
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to add idea');
+            }
+
+            futureIdeaInput.value = '';
+            loadFutureIdeas();
+        } catch (error) {
+            console.error('Error adding future idea:', error);
+            alert('Failed to add idea: ' + error.message);
+        }
+    };
+
+    // Clear input
+    window.clearFutureIdea = function() {
+        futureIdeaInput.value = '';
+        futureIdeaInput.focus();
+    };
+
+    // Edit future idea
+    window.editFutureIdea = function(ideaId) {
+        const contentDiv = document.getElementById(`content-${ideaId}`);
+        const editForm = document.getElementById(`edit-form-${ideaId}`);
+        
+        if (contentDiv && editForm) {
+            contentDiv.style.display = 'none';
+            editForm.classList.add('active');
+        }
+    };
+
+    // Cancel edit
+    window.cancelEditFutureIdea = function(ideaId) {
+        const contentDiv = document.getElementById(`content-${ideaId}`);
+        const editForm = document.getElementById(`edit-form-${ideaId}`);
+        
+        if (contentDiv && editForm) {
+            contentDiv.style.display = 'block';
+            editForm.classList.remove('active');
+        }
+    };
+
+    // Save edited idea
+    window.saveFutureIdea = async function(ideaId) {
+        const textarea = document.getElementById(`edit-textarea-${ideaId}`);
+        const newContent = textarea.value.trim();
+        
+        if (!newContent) {
+            alert('Idea content cannot be empty.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${apiBase}/api/notes/${ideaId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: newContent,
+                    note_type: 'future_idea'
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update idea');
+            }
+
+            loadFutureIdeas();
+        } catch (error) {
+            console.error('Error updating future idea:', error);
+            alert('Failed to update idea: ' + error.message);
+        }
+    };
+
+    // Delete future idea
+    window.deleteFutureIdea = async function(ideaId) {
+        if (!confirm('Are you sure you want to delete this idea? This cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${apiBase}/api/notes/${ideaId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to delete idea');
+            }
+
+            loadFutureIdeas();
+        } catch (error) {
+            console.error('Error deleting future idea:', error);
+            alert('Failed to delete idea: ' + error.message);
+        }
+    };
+
+    // HTML escape utility (reuse from parent scope or redefine)
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Initialize
+    loadFutureIdeas();
 })();
 </script>
 {% endblock %}

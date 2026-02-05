@@ -63,7 +63,7 @@ class ProjectResponse(ProjectBase):
 class NoteBase(BaseModel):
     """Base model for note data."""
     content: str = Field(..., min_length=1)
-    note_type: str = Field(default="log", pattern="^(log|idea|blocker|reflection)$")
+    note_type: str = Field(default="log", pattern="^(log|idea|blocker|reflection|future_idea)$")
 
 
 class NoteCreate(NoteBase):
