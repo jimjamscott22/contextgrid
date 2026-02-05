@@ -484,6 +484,30 @@ def get_note(note_id: int) -> Optional[Dict[str, Any]]:
         return row
 
 
+def update_note(note_id: int, content: str, note_type: str) -> bool:
+    """
+    Update a note's content and type.
+    
+    Args:
+        note_id: ID of the note to update
+        content: New content for the note
+        note_type: New note type (log, idea, blocker, reflection, future_idea)
+    
+    Returns:
+        True if updated, False if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE project_notes 
+            SET content = %s, note_type = %s 
+            WHERE id = %s
+            """,
+            (content, note_type, note_id)
+        )
+        return cursor.rowcount > 0
+
+
 def delete_note(note_id: int) -> bool:
     """
     Delete a note by ID.

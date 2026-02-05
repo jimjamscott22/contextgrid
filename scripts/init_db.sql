@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS project_notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL,
 
-    note_type TEXT,                      -- log, idea, blocker, reflection
+    note_type TEXT,                      -- log, idea, blocker, reflection, future_idea
     content TEXT NOT NULL,
 
     created_at TEXT NOT NULL,

@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS project_notes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
     
-    note_type VARCHAR(50),                        -- log, idea, blocker, reflection
+    note_type VARCHAR(50),                        -- log, idea, blocker, reflection, future_idea
     content TEXT NOT NULL,
     
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
