@@ -4,7 +4,7 @@ FastAPI application for browsing and managing projects
 """
 
 from fastapi import FastAPI, Request, Form, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
@@ -642,6 +642,61 @@ async def graph_view(request: Request):
             "request": request
         }
     )
+
+
+@app.get("/kanban", response_class=HTMLResponse)
+async def kanban_board(request: Request):
+    """Kanban board view - projects organized by status columns."""
+    all_projects = await models.list_projects()
+
+    columns = {
+        "idea": [],
+        "active": [],
+        "paused": [],
+        "archived": [],
+    }
+
+    for project in all_projects:
+        status = project.get("status", "idea")
+        if status in columns:
+            columns[status].append(project)
+
+    return templates.TemplateResponse(
+        "kanban.html",
+        {
+            "request": request,
+            "columns": columns,
+        }
+    )
+
+
+@app.post("/api/kanban/move")
+async def kanban_move(request: Request):
+    """Update a project's status via drag-and-drop on the kanban board."""
+    body = await request.json()
+    project_id = body.get("project_id")
+    new_status = body.get("status")
+
+    valid_statuses = {"idea", "active", "paused", "archived"}
+    if not project_id or new_status not in valid_statuses:
+        return JSONResponse(
+            {"error": "Invalid project_id or status"},
+            status_code=400
+        )
+
+    try:
+        updated = await models.update_project(int(project_id), status=new_status)
+        if not updated:
+            return JSONResponse(
+                {"error": "Failed to update project"},
+                status_code=500
+            )
+        return JSONResponse({"ok": True, "project_id": project_id, "status": new_status})
+    except Exception as e:
+        return JSONResponse(
+            {"error": str(e)},
+            status_code=500
+        )
 
 
 # =========================

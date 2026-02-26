@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Kanban Board - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Kanban Board</h1>
+    <div class="header-actions">
+        <a href="/projects/new" class="btn btn-primary">+ New Project</a>
+    </div>
+</div>
+
+<div class="kanban-board" id="kanban-board">
+    {% for status, label in [("idea", "Ideas"), ("active", "Active"), ("paused", "Paused"), ("archived", "Archived")] %}
+    <div class="kanban-column" data-status="{{ status }}">
+        <div class="kanban-column-header">
+            <span class="kanban-column-title">{{ label }}</span>
+            <span class="kanban-column-count">{{ columns[status]|length }}</span>
+        </div>
+        <div class="kanban-column-body" data-status="{{ status }}">
+            {% for project in columns[status] %}
+            <div class="kanban-card"
+                 draggable="true"
+                 data-project-id="{{ project.id }}"
+                 data-status="{{ status }}">
+                <a href="/projects/{{ project.id }}" class="kanban-card-link">
+                    <div class="kanban-card-header">
+                        <span class="kanban-card-name">{{ project.name }}</span>
+                        {% if project.project_type %}
+                        <span class="badge badge-type">{{ project.project_type }}</span>
+                        {% endif %}
+                    </div>
+                    {% if project.primary_language %}
+                    <span class="kanban-card-lang">{{ project.primary_language }}</span>
+                    {% endif %}
+                    {% if project.description %}
+                    <p class="kanban-card-desc">{{ project.description[:80] }}{% if project.description|length > 80 %}...{% endif %}</p>
+                    {% endif %}
+                    <span class="kanban-card-time" data-timestamp="{{ project.last_worked_at or project.created_at }}"></span>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div id="kanban-toast" class="kanban-toast" aria-live="polite"></div>
+
+<script>
+(() => {
+    const board = document.getElementById('kanban-board');
+    const toast = document.getElementById('kanban-toast');
+
+    // --- Relative time helper ---
+    function relativeTime(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'just now';
+        if (diffMins < 60) return diffMins + 'm ago';
+        if (diffHours < 24) return diffHours + 'h ago';
+        if (diffDays < 30) return diffDays + 'd ago';
+        return date.toLocaleDateString();
+    }
+
+    document.querySelectorAll('.kanban-card-time[data-timestamp]').forEach(el => {
+        el.textContent = relativeTime(el.dataset.timestamp);
+    });
+
+    // --- Toast notification ---
+    let toastTimer = null;
+    function showToast(message, isError) {
+        clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.className = 'kanban-toast visible' + (isError ? ' error' : '');
+        toastTimer = setTimeout(() => {
+            toast.className = 'kanban-toast';
+        }, 3000);
+    }
+
+    // --- Drag and Drop ---
+    let draggedCard = null;
+
+    board.addEventListener('dragstart', (e) => {
+        const card = e.target.closest('.kanban-card');
+        if (!card) return;
+        draggedCard = card;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.dataset.projectId);
+    });
+
+    board.addEventListener('dragend', () => {
+        if (draggedCard) {
+            draggedCard.classList.remove('dragging');
+            draggedCard = null;
+        }
+        document.querySelectorAll('.drag-over').forEach(el => {
+            el.classList.remove('drag-over');
+        });
+    });
+
+    document.querySelectorAll('.kanban-column-body').forEach(columnBody => {
+        columnBody.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            columnBody.classList.add('drag-over');
+        });
+
+        columnBody.addEventListener('dragleave', (e) => {
+            if (!columnBody.contains(e.relatedTarget)) {
+                columnBody.classList.remove('drag-over');
+            }
+        });
+
+        columnBody.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            columnBody.classList.remove('drag-over');
+
+            if (!draggedCard) return;
+
+            const projectId = draggedCard.dataset.projectId;
+            const newStatus = columnBody.dataset.status;
+            const oldStatus = draggedCard.dataset.status;
+
+            if (newStatus === oldStatus) return;
+
+            // Optimistic UI update
+            columnBody.appendChild(draggedCard);
+            draggedCard.dataset.status = newStatus;
+            updateColumnCounts();
+
+            try {
+                const response = await fetch('/api/kanban/move', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: parseInt(projectId, 10),
+                        status: newStatus
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Server returned ' + response.status);
+                }
+
+                const statusLabels = { idea: 'Ideas', active: 'Active', paused: 'Paused', archived: 'Archived' };
+                showToast('Moved to ' + statusLabels[newStatus], false);
+            } catch (err) {
+                // Revert on failure
+                const oldColumn = document.querySelector(
+                    '.kanban-column-body[data-status="' + oldStatus + '"]'
+                );
+                if (oldColumn) {
+                    oldColumn.appendChild(draggedCard);
+                    draggedCard.dataset.status = oldStatus;
+                    updateColumnCounts();
+                }
+                showToast('Failed to update status', true);
+                console.error('Kanban move error:', err);
+            }
+        });
+    });
+
+    function updateColumnCounts() {
+        document.querySelectorAll('.kanban-column').forEach(col => {
+            const body = col.querySelector('.kanban-column-body');
+            const countEl = col.querySelector('.kanban-column-count');
+            if (body && countEl) {
+                countEl.textContent = body.querySelectorAll('.kanban-card').length;
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}
