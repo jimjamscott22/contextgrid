@@ -24,6 +24,7 @@ class ProjectBase(BaseModel):
     local_path: Optional[str] = None
     scope_size: Optional[str] = Field(None, pattern="^(tiny|medium|long-haul)?$")
     learning_goal: Optional[str] = None
+    progress: int = Field(default=0, ge=0, le=100)
 
 
 class ProjectCreate(ProjectBase):
@@ -43,6 +44,7 @@ class ProjectUpdate(BaseModel):
     local_path: Optional[str] = None
     scope_size: Optional[str] = Field(None, pattern="^(tiny|medium|long-haul)?$")
     learning_goal: Optional[str] = None
+    progress: Optional[int] = Field(None, ge=0, le=100)
 
 
 class ProjectResponse(ProjectBase):

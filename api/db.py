@@ -109,10 +109,11 @@ def create_project(
     local_path: Optional[str] = None,
     scope_size: Optional[str] = None,
     learning_goal: Optional[str] = None,
+    progress: int = 0,
 ) -> int:
     """
     Create a new project.
-    
+
     Returns:
         The new project's ID
     """
@@ -122,13 +123,14 @@ def create_project(
             INSERT INTO projects (
                 name, description, status, project_type,
                 primary_language, stack, repo_url, local_path,
-                scope_size, learning_goal, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                scope_size, learning_goal, progress, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 name, description, status, project_type,
                 primary_language, stack, repo_url, local_path,
-                scope_size, learning_goal, datetime.utcnow()
+                scope_size, learning_goal, max(0, min(100, progress)),
+                datetime.utcnow()
             )
         )
         return cursor.lastrowid
@@ -241,7 +243,7 @@ def update_project(project_id: int, **kwargs) -> bool:
     valid_fields = {
         "name", "description", "status", "project_type",
         "primary_language", "stack", "repo_url", "local_path",
-        "scope_size", "learning_goal", "is_archived"
+        "scope_size", "learning_goal", "is_archived", "progress"
     }
     
     updates = {k: v for k, v in kwargs.items() if k in valid_fields}

@@ -221,7 +221,8 @@ async def project_create(
     stack: Optional[str] = Form(None),
     repo_url: Optional[str] = Form(None),
     scope_size: Optional[str] = Form(None),
-    learning_goal: Optional[str] = Form(None)
+    learning_goal: Optional[str] = Form(None),
+    progress: Optional[int] = Form(0)
 ):
     """Handle project creation form submission."""
     # Validate required fields
@@ -240,12 +241,13 @@ async def project_create(
                     "stack": stack,
                     "repo_url": repo_url,
                     "scope_size": scope_size,
-                    "learning_goal": learning_goal
+                    "learning_goal": learning_goal,
+                    "progress": progress
                 }
             },
             status_code=400
         )
-    
+
     # Validate URL format if provided
     if repo_url and repo_url.strip():
         repo_url = repo_url.strip()
@@ -264,12 +266,13 @@ async def project_create(
                         "stack": stack,
                         "repo_url": repo_url,
                         "scope_size": scope_size,
-                        "learning_goal": learning_goal
+                        "learning_goal": learning_goal,
+                        "progress": progress
                     }
                 },
                 status_code=400
             )
-    
+
     # Clean up empty strings to None
     description = description.strip() if description and description.strip() else None
     project_type = project_type.strip() if project_type and project_type.strip() else None
@@ -291,7 +294,8 @@ async def project_create(
             repo_url=repo_url,
             local_path=None,
             scope_size=scope_size,
-            learning_goal=learning_goal
+            learning_goal=learning_goal,
+            progress=max(0, min(100, progress or 0))
         )
         
         # Redirect to the new project's detail page
@@ -312,7 +316,8 @@ async def project_create(
                     "stack": stack,
                     "repo_url": repo_url,
                     "scope_size": scope_size,
-                    "learning_goal": learning_goal
+                    "learning_goal": learning_goal,
+                    "progress": progress
                 }
             },
             status_code=500
@@ -357,7 +362,8 @@ async def project_update(
     stack: Optional[str] = Form(None),
     repo_url: Optional[str] = Form(None),
     scope_size: Optional[str] = Form(None),
-    learning_goal: Optional[str] = Form(None)
+    learning_goal: Optional[str] = Form(None),
+    progress: Optional[int] = Form(0)
 ):  
     """Handle project edit form submission."""
     project = await models.get_project(project_id)
@@ -387,7 +393,8 @@ async def project_update(
                     "stack": stack,
                     "repo_url": repo_url,
                     "scope_size": scope_size,
-                    "learning_goal": learning_goal
+                    "learning_goal": learning_goal,
+                    "progress": progress
                 },
                 "project": project
             },
@@ -412,7 +419,8 @@ async def project_update(
                         "stack": stack,
                         "repo_url": repo_url,
                         "scope_size": scope_size,
-                        "learning_goal": learning_goal
+                        "learning_goal": learning_goal,
+                        "progress": progress
                     },
                     "project": project
                 },
@@ -440,6 +448,7 @@ async def project_update(
             local_path=None,
             scope_size=scope_size,
             learning_goal=learning_goal,
+            progress=max(0, min(100, progress or 0)),
         )
 
         if not updated:
@@ -458,7 +467,8 @@ async def project_update(
                         "stack": stack,
                         "repo_url": repo_url,
                         "scope_size": scope_size,
-                        "learning_goal": learning_goal
+                        "learning_goal": learning_goal,
+                        "progress": progress
                     },
                     "project": project
                 },
@@ -483,7 +493,8 @@ async def project_update(
                     "stack": stack,
                     "repo_url": repo_url,
                     "scope_size": scope_size,
-                    "learning_goal": learning_goal
+                    "learning_goal": learning_goal,
+                    "progress": progress
                 },
                 "project": project
             },

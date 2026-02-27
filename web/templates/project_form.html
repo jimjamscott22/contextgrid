@@ -128,19 +128,41 @@
     
     <div class="form-section">
         <h2>Learning & Goals</h2>
-        
+
         <div class="form-group">
             <label for="learning_goal">Learning Goal</label>
-            <textarea 
-                id="learning_goal" 
-                name="learning_goal" 
+            <textarea
+                id="learning_goal"
+                name="learning_goal"
                 rows="3"
                 class="form-control"
                 placeholder="What are you trying to learn or achieve with this project?"
             >{{ form_data.learning_goal or '' }}</textarea>
         </div>
     </div>
-    
+
+    <div class="form-section">
+        <h2>Progress</h2>
+
+        <div class="form-group">
+            <label for="progress">Completion (<span id="progress-value">{{ form_data.progress|default(0) }}</span>%)</label>
+            <input
+                type="range"
+                id="progress"
+                name="progress"
+                min="0"
+                max="100"
+                step="5"
+                value="{{ form_data.progress|default(0) }}"
+                class="form-control progress-slider"
+                oninput="document.getElementById('progress-value').textContent = this.value"
+            >
+            <div class="progress-bar-preview">
+                <div class="progress-bar-fill" id="progress-bar-preview-fill" style="width: {{ form_data.progress|default(0) }}%"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="form-actions">
         <button type="submit" class="btn btn-primary">Create Project</button>
         <a href="/projects" class="btn btn-secondary">Cancel</a>
@@ -161,6 +183,11 @@ document.getElementById('repo_url').addEventListener('blur', function() {
 // Clear validation on input
 document.getElementById('repo_url').addEventListener('input', function() {
     this.setCustomValidity('');
+});
+
+// Progress slider preview
+document.getElementById('progress').addEventListener('input', function() {
+    document.getElementById('progress-bar-preview-fill').style.width = this.value + '%';
 });
 </script>
 {% endblock %}

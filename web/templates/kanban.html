@@ -36,6 +36,14 @@
                     {% if project.description %}
                     <p class="kanban-card-desc">{{ project.description[:80] }}{% if project.description|length > 80 %}...{% endif %}</p>
                     {% endif %}
+                    {% if project.progress is defined and project.progress %}
+                    <div class="progress-bar-container kanban-progress">
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" style="width: {{ project.progress }}%"></div>
+                        </div>
+                        <span class="progress-bar-label">{{ project.progress }}%</span>
+                    </div>
+                    {% endif %}
                     <span class="kanban-card-time" data-timestamp="{{ project.last_worked_at or project.created_at }}"></span>
                 </a>
             </div>

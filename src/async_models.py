@@ -25,6 +25,7 @@ async def create_project(
     local_path: Optional[str] = None,
     scope_size: Optional[str] = None,
     learning_goal: Optional[str] = None,
+    progress: int = 0,
 ) -> int:
     try:
         return await _client.create_project(
@@ -38,6 +39,7 @@ async def create_project(
             local_path=local_path,
             scope_size=scope_size,
             learning_goal=learning_goal,
+            progress=progress,
         )
     except APIError as e:
         _handle_api_error(e)

@@ -12,6 +12,14 @@
             <h1>{{ project.name }}</h1>
             <span class="badge badge-{{ project.status }} large">{{ project.status }}</span>
         </div>
+        {% if project.progress is defined and project.progress is not none %}
+        <div class="progress-bar-container detail-progress">
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill" style="width: {{ project.progress }}%"></div>
+            </div>
+            <span class="progress-bar-label">{{ project.progress }}%</span>
+        </div>
+        {% endif %}
     </div>
     <div class="header-actions">
         <a href="/projects/{{ project.id }}/edit" class="btn btn-secondary">Edit Project</a>

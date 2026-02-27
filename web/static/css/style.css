@@ -2502,3 +2502,131 @@ body[data-theme="dark"] .heatmap-cell[data-level="4"] {
         min-width: 700px;
     }
 }
+
+
+/* ===========================
+   Progress Bar
+   =========================== */
+
+.progress-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.progress-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+    transition: width 0.3s ease;
+    min-width: 0;
+}
+
+.progress-bar-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    min-width: 2.5rem;
+    text-align: right;
+}
+
+/* Detail page progress bar */
+.detail-progress {
+    margin-top: var(--space-sm);
+    max-width: 400px;
+}
+
+.detail-progress .progress-bar-track {
+    height: 10px;
+}
+
+.detail-progress .progress-bar-label {
+    font-size: 0.85rem;
+}
+
+/* Card progress bar */
+.card-progress {
+    margin-top: var(--space-xs);
+    padding: 0 var(--space-xs);
+}
+
+/* Kanban card progress bar */
+.kanban-progress {
+    margin-top: 0.4rem;
+}
+
+.kanban-progress .progress-bar-track {
+    height: 5px;
+}
+
+.kanban-progress .progress-bar-label {
+    font-size: 0.65rem;
+}
+
+/* Form progress slider */
+.progress-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--color-border);
+    outline: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.progress-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    border: 2px solid var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.progress-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    cursor: pointer;
+    border: 2px solid var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.progress-slider:hover::-webkit-slider-thumb {
+    background: var(--color-primary-dark);
+}
+
+.progress-slider:hover::-moz-range-thumb {
+    background: var(--color-primary-dark);
+}
+
+/* Form preview bar */
+.progress-bar-preview {
+    margin-top: 0.5rem;
+    height: 8px;
+    background: var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar-preview .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--color-primary), var(--color-success));
+    transition: width 0.15s ease;
+}

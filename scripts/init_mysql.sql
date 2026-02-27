@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS projects (
     last_worked_at DATETIME,
     
     is_archived TINYINT(1) DEFAULT 0,             -- 0 = false, 1 = true
-    
+
+    progress INT DEFAULT 0,                        -- 0-100 percentage completion
+
     INDEX idx_projects_name (name),
     INDEX idx_projects_status (status),
     INDEX idx_projects_created_at (created_at),
