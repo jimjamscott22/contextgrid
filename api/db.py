@@ -7,7 +7,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 from contextlib import contextmanager
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from api.config import config
@@ -704,6 +704,127 @@ def get_projects_sharing_tags(project_id: int) -> List[Dict[str, Any]]:
             (project_id, project_id)
         )
         return list(cursor.fetchall())
+
+
+# =========================
+# Activity / Heatmap Operations
+# =========================
+
+def get_activity_heatmap(days: int = 365) -> List[Dict[str, Any]]:
+    """
+    Get activity counts grouped by date for the heatmap.
+
+    Activity is derived from:
+    - project_notes.created_at (note creation)
+    - projects.created_at (project creation)
+
+    Returns:
+        List of dicts with 'date', 'count', and 'projects' fields
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+                activity_date,
+                SUM(activity_count) AS count,
+                GROUP_CONCAT(DISTINCT project_name ORDER BY project_name SEPARATOR ', ') AS projects
+            FROM (
+                SELECT
+                    DATE(pn.created_at) AS activity_date,
+                    COUNT(*) AS activity_count,
+                    p.name AS project_name
+                FROM project_notes pn
+                JOIN projects p ON pn.project_id = p.id
+                WHERE pn.created_at >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                GROUP BY DATE(pn.created_at), p.name
+
+                UNION ALL
+
+                SELECT
+                    DATE(p.created_at) AS activity_date,
+                    1 AS activity_count,
+                    p.name AS project_name
+                FROM projects p
+                WHERE p.created_at >= DATE_SUB(CURDATE(), INTERVAL %s DAY)
+                GROUP BY DATE(p.created_at), p.name
+            ) AS combined
+            GROUP BY activity_date
+            ORDER BY activity_date ASC
+            """,
+            (days, days)
+        )
+
+        rows = cursor.fetchall()
+
+        result = []
+        for row in rows:
+            result.append({
+                'date': row['activity_date'].isoformat() if row['activity_date'] else None,
+                'count': int(row['count']),
+                'projects': row['projects'] or ''
+            })
+
+        return result
+
+
+def get_activity_streak() -> Dict[str, Any]:
+    """
+    Calculate the current and longest activity streaks.
+
+    Returns:
+        Dict with 'current_streak' and 'longest_streak' (in days)
+    """
+    with get_db_cursor() as cursor:
+        # Get all distinct activity dates (notes + project creation)
+        cursor.execute(
+            """
+            SELECT DISTINCT activity_date FROM (
+                SELECT DATE(created_at) AS activity_date FROM project_notes
+                UNION
+                SELECT DATE(created_at) AS activity_date FROM projects
+            ) AS dates
+            ORDER BY activity_date DESC
+            """
+        )
+
+        rows = cursor.fetchall()
+
+        if not rows:
+            return {'current_streak': 0, 'longest_streak': 0}
+
+        dates = [row['activity_date'] for row in rows]
+        today = datetime.utcnow().date()
+
+        # Current streak: count consecutive days ending today or yesterday
+        current_streak = 0
+        expected = today
+        for d in dates:
+            if d == expected:
+                current_streak += 1
+                expected = d - timedelta(days=1)
+            elif d == today - timedelta(days=1) and current_streak == 0:
+                # Allow streak to start from yesterday
+                current_streak = 1
+                expected = d - timedelta(days=1)
+            else:
+                break
+
+        # Longest streak
+        longest_streak = 0
+        streak = 1
+        for i in range(len(dates) - 1):
+            diff = (dates[i] - dates[i + 1]).days
+            if diff == 1:
+                streak += 1
+            else:
+                longest_streak = max(longest_streak, streak)
+                streak = 1
+        longest_streak = max(longest_streak, streak)
+
+        return {
+            'current_streak': current_streak,
+            'longest_streak': longest_streak
+        }
 
 
 def get_projects_by_language(primary_language: str, exclude_project_id: int) -> List[Dict[str, Any]]:

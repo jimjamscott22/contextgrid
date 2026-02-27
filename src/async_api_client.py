@@ -162,6 +162,13 @@ class AsyncAPIClient:
         return result is not None
 
     # =========================
+    # Activity / Heatmap Methods
+    # =========================
+
+    async def get_activity_heatmap(self, days: int = 365) -> Dict[str, Any]:
+        return await self._request("GET", "/api/activity/heatmap", params={"days": days})
+
+    # =========================
     # Graph Methods
     # =========================
 

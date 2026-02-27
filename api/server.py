@@ -21,7 +21,8 @@ from api.models import (
     TagCreate, TagResponse, TagListResponse, TagSimple,
     HealthResponse, MessageResponse, TouchResponse,
     RelationshipCreate, RelationshipResponse, RelationshipListResponse,
-    GraphNode, GraphEdge, GraphDataResponse
+    GraphNode, GraphEdge, GraphDataResponse,
+    ActivityDay, ActivityStreakResponse, ActivityHeatmapResponse
 )
 from api.config import config
 from api import db
@@ -501,6 +502,32 @@ async def delete_relationship(relationship_id: int):
 
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# Activity / Heatmap Endpoints
+# =========================
+
+@app.get("/api/activity/heatmap", response_model=ActivityHeatmapResponse)
+async def get_activity_heatmap(
+    days: int = Query(365, ge=30, le=730)
+):
+    """
+    Get activity heatmap data.
+
+    Query Parameters:
+    - days: Number of days of history to include (default: 365, min: 30, max: 730)
+    """
+    try:
+        activity_data = db.get_activity_heatmap(days=days)
+        streak_data = db.get_activity_streak()
+
+        return ActivityHeatmapResponse(
+            days=[ActivityDay(**day) for day in activity_data],
+            streak=ActivityStreakResponse(**streak_data)
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

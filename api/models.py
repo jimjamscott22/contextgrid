@@ -187,6 +187,29 @@ class RelationshipListResponse(BaseModel):
 # Graph Data Models
 # =========================
 
+# =========================
+# Activity / Heatmap Models
+# =========================
+
+class ActivityDay(BaseModel):
+    """A single day's activity data for the heatmap."""
+    date: str
+    count: int
+    projects: str = ""
+
+
+class ActivityStreakResponse(BaseModel):
+    """Streak tracking data."""
+    current_streak: int
+    longest_streak: int
+
+
+class ActivityHeatmapResponse(BaseModel):
+    """Full heatmap response with activity data and streaks."""
+    days: list[ActivityDay]
+    streak: ActivityStreakResponse
+
+
 class GraphNode(BaseModel):
     """Node in the project graph."""
     id: int

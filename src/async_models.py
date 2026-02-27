@@ -219,6 +219,17 @@ async def aclose_client() -> None:
 
 
 # =========================
+# Activity / Heatmap Operations
+# =========================
+
+async def get_activity_heatmap(days: int = 365) -> Dict[str, Any]:
+    try:
+        return await _client.get_activity_heatmap(days=days)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+# =========================
 # Relationship Operations
 # =========================
 

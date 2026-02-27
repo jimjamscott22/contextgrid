@@ -31,6 +31,50 @@
     </div>
 </div>
 
+<section class="section heatmap-section">
+    <div class="heatmap-header">
+        <h2>Activity Heatmap</h2>
+        <div class="heatmap-streak-badges">
+            <span class="streak-badge" id="current-streak" title="Current streak">
+                <span class="streak-icon">&#x1F525;</span>
+                <span class="streak-value">{{ heatmap_data.streak.current_streak }}</span> day{{ 's' if heatmap_data.streak.current_streak != 1 else '' }}
+            </span>
+            <span class="streak-badge streak-badge-best" id="longest-streak" title="Longest streak">
+                <span class="streak-icon">&#x1F3C6;</span>
+                <span class="streak-value">{{ heatmap_data.streak.longest_streak }}</span> best
+            </span>
+        </div>
+    </div>
+
+    <div class="heatmap-container">
+        <div class="heatmap-months" id="heatmap-months"></div>
+        <div class="heatmap-body">
+            <div class="heatmap-days-labels">
+                <span></span>
+                <span>Mon</span>
+                <span></span>
+                <span>Wed</span>
+                <span></span>
+                <span>Fri</span>
+                <span></span>
+            </div>
+            <div class="heatmap-grid" id="heatmap-grid"></div>
+        </div>
+    </div>
+
+    <div class="heatmap-footer">
+        <span class="heatmap-less">Less</span>
+        <div class="heatmap-legend">
+            <span class="heatmap-cell" data-level="0"></span>
+            <span class="heatmap-cell" data-level="1"></span>
+            <span class="heatmap-cell" data-level="2"></span>
+            <span class="heatmap-cell" data-level="3"></span>
+            <span class="heatmap-cell" data-level="4"></span>
+        </div>
+        <span class="heatmap-more">More</span>
+    </div>
+</section>
+
 <section class="section">
     <h2>Recent Activity</h2>
     {% if recent_projects %}
@@ -70,5 +114,123 @@
     <p class="empty-state">No projects yet. <a href="/projects/new">Create your first project</a></p>
     {% endif %}
 </section>
+
+<script>
+(() => {
+    const activityData = {{ heatmap_data.days | tojson }};
+
+    // Build a map of date -> {count, projects}
+    const dataMap = {};
+    activityData.forEach(d => {
+        dataMap[d.date] = { count: d.count, projects: d.projects };
+    });
+
+    // Determine level (0-4) based on count
+    const getLevel = (count) => {
+        if (count === 0) return 0;
+        if (count <= 1) return 1;
+        if (count <= 3) return 2;
+        if (count <= 6) return 3;
+        return 4;
+    };
+
+    // Generate 52 weeks of dates ending today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const grid = document.getElementById("heatmap-grid");
+    const monthsRow = document.getElementById("heatmap-months");
+
+    if (!grid || !monthsRow) return;
+
+    // Start from the Sunday ~52 weeks ago
+    const dayOfWeek = today.getDay();
+    const endDate = new Date(today);
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 364 - dayOfWeek);
+
+    // Build weeks
+    const weeks = [];
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+        const week = [];
+        for (let d = 0; d < 7; d++) {
+            const cellDate = new Date(currentDate);
+            if (cellDate <= endDate) {
+                week.push(new Date(cellDate));
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        weeks.push(week);
+    }
+
+    // Render month labels
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let lastMonth = -1;
+    const monthSpans = [];
+
+    weeks.forEach((week, i) => {
+        const firstDay = week[0];
+        const month = firstDay.getMonth();
+        if (month !== lastMonth) {
+            monthSpans.push({ month, col: i });
+            lastMonth = month;
+        }
+    });
+
+    // Create month label row
+    let monthHtml = "";
+    monthSpans.forEach((span, i) => {
+        const nextCol = i < monthSpans.length - 1 ? monthSpans[i + 1].col : weeks.length;
+        const colSpan = nextCol - span.col;
+        if (colSpan >= 2) {
+            monthHtml += `<span style="grid-column: span ${colSpan}">${monthNames[span.month]}</span>`;
+        } else {
+            monthHtml += `<span style="grid-column: span ${colSpan}"></span>`;
+        }
+    });
+    monthsRow.innerHTML = monthHtml;
+
+    // Render cells
+    grid.style.gridTemplateColumns = `repeat(${weeks.length}, 1fr)`;
+    monthsRow.style.gridTemplateColumns = `repeat(${weeks.length}, 1fr)`;
+
+    const fragment = document.createDocumentFragment();
+
+    weeks.forEach((week, colIdx) => {
+        week.forEach(date => {
+            const rowIdx = date.getDay();
+            const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+            const entry = dataMap[dateStr] || { count: 0, projects: "" };
+            const level = getLevel(entry.count);
+
+            const cell = document.createElement("span");
+            cell.className = "heatmap-cell";
+            cell.setAttribute("data-level", level);
+            cell.setAttribute("data-date", dateStr);
+            cell.style.gridColumn = colIdx + 1;
+            cell.style.gridRow = rowIdx + 1;
+
+            // Tooltip
+            let tooltip = "";
+            if (entry.count > 0) {
+                tooltip = `${entry.count} activit${entry.count === 1 ? "y" : "ies"} on ${dateStr}`;
+                if (entry.projects) {
+                    tooltip += `\n${entry.projects}`;
+                }
+            } else {
+                tooltip = `No activity on ${dateStr}`;
+            }
+            cell.title = tooltip;
+
+            fragment.appendChild(cell);
+        });
+    });
+
+    grid.appendChild(fragment);
+})();
+</script>
 {% endblock %}
 

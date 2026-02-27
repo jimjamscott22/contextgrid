@@ -94,18 +94,26 @@ async def home(request: Request):
     
     # Get recent projects (last worked on)
     recent_projects = all_projects[:5]  # Already sorted by last_worked_at
-    
+
     # Add screenshots to each project
     for project in recent_projects:
         project['screenshots'] = get_project_screenshots(project['id'])
-    
+
+    # Get activity heatmap data
+    try:
+        heatmap_data = await models.get_activity_heatmap(days=365)
+    except Exception as e:
+        print(f"Warning: Failed to fetch heatmap data: {e}")
+        heatmap_data = {"days": [], "streak": {"current_streak": 0, "longest_streak": 0}}
+
     return templates.TemplateResponse(
         "home.html",
         {
             "request": request,
             "status_counts": status_counts,
             "total_projects": len(all_projects),
-            "recent_projects": recent_projects
+            "recent_projects": recent_projects,
+            "heatmap_data": heatmap_data
         }
     )
 
