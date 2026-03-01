@@ -219,7 +219,13 @@ contextgrid/
 
 ## Quick Start
 
-Choose your deployment mode based on your needs:
+First, install dependencies:
+
+```bash
+uv sync
+```
+
+Then choose your deployment mode based on your needs:
 
 ### Option 1: SQLite + Direct CLI (Simplest - Recommended for Personal Use)
 
@@ -253,6 +259,38 @@ No API server or MySQL required! Perfect for single-user, local-only usage.
    ```
 
 That's it! Your data is stored in `data/projects.db`.
+
+#### Running the CLI
+```bash
+uv run python src/main.py add "My First Project"
+uv run python src/main.py list
+uv run python src/main.py show 1
+```
+
+### Option 1b: With Web UI (SQLite + API + Web)
+
+Same as Option 1, but with a browser interface.
+
+**Terminal 1 - API Server:**
+```bash
+uv run uvicorn api.server:app --host 0.0.0.0 --port 8000 --reload
+```
+
+**Terminal 2 - Web UI:**
+```bash
+uv run uvicorn web.app:app --host 0.0.0.0 --port 8001 --reload
+```
+
+Then open `http://localhost:8001` in your browser.
+
+**Configure with `.env`:**
+```bash
+USE_API=true
+API_URL=http://localhost:8000
+API_ENDPOINT=http://localhost:8000
+DB_TYPE=sqlite
+DB_PATH=data/projects.db
+```
 
 ### Option 2: MySQL + API + CLI (Production/Multi-device Setup)
 
