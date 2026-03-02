@@ -180,8 +180,52 @@ class AsyncAPIClient:
         params = {"include_inferred": str(include_inferred).lower()}
         return await self._request("GET", f"/api/projects/{project_id}/graph", params=params)
 
+    # =========================
+    # Project Link Methods
+    # =========================
+
+    async def list_project_links(self, project_id: int) -> List[Dict[str, Any]]:
+        data = await self._request("GET", f"/api/projects/{project_id}/links")
+        return data["links"]
+
+    async def create_project_link(
+        self, project_id: int, title: str, url: str, link_type: str = "other"
+    ) -> Dict[str, Any]:
+        data = await self._request(
+            "POST",
+            f"/api/projects/{project_id}/links",
+            json={"title": title, "url": url, "link_type": link_type},
+        )
+        return data
+
+    async def delete_link(self, link_id: int) -> bool:
+        result = await self._request("DELETE", f"/api/links/{link_id}")
+        return result is not None
+
+    # =========================
+    # Project Template Methods
+    # =========================
+
+    async def list_templates(self) -> List[Dict[str, Any]]:
+        data = await self._request("GET", "/api/templates")
+        return data["templates"]
+
+    async def get_template(self, template_id: int) -> Optional[Dict[str, Any]]:
+        return await self._request("GET", f"/api/templates/{template_id}")
+
+    async def create_template(self, **kwargs) -> Dict[str, Any]:
+        return await self._request("POST", "/api/templates", json=kwargs)
+
+    async def update_template(self, template_id: int, **kwargs) -> Dict[str, Any]:
+        return await self._request("PUT", f"/api/templates/{template_id}", json=kwargs)
+
+    async def delete_template(self, template_id: int) -> bool:
+        result = await self._request("DELETE", f"/api/templates/{template_id}")
+        return result is not None
+
     async def aclose(self) -> None:
         await self._client.aclose()
+
 
 
 _async_client: Optional[AsyncAPIClient] = None

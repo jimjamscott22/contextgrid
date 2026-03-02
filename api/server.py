@@ -22,7 +22,9 @@ from api.models import (
     HealthResponse, MessageResponse, TouchResponse,
     RelationshipCreate, RelationshipResponse, RelationshipListResponse,
     GraphNode, GraphEdge, GraphDataResponse,
-    ActivityDay, ActivityStreakResponse, ActivityHeatmapResponse
+    ActivityDay, ActivityStreakResponse, ActivityHeatmapResponse,
+    LinkCreate, LinkResponse, LinkListResponse,
+    TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse
 )
 from api.config import config
 from api import db
@@ -657,6 +659,149 @@ async def get_project_graph(project_id: int, include_inferred: bool = Query(True
 
         return GraphDataResponse(nodes=nodes, edges=edges)
 
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# Project Link Endpoints
+# =========================
+
+@app.get("/api/projects/{project_id}/links", response_model=LinkListResponse)
+async def get_project_links(project_id: int):
+    """Get all resource links for a specific project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        links = db.list_project_links(project_id)
+        return LinkListResponse(links=links, total=len(links))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/links", response_model=LinkResponse, status_code=201)
+async def create_project_link(project_id: int, link: LinkCreate):
+    """Add a resource link to a project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        link_id = db.create_link(
+            project_id=project_id,
+            title=link.title,
+            url=link.url,
+            link_type=link.link_type
+        )
+
+        created_link = db.get_link(link_id)
+        return created_link
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/links/{link_id}", response_model=MessageResponse)
+async def delete_link(link_id: int):
+    """Delete a project link by ID."""
+    try:
+        success = db.delete_link(link_id)
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Link {link_id} not found")
+        return MessageResponse(message=f"Link {link_id} deleted successfully")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# Project Template Endpoints
+# =========================
+
+@app.get("/api/templates", response_model=TemplateListResponse)
+async def list_templates():
+    """List all project templates."""
+    try:
+        templates = db.list_templates()
+        return TemplateListResponse(templates=templates, total=len(templates))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/templates/{template_id}", response_model=TemplateResponse)
+async def get_template(template_id: int):
+    """Get a single project template by ID."""
+    try:
+        template = db.get_template(template_id)
+        if not template:
+            raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+        return template
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/templates", response_model=TemplateResponse, status_code=201)
+async def create_template(template: TemplateCreate):
+    """Create a new project template."""
+    try:
+        template_id = db.create_template(
+            name=template.name,
+            description=template.description,
+            default_status=template.default_status,
+            default_project_type=template.default_project_type,
+            default_primary_language=template.default_primary_language,
+            default_stack=template.default_stack,
+            default_scope_size=template.default_scope_size,
+            default_learning_goal=template.default_learning_goal,
+            default_tags=template.default_tags
+        )
+        created = db.get_template(template_id)
+        return created
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/templates/{template_id}", response_model=TemplateResponse)
+async def update_template(template_id: int, template: TemplateUpdate):
+    """Update a project template."""
+    try:
+        existing = db.get_template(template_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+
+        updates = {k: v for k, v in template.dict().items() if v is not None}
+        if updates:
+            db.update_template(template_id, **updates)
+
+        updated = db.get_template(template_id)
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/templates/{template_id}", response_model=MessageResponse)
+async def delete_template(template_id: int):
+    """Delete a project template by ID."""
+    try:
+        success = db.delete_template(template_id)
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+        return MessageResponse(message=f"Template {template_id} deleted successfully")
     except HTTPException:
         raise
     except Exception as e:

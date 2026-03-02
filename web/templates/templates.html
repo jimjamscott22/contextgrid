@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Project Templates - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Project Templates</h1>
+        <p class="subtitle">Reusable starting configurations for new projects</p>
+    </div>
+    <div class="header-actions">
+        <a href="/projects/new" class="btn btn-secondary">← New Project</a>
+    </div>
+</div>
+
+{% if error %}
+<div class="error-message">
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+<div class="detail-grid">
+    <!-- Template List -->
+    <div class="detail-main">
+        {% if templates %}
+        <div class="templates-grid">
+            {% for tpl in templates %}
+            <div class="template-card">
+                <div class="template-card-header">
+                    <h3>{{ tpl.name }}</h3>
+                    <form method="post" action="/templates/{{ tpl.id }}/delete"
+                          onsubmit="return confirm('Delete template \'{{ tpl.name }}\'?');" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-compact">Delete</button>
+                    </form>
+                </div>
+                {% if tpl.description %}
+                <p class="template-description">{{ tpl.description }}</p>
+                {% endif %}
+                <table class="metadata-table small">
+                    {% if tpl.default_status %}
+                    <tr><td class="label">Status</td><td><span class="badge badge-{{ tpl.default_status }}">{{ tpl.default_status }}</span></td></tr>
+                    {% endif %}
+                    {% if tpl.default_project_type %}
+                    <tr><td class="label">Type</td><td>{{ tpl.default_project_type }}</td></tr>
+                    {% endif %}
+                    {% if tpl.default_primary_language %}
+                    <tr><td class="label">Language</td><td>{{ tpl.default_primary_language }}</td></tr>
+                    {% endif %}
+                    {% if tpl.default_stack %}
+                    <tr><td class="label">Stack</td><td>{{ tpl.default_stack }}</td></tr>
+                    {% endif %}
+                    {% if tpl.default_scope_size %}
+                    <tr><td class="label">Scope</td><td>{{ tpl.default_scope_size }}</td></tr>
+                    {% endif %}
+                    {% if tpl.default_tags %}
+                    <tr><td class="label">Tags</td><td>{{ tpl.default_tags }}</td></tr>
+                    {% endif %}
+                    {% if tpl.default_learning_goal %}
+                    <tr><td class="label">Goal</td><td>{{ tpl.default_learning_goal }}</td></tr>
+                    {% endif %}
+                </table>
+                <div style="margin-top: var(--space-sm);">
+                    <a href="/projects/new" class="btn btn-primary btn-compact"
+                       onclick="localStorage.setItem('applyTemplate','{{ tpl.id }}')">
+                        Use This Template
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No templates yet. Create your first one using the form →</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Create Template Sidebar -->
+    <div class="detail-sidebar">
+        <section class="section">
+            <h3>Create New Template</h3>
+            <form action="/templates/new" method="post" class="project-form" style="margin-top: var(--space-sm);">
+
+                <div class="form-group">
+                    <label for="t-name" class="required">Template Name</label>
+                    <input type="text" id="t-name" name="name" class="form-control"
+                           placeholder="e.g., Python CLI Project" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="t-description">Description</label>
+                    <textarea id="t-description" name="description" class="form-control" rows="2"
+                              placeholder="What kind of project is this template for?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="t-status">Default Status</label>
+                    <select id="t-status" name="default_status" class="form-control">
+                        <option value="idea">💡 Idea</option>
+                        <option value="active">🚀 Active</option>
+                        <option value="paused">⏸️ Paused</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="t-type">Project Type</label>
+                    <select id="t-type" name="default_project_type" class="form-control">
+                        <option value="">— Select —</option>
+                        <option value="web">Web</option>
+                        <option value="cli">CLI</option>
+                        <option value="library">Library</option>
+                        <option value="school">School</option>
+                        <option value="homelab">Homelab</option>
+                        <option value="desktop">Desktop App</option>
+                        <option value="llm-integrated">LLM-integrated</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="t-language">Primary Language</label>
+                    <input type="text" id="t-language" name="default_primary_language" class="form-control"
+                           placeholder="e.g., Python, TypeScript">
+                </div>
+
+                <div class="form-group">
+                    <label for="t-stack">Stack / Technology</label>
+                    <input type="text" id="t-stack" name="default_stack" class="form-control"
+                           placeholder="e.g., FastAPI + SQLite">
+                </div>
+
+                <div class="form-group">
+                    <label for="t-scope">Scope Size</label>
+                    <select id="t-scope" name="default_scope_size" class="form-control">
+                        <option value="">— Select —</option>
+                        <option value="tiny">Tiny</option>
+                        <option value="medium">Medium</option>
+                        <option value="long-haul">Long-haul</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="t-goal">Default Learning Goal</label>
+                    <textarea id="t-goal" name="default_learning_goal" class="form-control" rows="2"
+                              placeholder="Optional learning goal for this template"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="t-tags">Default Tags</label>
+                    <input type="text" id="t-tags" name="default_tags" class="form-control"
+                           placeholder="python, api, backend (comma-separated)">
+                    <small class="form-help">Comma-separated list of tags to apply automatically</small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Template</button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+
+<script>
+// Auto-apply template if navigated from "Use This Template" button
+(function() {
+    const apiBase = '{{ api_base_url }}';
+    const pendingId = localStorage.getItem('applyTemplate');
+    if (pendingId) {
+        // Just navigated to /projects/new; nothing to do here.
+        // The project_form page handles this via its own script.
+        localStorage.removeItem('applyTemplate');
+    }
+})();
+</script>
+{% endblock %}

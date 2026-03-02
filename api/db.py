@@ -846,3 +846,188 @@ def get_projects_by_language(primary_language: str, exclude_project_id: int) -> 
             (primary_language, exclude_project_id)
         )
         return list(cursor.fetchall())
+
+
+# =========================
+# Project Link Operations
+# =========================
+
+def create_link(project_id: int, title: str, url: str, link_type: str = "other") -> int:
+    """
+    Create a new resource link for a project.
+
+    Returns:
+        The new link's ID
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO project_links (project_id, title, url, link_type, created_at)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (project_id, title, url, link_type, datetime.utcnow())
+        )
+        return cursor.lastrowid
+
+
+def get_link(link_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch a single project link by ID.
+
+    Returns:
+        Dictionary of link fields, or None if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT * FROM project_links WHERE id = %s", (link_id,))
+        row = cursor.fetchone()
+        if row and row['created_at']:
+            row['created_at'] = row['created_at'].isoformat()
+        return row
+
+
+def list_project_links(project_id: int) -> List[Dict[str, Any]]:
+    """
+    Get all resource links for a project.
+
+    Returns:
+        List of link dictionaries ordered by created_at
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT * FROM project_links
+            WHERE project_id = %s
+            ORDER BY created_at ASC
+            """,
+            (project_id,)
+        )
+        rows = cursor.fetchall()
+        for row in rows:
+            if row['created_at']:
+                row['created_at'] = row['created_at'].isoformat()
+        return list(rows)
+
+
+def delete_link(link_id: int) -> bool:
+    """
+    Delete a project link by ID.
+
+    Returns:
+        True if deleted, False if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("DELETE FROM project_links WHERE id = %s", (link_id,))
+        return cursor.rowcount > 0
+
+
+# =========================
+# Project Template Operations
+# =========================
+
+def create_template(
+    name: str,
+    description: Optional[str] = None,
+    default_status: str = "idea",
+    default_project_type: Optional[str] = None,
+    default_primary_language: Optional[str] = None,
+    default_stack: Optional[str] = None,
+    default_scope_size: Optional[str] = None,
+    default_learning_goal: Optional[str] = None,
+    default_tags: Optional[str] = None,
+) -> int:
+    """
+    Create a new project template.
+
+    Returns:
+        The new template's ID
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO project_templates (
+                name, description, default_status, default_project_type,
+                default_primary_language, default_stack, default_scope_size,
+                default_learning_goal, default_tags, created_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                name, description, default_status, default_project_type,
+                default_primary_language, default_stack, default_scope_size,
+                default_learning_goal, default_tags, datetime.utcnow()
+            )
+        )
+        return cursor.lastrowid
+
+
+def get_template(template_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch a single project template by ID.
+
+    Returns:
+        Dictionary of template fields, or None if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT * FROM project_templates WHERE id = %s", (template_id,))
+        row = cursor.fetchone()
+        if row and row['created_at']:
+            row['created_at'] = row['created_at'].isoformat()
+        return row
+
+
+def list_templates() -> List[Dict[str, Any]]:
+    """
+    List all project templates.
+
+    Returns:
+        List of template dictionaries ordered by name
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT * FROM project_templates ORDER BY name ASC")
+        rows = cursor.fetchall()
+        for row in rows:
+            if row['created_at']:
+                row['created_at'] = row['created_at'].isoformat()
+        return list(rows)
+
+
+def update_template(template_id: int, **kwargs) -> bool:
+    """
+    Update template fields.
+
+    Returns:
+        True if template was updated, False if not found
+    """
+    if not kwargs:
+        return False
+
+    valid_fields = {
+        "name", "description", "default_status", "default_project_type",
+        "default_primary_language", "default_stack", "default_scope_size",
+        "default_learning_goal", "default_tags"
+    }
+
+    updates = {k: v for k, v in kwargs.items() if k in valid_fields}
+    if not updates:
+        return False
+
+    with get_db_cursor() as cursor:
+        set_clause = ", ".join(f"{field} = %s" for field in updates.keys())
+        values = list(updates.values()) + [template_id]
+        cursor.execute(
+            f"UPDATE project_templates SET {set_clause} WHERE id = %s",
+            values
+        )
+        return cursor.rowcount > 0
+
+
+def delete_template(template_id: int) -> bool:
+    """
+    Delete a project template by ID.
+
+    Returns:
+        True if deleted, False if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("DELETE FROM project_templates WHERE id = %s", (template_id,))
+        return cursor.rowcount > 0
+

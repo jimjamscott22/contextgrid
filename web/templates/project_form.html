@@ -15,8 +15,22 @@
 {% endif %}
 
 <form action="/projects/new" method="post" class="project-form">
+    <!-- Template Picker -->
+    <div class="form-section" id="template-picker-section">
+        <h2>Start from a Template <span class="muted" style="font-weight:400; font-size:0.9rem;">(optional)</span></h2>
+        <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+            <select id="template-select" class="form-control" style="max-width:320px;">
+                <option value="">— No template —</option>
+            </select>
+            <button type="button" class="btn btn-secondary btn-compact" id="apply-template-btn" disabled>Apply Template</button>
+            <a href="/templates" class="btn btn-link btn-compact" style="font-size:0.85rem;">Manage Templates →</a>
+        </div>
+        <p id="template-description" class="muted" style="margin-top:0.5rem; font-size:0.9rem; display:none;"></p>
+    </div>
+
     <div class="form-section">
         <h2>Basic Information</h2>
+
         
         <div class="form-group">
             <label for="name" class="required">Project Name</label>
@@ -189,5 +203,89 @@ document.getElementById('repo_url').addEventListener('input', function() {
 document.getElementById('progress').addEventListener('input', function() {
     document.getElementById('progress-bar-preview-fill').style.width = this.value + '%';
 });
+
+// ========================
+// Template Picker
+// ========================
+(function() {
+    const apiBase = '{{ api_base_url }}';
+    const templateSelect = document.getElementById('template-select');
+    const applyBtn = document.getElementById('apply-template-btn');
+    const descEl = document.getElementById('template-description');
+    let allTemplates = [];
+
+    async function loadTemplates() {
+        try {
+            const resp = await fetch(`${apiBase}/api/templates`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            allTemplates = data.templates || [];
+            allTemplates.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t.id;
+                opt.textContent = t.name;
+                templateSelect.appendChild(opt);
+            });
+
+            // Auto-apply if coming from "Use This Template" on the templates page
+            const pendingId = localStorage.getItem('applyTemplate');
+            if (pendingId) {
+                localStorage.removeItem('applyTemplate');
+                templateSelect.value = pendingId;
+                templateSelect.dispatchEvent(new Event('change'));
+                applyBtn.click();
+            }
+        } catch (e) { /* silently fail */ }
+    }
+
+    templateSelect.addEventListener('change', () => {
+        const id = parseInt(templateSelect.value);
+        const tpl = allTemplates.find(t => t.id === id);
+        applyBtn.disabled = !tpl;
+        if (tpl && tpl.description) {
+            descEl.textContent = tpl.description;
+            descEl.style.display = 'block';
+        } else {
+            descEl.style.display = 'none';
+        }
+    });
+
+    applyBtn.addEventListener('click', () => {
+        const id = parseInt(templateSelect.value);
+        const tpl = allTemplates.find(t => t.id === id);
+        if (!tpl) return;
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val != null && val !== '') el.value = val;
+        };
+        const setSelect = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val) {
+                const opt = Array.from(el.options).find(o => o.value === val);
+                if (opt) el.value = val;
+            }
+        };
+
+        setSelect('status', tpl.default_status);
+        setSelect('project_type', tpl.default_project_type);
+        setVal('primary_language', tpl.default_primary_language);
+        setVal('stack', tpl.default_stack);
+        setSelect('scope_size', tpl.default_scope_size);
+        setVal('learning_goal', tpl.default_learning_goal);
+
+        // Show visual feedback
+        applyBtn.textContent = '✓ Applied!';
+        applyBtn.classList.add('btn-primary');
+        applyBtn.classList.remove('btn-secondary');
+        setTimeout(() => {
+            applyBtn.textContent = 'Apply Template';
+            applyBtn.classList.remove('btn-primary');
+            applyBtn.classList.add('btn-secondary');
+        }, 2000);
+    });
+
+    loadTemplates();
+})();
 </script>
 {% endblock %}

@@ -689,6 +689,70 @@ async def kanban_board(request: Request):
     )
 
 
+# =========================
+# Template Routes
+# =========================
+
+@app.get("/templates", response_class=HTMLResponse)
+async def templates_list(request: Request):
+    """Manage project templates."""
+    all_templates = await models.list_templates()
+    return templates.TemplateResponse(
+        "templates.html",
+        {
+            "request": request,
+            "templates": all_templates,
+        }
+    )
+
+
+@app.post("/templates/new")
+async def template_create(
+    request: Request,
+    name: str = Form(...),
+    description: Optional[str] = Form(None),
+    default_status: str = Form("idea"),
+    default_project_type: Optional[str] = Form(None),
+    default_primary_language: Optional[str] = Form(None),
+    default_stack: Optional[str] = Form(None),
+    default_scope_size: Optional[str] = Form(None),
+    default_learning_goal: Optional[str] = Form(None),
+    default_tags: Optional[str] = Form(None),
+):
+    """Create a new project template."""
+    def clean(v):
+        return v.strip() if v and v.strip() else None
+
+    try:
+        await models.create_template(
+            name=name.strip(),
+            description=clean(description),
+            default_status=default_status or "idea",
+            default_project_type=clean(default_project_type),
+            default_primary_language=clean(default_primary_language),
+            default_stack=clean(default_stack),
+            default_scope_size=clean(default_scope_size),
+            default_learning_goal=clean(default_learning_goal),
+            default_tags=clean(default_tags),
+        )
+    except Exception as e:
+        all_templates = await models.list_templates()
+        return templates.TemplateResponse(
+            "templates.html",
+            {"request": request, "templates": all_templates, "error": str(e)},
+            status_code=500,
+        )
+    return RedirectResponse(url="/templates", status_code=303)
+
+
+@app.post("/templates/{template_id}/delete")
+async def template_delete(template_id: int):
+    """Delete a project template."""
+    await models.delete_template(template_id)
+    return RedirectResponse(url="/templates", status_code=303)
+
+
+
 @app.post("/api/kanban/move")
 async def kanban_move(request: Request):
     """Update a project's status via drag-and-drop on the kanban board."""

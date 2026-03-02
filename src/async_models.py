@@ -279,3 +279,70 @@ async def get_project_graph(project_id: int, include_inferred: bool = True) -> D
         return await _client.get_project_graph(project_id, include_inferred)
     except APIError as e:
         _handle_api_error(e)
+
+
+# =========================
+# Project Link Operations
+# =========================
+
+async def list_project_links(project_id: int) -> List[Dict[str, Any]]:
+    try:
+        return await _client.list_project_links(project_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def create_project_link(
+    project_id: int, title: str, url: str, link_type: str = "other"
+) -> Dict[str, Any]:
+    try:
+        return await _client.create_project_link(project_id, title, url, link_type)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def delete_link(link_id: int) -> bool:
+    try:
+        return await _client.delete_link(link_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+# =========================
+# Project Template Operations
+# =========================
+
+async def list_templates() -> List[Dict[str, Any]]:
+    try:
+        return await _client.list_templates()
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def get_template(template_id: int) -> Optional[Dict[str, Any]]:
+    try:
+        return await _client.get_template(template_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def create_template(**kwargs) -> Dict[str, Any]:
+    try:
+        return await _client.create_template(**kwargs)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def update_template(template_id: int, **kwargs) -> Dict[str, Any]:
+    try:
+        return await _client.update_template(template_id, **kwargs)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def delete_template(template_id: int) -> bool:
+    try:
+        return await _client.delete_template(template_id)
+    except APIError as e:
+        _handle_api_error(e)
+

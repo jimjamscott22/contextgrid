@@ -233,3 +233,85 @@ class GraphDataResponse(BaseModel):
     """Full graph data for visualization."""
     nodes: list[GraphNode]
     edges: list[GraphEdge]
+
+
+# =========================
+# Project Link Models
+# =========================
+
+class LinkBase(BaseModel):
+    """Base model for project link data."""
+    title: str = Field(..., min_length=1, max_length=255)
+    url: str = Field(..., min_length=1, max_length=2000)
+    link_type: str = Field(default="other", pattern="^(docs|deployment|design|board|repo|other)$")
+
+
+class LinkCreate(LinkBase):
+    """Model for creating a new project link."""
+    pass
+
+
+class LinkResponse(LinkBase):
+    """Model for project link response."""
+    id: int
+    project_id: int
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class LinkListResponse(BaseModel):
+    """Response for listing project links."""
+    links: list[LinkResponse]
+    total: int
+
+
+# =========================
+# Project Template Models
+# =========================
+
+class TemplateBase(BaseModel):
+    """Base model for project template data."""
+    name: str = Field(..., min_length=1, max_length=255)
+    description: Optional[str] = None
+    default_status: str = Field(default="idea", pattern="^(idea|active|paused|archived)$")
+    default_project_type: Optional[str] = Field(None, pattern="^(web|cli|library|school|homelab|desktop|llm-integrated|other)?$")
+    default_primary_language: Optional[str] = None
+    default_stack: Optional[str] = None
+    default_scope_size: Optional[str] = Field(None, pattern="^(tiny|medium|long-haul)?$")
+    default_learning_goal: Optional[str] = None
+    default_tags: Optional[str] = None  # comma-separated
+
+
+class TemplateCreate(TemplateBase):
+    """Model for creating a new project template."""
+    pass
+
+
+class TemplateUpdate(BaseModel):
+    """Model for updating a project template. All fields optional."""
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    description: Optional[str] = None
+    default_status: Optional[str] = Field(None, pattern="^(idea|active|paused|archived)$")
+    default_project_type: Optional[str] = Field(None, pattern="^(web|cli|library|school|homelab|desktop|llm-integrated|other)?$")
+    default_primary_language: Optional[str] = None
+    default_stack: Optional[str] = None
+    default_scope_size: Optional[str] = Field(None, pattern="^(tiny|medium|long-haul)?$")
+    default_learning_goal: Optional[str] = None
+    default_tags: Optional[str] = None
+
+
+class TemplateResponse(TemplateBase):
+    """Model for project template response."""
+    id: int
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class TemplateListResponse(BaseModel):
+    """Response for listing project templates."""
+    templates: list[TemplateResponse]
+    total: int

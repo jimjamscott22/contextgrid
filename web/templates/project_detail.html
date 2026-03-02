@@ -177,6 +177,37 @@
             {% endif %}
         </section>
 
+        <section class="section" id="links-section">
+            <div class="section-header">
+                <h3>Resource Links</h3>
+                <button type="button" class="btn btn-secondary btn-compact" id="add-link-btn">+ Add</button>
+            </div>
+
+            <div id="links-list">
+                <div class="muted">Loading...</div>
+            </div>
+
+            <!-- Add Link Form (hidden by default) -->
+            <div id="link-add-form" style="display:none; margin-top: var(--space-sm);">
+                <div class="form-group" style="margin-bottom: var(--space-sm);">
+                    <input type="text" id="link-title-input" class="form-control" placeholder="Title (e.g. API Docs)" style="margin-bottom: 0.4rem;">
+                    <input type="url" id="link-url-input" class="form-control" placeholder="https://..." style="margin-bottom: 0.4rem;">
+                    <select id="link-type-input" class="form-control" style="margin-bottom: 0.4rem;">
+                        <option value="other">Other</option>
+                        <option value="docs">Docs</option>
+                        <option value="deployment">Deployment</option>
+                        <option value="design">Design</option>
+                        <option value="board">Board</option>
+                        <option value="repo">Repo</option>
+                    </select>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button type="button" class="btn btn-primary btn-compact" id="save-link-btn">Save</button>
+                        <button type="button" class="btn btn-secondary btn-compact" id="cancel-link-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="section">
             <div class="section-header">
                 <h3>Screenshots</h3>
@@ -795,4 +826,122 @@
     loadFutureIdeas();
 })();
 </script>
+
+<script>
+// ========================
+// Resource Links Management
+// ========================
+(function() {
+    const projectId = {{ project.id }};
+    const apiBase = '{{ api_base_url }}';
+
+    const linkTypeIcons = {
+        docs: '📄',
+        deployment: '🚀',
+        design: '🎨',
+        board: '📋',
+        repo: '📦',
+        other: '🔗'
+    };
+
+    const linksList = document.getElementById('links-list');
+    const addLinkBtn = document.getElementById('add-link-btn');
+    const linkAddForm = document.getElementById('link-add-form');
+    const saveLinkBtn = document.getElementById('save-link-btn');
+    const cancelLinkBtn = document.getElementById('cancel-link-btn');
+    const linkTitleInput = document.getElementById('link-title-input');
+    const linkUrlInput = document.getElementById('link-url-input');
+    const linkTypeInput = document.getElementById('link-type-input');
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    async function loadLinks() {
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/links`);
+            if (!response.ok) throw new Error('Failed to fetch links');
+            const data = await response.json();
+            renderLinks(data.links);
+        } catch (err) {
+            linksList.innerHTML = '<p class="muted">Failed to load links</p>';
+        }
+    }
+
+    function renderLinks(links) {
+        if (!links || links.length === 0) {
+            linksList.innerHTML = '<p class="muted">No links yet</p>';
+            return;
+        }
+        let html = '<div class="links-list-inner">';
+        links.forEach(link => {
+            const icon = linkTypeIcons[link.link_type] || '🔗';
+            html += `
+                <div class="link-item" data-id="${link.id}">
+                    <span class="link-type-icon" title="${escapeHtml(link.link_type)}">${icon}</span>
+                    <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener" class="link-title">${escapeHtml(link.title)}</a>
+                    <button type="button" class="link-delete-btn" data-id="${link.id}" title="Remove link">×</button>
+                </div>
+            `;
+        });
+        html += '</div>';
+        linksList.innerHTML = html;
+
+        linksList.querySelectorAll('.link-delete-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const linkId = btn.dataset.id;
+                if (confirm('Remove this link?')) {
+                    await fetch(`${apiBase}/api/links/${linkId}`, { method: 'DELETE' });
+                    loadLinks();
+                }
+            });
+        });
+    }
+
+    addLinkBtn.addEventListener('click', () => {
+        linkAddForm.style.display = linkAddForm.style.display === 'none' ? 'block' : 'none';
+        if (linkAddForm.style.display !== 'none') linkTitleInput.focus();
+    });
+
+    cancelLinkBtn.addEventListener('click', () => {
+        linkAddForm.style.display = 'none';
+        linkTitleInput.value = '';
+        linkUrlInput.value = '';
+        linkTypeInput.value = 'other';
+    });
+
+    saveLinkBtn.addEventListener('click', async () => {
+        const title = linkTitleInput.value.trim();
+        const url = linkUrlInput.value.trim();
+        const link_type = linkTypeInput.value;
+
+        if (!title || !url) { alert('Please enter both title and URL.'); return; }
+
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/links`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, url, link_type })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Failed to save link');
+            }
+            linkTitleInput.value = '';
+            linkUrlInput.value = '';
+            linkTypeInput.value = 'other';
+            linkAddForm.style.display = 'none';
+            loadLinks();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    });
+
+    loadLinks();
+})();
+</script>
+
 {% endblock %}
+

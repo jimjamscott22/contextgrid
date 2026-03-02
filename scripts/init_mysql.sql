@@ -111,3 +111,46 @@ CREATE TABLE IF NOT EXISTS project_relationships (
     INDEX idx_project_relationships_source (source_project_id),
     INDEX idx_project_relationships_target (target_project_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =========================
+-- Project Links Table
+-- =========================
+CREATE TABLE IF NOT EXISTS project_links (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+
+    title VARCHAR(255) NOT NULL,
+    url VARCHAR(2000) NOT NULL,
+    link_type ENUM('docs', 'deployment', 'design', 'board', 'repo', 'other') NOT NULL DEFAULT 'other',
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (project_id)
+        REFERENCES projects(id)
+        ON DELETE CASCADE,
+
+    INDEX idx_project_links_project_id (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =========================
+-- Project Templates Table
+-- =========================
+CREATE TABLE IF NOT EXISTS project_templates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+
+    -- Default project field values
+    default_status VARCHAR(50) DEFAULT 'idea',
+    default_project_type VARCHAR(50),
+    default_primary_language VARCHAR(100),
+    default_stack TEXT,
+    default_scope_size VARCHAR(50),
+    default_learning_goal TEXT,
+    default_tags TEXT,           -- comma-separated list of default tags
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_project_templates_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
