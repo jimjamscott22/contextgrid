@@ -829,6 +829,137 @@ def get_activity_streak() -> Dict[str, Any]:
         }
 
 
+# =========================
+# Analytics Operations
+# =========================
+
+def get_analytics() -> Dict[str, Any]:
+    """
+    Get all analytics data in a single query batch.
+
+    Returns:
+        Dict with summary, by_status, by_language, by_type,
+        activity_over_time, and progress_distribution
+    """
+    with get_db_cursor() as cursor:
+        # Summary stats
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*) AS total,
+                SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
+                SUM(CASE WHEN status = 'idea' THEN 1 ELSE 0 END) AS ideas,
+                SUM(CASE WHEN status = 'paused' THEN 1 ELSE 0 END) AS paused,
+                SUM(CASE WHEN status = 'archived' THEN 1 ELSE 0 END) AS archived,
+                ROUND(AVG(progress), 1) AS avg_progress
+            FROM projects
+            WHERE is_archived = 0
+            """
+        )
+        summary = cursor.fetchone()
+        summary['avg_progress'] = float(summary['avg_progress'] or 0)
+
+        # By status
+        cursor.execute(
+            """
+            SELECT status AS label, COUNT(*) AS value
+            FROM projects WHERE is_archived = 0
+            GROUP BY status ORDER BY value DESC
+            """
+        )
+        by_status = list(cursor.fetchall())
+
+        # By language
+        cursor.execute(
+            """
+            SELECT COALESCE(primary_language, 'Unspecified') AS label, COUNT(*) AS value
+            FROM projects WHERE is_archived = 0
+            GROUP BY primary_language ORDER BY value DESC
+            """
+        )
+        by_language = list(cursor.fetchall())
+
+        # By type
+        cursor.execute(
+            """
+            SELECT COALESCE(project_type, 'Unspecified') AS label, COUNT(*) AS value
+            FROM projects WHERE is_archived = 0
+            GROUP BY project_type ORDER BY value DESC
+            """
+        )
+        by_type = list(cursor.fetchall())
+
+        # Activity over time (last 90 days, grouped by week)
+        cursor.execute(
+            """
+            SELECT
+                DATE(DATE_SUB(activity_date, INTERVAL WEEKDAY(activity_date) DAY)) AS week_start,
+                SUM(activity_count) AS value
+            FROM (
+                SELECT DATE(pn.created_at) AS activity_date, COUNT(*) AS activity_count
+                FROM project_notes pn
+                WHERE pn.created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                GROUP BY DATE(pn.created_at)
+
+                UNION ALL
+
+                SELECT DATE(p.created_at) AS activity_date, 1 AS activity_count
+                FROM projects p
+                WHERE p.created_at >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+            ) AS combined
+            GROUP BY week_start
+            ORDER BY week_start ASC
+            """
+        )
+        activity_rows = cursor.fetchall()
+        activity_over_time = [
+            {'label': row['week_start'].isoformat(), 'value': int(row['value'])}
+            for row in activity_rows
+        ]
+
+        # Progress distribution
+        cursor.execute(
+            """
+            SELECT
+                CASE
+                    WHEN progress <= 25 THEN '0-25%'
+                    WHEN progress <= 50 THEN '26-50%'
+                    WHEN progress <= 75 THEN '51-75%'
+                    ELSE '76-100%'
+                END AS label,
+                COUNT(*) AS value
+            FROM projects WHERE is_archived = 0
+            GROUP BY label
+            ORDER BY label ASC
+            """
+        )
+        progress_distribution = list(cursor.fetchall())
+
+        # Tag usage (top 10)
+        cursor.execute(
+            """
+            SELECT t.name AS label, COUNT(pt.project_id) AS value
+            FROM tags t
+            JOIN project_tags pt ON t.id = pt.tag_id
+            JOIN projects p ON pt.project_id = p.id AND p.is_archived = 0
+            GROUP BY t.id, t.name
+            ORDER BY value DESC
+            LIMIT 10
+            """
+        )
+        by_tag = list(cursor.fetchall())
+
+        return {
+            'summary': summary,
+            'by_status': by_status,
+            'by_language': by_language,
+            'by_type': by_type,
+            'activity_over_time': activity_over_time,
+            'progress_distribution': progress_distribution,
+            'by_tag': by_tag,
+        }
+
+
 def get_projects_by_language(primary_language: str, exclude_project_id: int) -> List[Dict[str, Any]]:
     """
     Get projects using the same primary language.

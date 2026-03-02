@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Analytics</h1>
+    <p class="subtitle">Visual insights into your project portfolio</p>
+</div>
+
+<div class="analytics-summary">
+    <div class="stat-card">
+        <div class="stat-value">{{ analytics.summary.total }}</div>
+        <div class="stat-label">Total Projects</div>
+    </div>
+    <div class="stat-card active">
+        <div class="stat-value">{{ analytics.summary.active }}</div>
+        <div class="stat-label">Active</div>
+    </div>
+    <div class="stat-card idea">
+        <div class="stat-value">{{ analytics.summary.ideas }}</div>
+        <div class="stat-label">Ideas</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ analytics.summary.avg_progress }}%</div>
+        <div class="stat-label">Avg Progress</div>
+    </div>
+</div>
+
+{% if analytics.summary.total == 0 %}
+<div class="section">
+    <p class="empty-state">No projects yet. <a href="/projects/new">Create your first project</a> to see analytics.</p>
+</div>
+{% else %}
+
+<div class="analytics-grid">
+    <div class="chart-card">
+        <h3>Status Distribution</h3>
+        <div class="chart-container">
+            <canvas id="chart-status"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h3>By Language</h3>
+        <div class="chart-container">
+            <canvas id="chart-language"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h3>By Project Type</h3>
+        <div class="chart-container">
+            <canvas id="chart-type"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h3>Activity (Last 90 Days)</h3>
+        <div class="chart-container">
+            <canvas id="chart-activity"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h3>Progress Distribution</h3>
+        <div class="chart-container">
+            <canvas id="chart-progress"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h3>Top Tags</h3>
+        <div class="chart-container">
+            <canvas id="chart-tags"></canvas>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+(() => {
+    const data = {{ analytics | tojson }};
+    if (data.summary.total === 0) return;
+
+    // Read theme colors from CSS variables
+    const style = getComputedStyle(document.documentElement);
+    const textColor = style.getPropertyValue('--color-text').trim();
+    const textSecondary = style.getPropertyValue('--color-text-secondary').trim();
+    const borderColor = style.getPropertyValue('--color-border').trim();
+    const surfaceColor = style.getPropertyValue('--color-surface').trim();
+
+    // Chart.js global defaults
+    Chart.defaults.color = textSecondary;
+    Chart.defaults.borderColor = borderColor;
+    Chart.defaults.font.family = style.getPropertyValue('--font-sans').trim();
+
+    // Color palette
+    const statusColors = {
+        active: style.getPropertyValue('--color-active').trim(),
+        idea: style.getPropertyValue('--color-idea').trim(),
+        paused: style.getPropertyValue('--color-paused').trim(),
+        archived: style.getPropertyValue('--color-archived').trim(),
+    };
+
+    const palette = [
+        style.getPropertyValue('--color-primary').trim(),
+        style.getPropertyValue('--color-secondary').trim(),
+        style.getPropertyValue('--color-success').trim(),
+        style.getPropertyValue('--color-warning').trim(),
+        style.getPropertyValue('--color-info').trim(),
+        style.getPropertyValue('--color-danger').trim(),
+        '#EC4899', '#8B5CF6', '#14B8A6', '#F97316',
+    ];
+
+    const gridColor = borderColor;
+
+    // Helper: pick colors by status name or fallback to palette
+    const getColors = (labels, statusMap) => {
+        return labels.map((label, i) => {
+            const lower = label.toLowerCase();
+            return statusMap[lower] || palette[i % palette.length];
+        });
+    };
+
+    // ---- Status Distribution (Doughnut) ----
+    if (data.by_status.length) {
+        const labels = data.by_status.map(d => d.label);
+        const values = data.by_status.map(d => d.value);
+        new Chart(document.getElementById('chart-status'), {
+            type: 'doughnut',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: getColors(labels, statusColors),
+                    borderWidth: 2,
+                    borderColor: surfaceColor,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 16, color: textColor } },
+                },
+            }
+        });
+    }
+
+    // ---- By Language (Horizontal Bar) ----
+    if (data.by_language.length) {
+        const labels = data.by_language.map(d => d.label);
+        const values = data.by_language.map(d => d.value);
+        new Chart(document.getElementById('chart-language'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: labels.map((_, i) => palette[i % palette.length]),
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: gridColor }, ticks: { precision: 0 } },
+                    y: { grid: { display: false } },
+                },
+            }
+        });
+    }
+
+    // ---- By Type (Pie) ----
+    if (data.by_type.length) {
+        const labels = data.by_type.map(d => d.label);
+        const values = data.by_type.map(d => d.value);
+        new Chart(document.getElementById('chart-type'), {
+            type: 'pie',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: labels.map((_, i) => palette[i % palette.length]),
+                    borderWidth: 2,
+                    borderColor: surfaceColor,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { padding: 16, color: textColor } },
+                },
+            }
+        });
+    }
+
+    // ---- Activity Over Time (Line) ----
+    if (data.activity_over_time.length) {
+        const labels = data.activity_over_time.map(d => {
+            const date = new Date(d.label);
+            return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        });
+        const values = data.activity_over_time.map(d => d.value);
+        const primaryColor = style.getPropertyValue('--color-primary').trim();
+        new Chart(document.getElementById('chart-activity'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Activities',
+                    data: values,
+                    borderColor: primaryColor,
+                    backgroundColor: primaryColor + '20',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: gridColor } },
+                    y: { grid: { color: gridColor }, ticks: { precision: 0 }, beginAtZero: true },
+                },
+            }
+        });
+    }
+
+    // ---- Progress Distribution (Bar) ----
+    if (data.progress_distribution.length) {
+        const labels = data.progress_distribution.map(d => d.label);
+        const values = data.progress_distribution.map(d => d.value);
+        const progressColors = ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'];
+        new Chart(document.getElementById('chart-progress'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: progressColors,
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { color: gridColor }, ticks: { precision: 0 }, beginAtZero: true },
+                },
+            }
+        });
+    }
+
+    // ---- Top Tags (Horizontal Bar) ----
+    if (data.by_tag.length) {
+        const labels = data.by_tag.map(d => d.label);
+        const values = data.by_tag.map(d => d.value);
+        new Chart(document.getElementById('chart-tags'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: labels.map((_, i) => palette[i % palette.length]),
+                    borderRadius: 4,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: gridColor }, ticks: { precision: 0 } },
+                    y: { grid: { display: false } },
+                },
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

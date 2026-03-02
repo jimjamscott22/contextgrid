@@ -315,3 +315,34 @@ class TemplateListResponse(BaseModel):
     """Response for listing project templates."""
     templates: list[TemplateResponse]
     total: int
+
+
+# =========================
+# Analytics Models
+# =========================
+
+class AnalyticsChartItem(BaseModel):
+    """A single data point for a chart."""
+    label: str
+    value: int
+
+
+class AnalyticsSummary(BaseModel):
+    """Summary statistics for the analytics dashboard."""
+    total: int = 0
+    active: int = 0
+    ideas: int = 0
+    paused: int = 0
+    archived: int = 0
+    avg_progress: float = 0.0
+
+
+class AnalyticsResponse(BaseModel):
+    """Full analytics response with all chart data."""
+    summary: AnalyticsSummary
+    by_status: list[AnalyticsChartItem]
+    by_language: list[AnalyticsChartItem]
+    by_type: list[AnalyticsChartItem]
+    activity_over_time: list[AnalyticsChartItem]
+    progress_distribution: list[AnalyticsChartItem]
+    by_tag: list[AnalyticsChartItem]

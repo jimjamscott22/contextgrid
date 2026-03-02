@@ -24,7 +24,8 @@ from api.models import (
     GraphNode, GraphEdge, GraphDataResponse,
     ActivityDay, ActivityStreakResponse, ActivityHeatmapResponse,
     LinkCreate, LinkResponse, LinkListResponse,
-    TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse
+    TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse,
+    AnalyticsChartItem, AnalyticsSummary, AnalyticsResponse
 )
 from api.config import config
 from api import db
@@ -804,6 +805,28 @@ async def delete_template(template_id: int):
         return MessageResponse(message=f"Template {template_id} deleted successfully")
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# Analytics Endpoints
+# =========================
+
+@app.get("/api/analytics", response_model=AnalyticsResponse)
+async def get_analytics():
+    """Get analytics data for charts and dashboards."""
+    try:
+        data = db.get_analytics()
+        return AnalyticsResponse(
+            summary=AnalyticsSummary(**data['summary']),
+            by_status=[AnalyticsChartItem(**item) for item in data['by_status']],
+            by_language=[AnalyticsChartItem(**item) for item in data['by_language']],
+            by_type=[AnalyticsChartItem(**item) for item in data['by_type']],
+            activity_over_time=[AnalyticsChartItem(**item) for item in data['activity_over_time']],
+            progress_distribution=[AnalyticsChartItem(**item) for item in data['progress_distribution']],
+            by_tag=[AnalyticsChartItem(**item) for item in data['by_tag']],
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

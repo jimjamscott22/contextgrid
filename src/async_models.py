@@ -221,6 +221,17 @@ async def aclose_client() -> None:
 
 
 # =========================
+# Analytics Operations
+# =========================
+
+async def get_analytics() -> Dict[str, Any]:
+    try:
+        return await _client.get_analytics()
+    except APIError as e:
+        _handle_api_error(e)
+
+
+# =========================
 # Activity / Heatmap Operations
 # =========================
 

@@ -2742,3 +2742,66 @@ body[data-theme="dark"] .heatmap-cell[data-level="4"] {
     margin: 0;
     line-height: 1.45;
 }
+
+
+/* ===========================
+   Analytics Page
+   =========================== */
+
+.analytics-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+}
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+}
+
+.chart-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow var(--transition-base);
+}
+
+.chart-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.chart-card h3 {
+    margin: 0 0 var(--space-sm) 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.chart-container {
+    position: relative;
+    height: 280px;
+}
+
+@media (max-width: 860px) {
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.page-header {
+    margin-bottom: var(--space-lg);
+}
+
+.page-header h1 {
+    margin: 0;
+}
+
+.page-header .subtitle {
+    color: var(--color-text-secondary);
+    margin: var(--space-xs) 0 0 0;
+}

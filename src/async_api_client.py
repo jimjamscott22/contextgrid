@@ -162,6 +162,13 @@ class AsyncAPIClient:
         return result is not None
 
     # =========================
+    # Analytics Methods
+    # =========================
+
+    async def get_analytics(self) -> Dict[str, Any]:
+        return await self._request("GET", "/api/analytics")
+
+    # =========================
     # Activity / Heatmap Methods
     # =========================
 

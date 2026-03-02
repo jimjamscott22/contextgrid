@@ -13,6 +13,13 @@ This document tracks planned features and enhancements for ContextGrid. Features
   - Responsive design (persistent on desktop, drawer on mobile)
   - localStorage persistence for open/closed state
 
+- ✅ **Charts & Analytics** (Completed: 2026-03-01)
+  - Analytics dashboard at `/analytics` with Chart.js
+  - Summary stat cards (total, active, ideas, avg progress)
+  - 6 charts: status distribution (doughnut), by language (bar), by type (pie), activity over time (line), progress distribution (bar), top tags (bar)
+  - Full dark mode support via CSS variable detection
+  - Responsive grid layout
+
 ---
 
 ## High Priority (Quick Wins)

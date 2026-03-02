@@ -663,6 +663,28 @@ async def graph_view(request: Request):
     )
 
 
+@app.get("/analytics", response_class=HTMLResponse)
+async def analytics_view(request: Request):
+    """Charts and analytics dashboard."""
+    try:
+        analytics_data = await models.get_analytics()
+    except Exception as e:
+        print(f"Warning: Failed to fetch analytics data: {e}")
+        analytics_data = {
+            "summary": {"total": 0, "active": 0, "ideas": 0, "paused": 0, "archived": 0, "avg_progress": 0},
+            "by_status": [], "by_language": [], "by_type": [],
+            "activity_over_time": [], "progress_distribution": [], "by_tag": [],
+        }
+
+    return templates.TemplateResponse(
+        "analytics.html",
+        {
+            "request": request,
+            "analytics": analytics_data,
+        }
+    )
+
+
 @app.get("/kanban", response_class=HTMLResponse)
 async def kanban_board(request: Request):
     """Kanban board view - projects organized by status columns."""
