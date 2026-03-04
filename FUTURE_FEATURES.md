@@ -13,6 +13,12 @@ This document tracks planned features and enhancements for ContextGrid. Features
   - Responsive design (persistent on desktop, drawer on mobile)
   - localStorage persistence for open/closed state
 
+- ✅ **Resource Links** (Completed: 2026-03-04)
+  - `project_links` table with id, project_id, title, url, link_type
+  - API endpoints: GET/POST `/api/projects/{id}/links`, DELETE `/api/links/{id}`
+  - Links section in project detail sidebar with type icons
+  - Auto-detect link type from URL (GitHub→repo, Figma→design, Vercel→deployment, etc.)
+
 - ✅ **Charts & Analytics** (Completed: 2026-03-01)
   - Analytics dashboard at `/analytics` with Chart.js
   - Summary stat cards (total, active, ideas, avg progress)

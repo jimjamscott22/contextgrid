@@ -912,6 +912,28 @@
         linkTypeInput.value = 'other';
     });
 
+    function detectLinkType(url) {
+        try {
+            const host = new URL(url).hostname.toLowerCase();
+            const path = new URL(url).pathname.toLowerCase();
+            if (/github\.com|gitlab\.com|bitbucket\.org|sourcehut\.org/.test(host)) return 'repo';
+            if (/figma\.com|sketch\.com|invision|zeplin\.io|marvel\.app/.test(host)) return 'design';
+            if (/trello\.com|linear\.app|asana\.com|monday\.com/.test(host)) return 'board';
+            if (/atlassian\.net|atlassian\.com/.test(host) && /jira|board/.test(path)) return 'board';
+            if (/vercel\.app|netlify\.app|fly\.io|railway\.app|render\.com|heroku\.com|pages\.dev/.test(host)) return 'deployment';
+            if (/readthedocs\.io|gitbook\.io|notion\.so|confluence|docs\./.test(host)) return 'docs';
+            if (host.startsWith('docs.') || path.startsWith('/docs')) return 'docs';
+        } catch (_) {}
+        return null;
+    }
+
+    linkUrlInput.addEventListener('input', () => {
+        const url = linkUrlInput.value.trim();
+        if (!url) return;
+        const detected = detectLinkType(url);
+        if (detected) linkTypeInput.value = detected;
+    });
+
     saveLinkBtn.addEventListener('click', async () => {
         const title = linkTitleInput.value.trim();
         const url = linkUrlInput.value.trim();
