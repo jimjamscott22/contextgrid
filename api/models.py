@@ -346,3 +346,20 @@ class AnalyticsResponse(BaseModel):
     activity_over_time: list[AnalyticsChartItem]
     progress_distribution: list[AnalyticsChartItem]
     by_tag: list[AnalyticsChartItem]
+
+
+# =========================
+# Screenshot Models
+# =========================
+
+class ScreenshotResponse(BaseModel):
+    """Model for a single screenshot."""
+    filename: str
+    url: str
+    label: str
+
+
+class ScreenshotListResponse(BaseModel):
+    """Model for list of screenshots."""
+    screenshots: list[ScreenshotResponse]
+    count: int

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional, List, Dict
 import os
 import sys
-import shutil
+import httpx
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,30 +44,24 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 templates.env.globals["api_base_url"] = os.getenv("API_ENDPOINT", "http://localhost:8000").rstrip("/")
 
-SCREENSHOTS_DIR = STATIC_DIR / "screenshots"
+API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8000").rstrip("/")
 
 
-def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:
-    """Return screenshots for a project from web/static/screenshots/<project_id>/."""
-    project_dir = SCREENSHOTS_DIR / str(project_id)
-    if not project_dir.is_dir():
+async def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:
+    """Fetch screenshots for a project from the API server."""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(f"{API_ENDPOINT}/api/projects/{project_id}/screenshots")
+            response.raise_for_status()
+            data = response.json()
+            # Rewrite relative URLs to absolute API URLs so the browser can reach them
+            screenshots = []
+            for s in data.get("screenshots", []):
+                s["url"] = f"{API_ENDPOINT}{s['url']}"
+                screenshots.append(s)
+            return screenshots
+    except Exception:
         return []
-
-    allowed_exts = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
-    screenshots = []
-    for path in sorted(project_dir.iterdir(), key=lambda p: p.name.lower()):
-        if not path.is_file() or path.suffix.lower() not in allowed_exts:
-            continue
-        label = path.stem.replace("_", " ").replace("-", " ").strip()
-        screenshots.append(
-            {
-                "url": f"/static/screenshots/{project_id}/{path.name}",
-                "label": label,
-                "filename": path.name,
-            }
-        )
-
-    return screenshots
 
 
 # =========================
@@ -97,7 +91,7 @@ async def home(request: Request):
 
     # Add screenshots to each project
     for project in recent_projects:
-        project['screenshots'] = get_project_screenshots(project['id'])
+        project['screenshots'] = await get_project_screenshots(project['id'])
 
     # Get activity heatmap data
     try:
@@ -530,7 +524,7 @@ async def project_detail(request: Request, project_id: int):
     project_tags = await models.list_project_tags(project_id)
     notes = await models.list_notes(project_id)
     
-    screenshots = get_project_screenshots(project_id)
+    screenshots = await get_project_screenshots(project_id)
 
     return templates.TemplateResponse(
         "project_detail.html",
@@ -560,41 +554,24 @@ async def project_upload_screenshot(
     project_id: int,
     file: UploadFile = File(...)
 ):
-    """Handle screenshot upload."""
+    """Proxy screenshot upload to the API server."""
     try:
-        # Create screenshots directory for project if it doesn't exist
-        project_dir = SCREENSHOTS_DIR / str(project_id)
-        project_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Validate file type
-        if not file.content_type.startswith("image/"):
-            return templates.TemplateResponse(
-                "error.html",
-                {
-                    "request": request,
-                    "error": "File must be an image"
-                },
-                status_code=400
+        contents = await file.read()
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{API_ENDPOINT}/api/projects/{project_id}/screenshots",
+                files={"file": (file.filename, contents, file.content_type)},
             )
-            
-        # Secure filename (simple version)
-        filename = Path(file.filename).name
-        file_path = project_dir / filename
-        
-        # Save file
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-            
+            response.raise_for_status()
         return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
-        
+    except httpx.HTTPStatusError as e:
+        detail = e.response.json().get("detail", str(e)) if e.response.content else str(e)
+        return templates.TemplateResponse(
+            "error.html", {"request": request, "error": detail}, status_code=e.response.status_code
+        )
     except Exception as e:
         return templates.TemplateResponse(
-            "error.html",
-            {
-                "request": request,
-                "error": f"Error uploading screenshot: {str(e)}"
-            },
-            status_code=500
+            "error.html", {"request": request, "error": f"Error uploading screenshot: {e}"}, status_code=500
         )
 
 
@@ -604,37 +581,22 @@ async def project_delete_screenshot(
     project_id: int,
     filename: str
 ):
-    """Handle screenshot deletion."""
+    """Proxy screenshot deletion to the API server."""
     try:
-        # Construct the file path
-        project_dir = SCREENSHOTS_DIR / str(project_id)
-        file_path = project_dir / filename
-        
-        # Security check: ensure the file is within the project directory
-        if not file_path.resolve().is_relative_to(project_dir.resolve()):
-            return templates.TemplateResponse(
-                "error.html",
-                {
-                    "request": request,
-                    "error": "Invalid file path"
-                },
-                status_code=400
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.delete(
+                f"{API_ENDPOINT}/api/projects/{project_id}/screenshots/{filename}"
             )
-        
-        # Delete the file if it exists
-        if file_path.exists() and file_path.is_file():
-            file_path.unlink()
-        
+            response.raise_for_status()
         return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
-        
+    except httpx.HTTPStatusError as e:
+        detail = e.response.json().get("detail", str(e)) if e.response.content else str(e)
+        return templates.TemplateResponse(
+            "error.html", {"request": request, "error": detail}, status_code=e.response.status_code
+        )
     except Exception as e:
         return templates.TemplateResponse(
-            "error.html",
-            {
-                "request": request,
-                "error": f"Error deleting screenshot: {str(e)}"
-            },
-            status_code=500
+            "error.html", {"request": request, "error": f"Error deleting screenshot: {e}"}, status_code=500
         )
 
 

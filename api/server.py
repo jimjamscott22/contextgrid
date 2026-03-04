@@ -3,10 +3,12 @@ ContextGrid API Server
 FastAPI application providing REST API for project management
 """
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from typing import Optional
+import shutil
 import sys
 from pathlib import Path
 
@@ -25,7 +27,8 @@ from api.models import (
     ActivityDay, ActivityStreakResponse, ActivityHeatmapResponse,
     LinkCreate, LinkResponse, LinkListResponse,
     TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse,
-    AnalyticsChartItem, AnalyticsSummary, AnalyticsResponse
+    AnalyticsChartItem, AnalyticsSummary, AnalyticsResponse,
+    ScreenshotResponse, ScreenshotListResponse
 )
 from api.config import config
 from api import db
@@ -67,6 +70,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Serve uploaded screenshots as static files
+config.UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(config.UPLOADS_DIR)), name="uploads")
 
 # Add CORS middleware for web UI
 app.add_middleware(
@@ -866,6 +873,73 @@ def _compute_inferred_edges(projects: list) -> list[GraphEdge]:
                         ))
 
     return edges
+
+
+# =========================
+# Screenshot Endpoints
+# =========================
+
+ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+
+
+@app.get("/api/projects/{project_id}/screenshots", response_model=ScreenshotListResponse)
+async def list_screenshots(project_id: int):
+    """List screenshots for a project."""
+    project_dir = config.UPLOADS_DIR / str(project_id)
+    if not project_dir.is_dir():
+        return ScreenshotListResponse(screenshots=[], count=0)
+
+    screenshots = []
+    for path in sorted(project_dir.iterdir(), key=lambda p: p.name.lower()):
+        if not path.is_file() or path.suffix.lower() not in ALLOWED_IMAGE_EXTS:
+            continue
+        label = path.stem.replace("_", " ").replace("-", " ").strip()
+        screenshots.append(ScreenshotResponse(
+            filename=path.name,
+            url=f"/uploads/{project_id}/{path.name}",
+            label=label,
+        ))
+
+    return ScreenshotListResponse(screenshots=screenshots, count=len(screenshots))
+
+
+@app.post("/api/projects/{project_id}/screenshots", response_model=MessageResponse)
+async def upload_screenshot(project_id: int, file: UploadFile = File(...)):
+    """Upload a screenshot for a project."""
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    filename = Path(file.filename).name
+    if not filename or Path(filename).suffix.lower() not in ALLOWED_IMAGE_EXTS:
+        raise HTTPException(status_code=400, detail="Invalid image file type")
+
+    project_dir = config.UPLOADS_DIR / str(project_id)
+    project_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = project_dir / filename
+    if not file_path.resolve().is_relative_to(project_dir.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    return MessageResponse(message=f"Screenshot '{filename}' uploaded successfully")
+
+
+@app.delete("/api/projects/{project_id}/screenshots/{filename}", response_model=MessageResponse)
+async def delete_screenshot(project_id: int, filename: str):
+    """Delete a screenshot for a project."""
+    project_dir = config.UPLOADS_DIR / str(project_id)
+    file_path = project_dir / filename
+
+    if not file_path.resolve().is_relative_to(project_dir.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="Screenshot not found")
+
+    file_path.unlink()
+    return MessageResponse(message=f"Screenshot '{filename}' deleted")
 
 
 # =========================
