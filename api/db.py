@@ -61,7 +61,7 @@ def get_db_cursor():
 def initialize_database():
     """
     Initialize the database schema.
-    Creates all tables if they don't exist.
+    Creates all tables if they don't exist and applies migrations.
     """
     schema_path = Path(__file__).parent.parent / "scripts" / "init_mysql.sql"
     
@@ -73,7 +73,15 @@ def initialize_database():
     
     with get_db_cursor() as cursor:
         for statement in statements:
-            cursor.execute(statement)
+            try:
+                cursor.execute(statement)
+            except pymysql.err.OperationalError as e:
+                # Ignore "duplicate column" errors (1060) from idempotent
+                # ALTER TABLE migrations so re-running init is always safe.
+                if e.args[0] == 1060:
+                    pass
+                else:
+                    raise
 
 
 def test_connection() -> tuple[bool, Optional[str]]:
@@ -110,6 +118,8 @@ def create_project(
     scope_size: Optional[str] = None,
     learning_goal: Optional[str] = None,
     progress: int = 0,
+    folder_structure: Optional[str] = None,
+    folder_structure_img_url: Optional[str] = None,
 ) -> int:
     """
     Create a new project.
@@ -123,14 +133,16 @@ def create_project(
             INSERT INTO projects (
                 name, description, status, project_type,
                 primary_language, stack, repo_url, local_path,
-                scope_size, learning_goal, progress, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                scope_size, learning_goal, progress, created_at,
+                folder_structure, folder_structure_img_url
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 name, description, status, project_type,
                 primary_language, stack, repo_url, local_path,
                 scope_size, learning_goal, max(0, min(100, progress)),
-                datetime.utcnow()
+                datetime.utcnow(),
+                folder_structure, folder_structure_img_url
             )
         )
         return cursor.lastrowid
@@ -243,7 +255,8 @@ def update_project(project_id: int, **kwargs) -> bool:
     valid_fields = {
         "name", "description", "status", "project_type",
         "primary_language", "stack", "repo_url", "local_path",
-        "scope_size", "learning_goal", "is_archived", "progress"
+        "scope_size", "learning_goal", "is_archived", "progress",
+        "folder_structure", "folder_structure_img_url"
     }
     
     updates = {k: v for k, v in kwargs.items() if k in valid_fields}

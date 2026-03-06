@@ -216,7 +216,9 @@ async def project_create(
     repo_url: Optional[str] = Form(None),
     scope_size: Optional[str] = Form(None),
     learning_goal: Optional[str] = Form(None),
-    progress: Optional[int] = Form(0)
+    progress: Optional[int] = Form(0),
+    folder_structure: Optional[str] = Form(None),
+    folder_structure_img_url: Optional[str] = Form(None),
 ):
     """Handle project creation form submission."""
     # Validate required fields
@@ -236,7 +238,9 @@ async def project_create(
                     "repo_url": repo_url,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal,
-                    "progress": progress
+                    "progress": progress,
+                    "folder_structure": folder_structure,
+                    "folder_structure_img_url": folder_structure_img_url,
                 }
             },
             status_code=400
@@ -261,7 +265,9 @@ async def project_create(
                         "repo_url": repo_url,
                         "scope_size": scope_size,
                         "learning_goal": learning_goal,
-                        "progress": progress
+                        "progress": progress,
+                        "folder_structure": folder_structure,
+                        "folder_structure_img_url": folder_structure_img_url,
                     }
                 },
                 status_code=400
@@ -275,6 +281,8 @@ async def project_create(
     repo_url = repo_url.strip() if repo_url and repo_url.strip() else None
     scope_size = scope_size.strip() if scope_size and scope_size.strip() else None
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
+    folder_structure = folder_structure.strip() if folder_structure and folder_structure.strip() else None
+    folder_structure_img_url = folder_structure_img_url.strip() if folder_structure_img_url and folder_structure_img_url.strip() else None
     
     try:
         # Create the project
@@ -289,7 +297,9 @@ async def project_create(
             local_path=None,
             scope_size=scope_size,
             learning_goal=learning_goal,
-            progress=max(0, min(100, progress or 0))
+            progress=max(0, min(100, progress or 0)),
+            folder_structure=folder_structure,
+            folder_structure_img_url=folder_structure_img_url,
         )
         
         # Redirect to the new project's detail page
@@ -311,7 +321,9 @@ async def project_create(
                     "repo_url": repo_url,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal,
-                    "progress": progress
+                    "progress": progress,
+                    "folder_structure": folder_structure,
+                    "folder_structure_img_url": folder_structure_img_url,
                 }
             },
             status_code=500
@@ -357,7 +369,9 @@ async def project_update(
     repo_url: Optional[str] = Form(None),
     scope_size: Optional[str] = Form(None),
     learning_goal: Optional[str] = Form(None),
-    progress: Optional[int] = Form(0)
+    progress: Optional[int] = Form(0),
+    folder_structure: Optional[str] = Form(None),
+    folder_structure_img_url: Optional[str] = Form(None),
 ):  
     """Handle project edit form submission."""
     project = await models.get_project(project_id)
@@ -388,7 +402,9 @@ async def project_update(
                     "repo_url": repo_url,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal,
-                    "progress": progress
+                    "progress": progress,
+                    "folder_structure": folder_structure,
+                    "folder_structure_img_url": folder_structure_img_url,
                 },
                 "project": project
             },
@@ -414,7 +430,9 @@ async def project_update(
                         "repo_url": repo_url,
                         "scope_size": scope_size,
                         "learning_goal": learning_goal,
-                        "progress": progress
+                        "progress": progress,
+                        "folder_structure": folder_structure,
+                        "folder_structure_img_url": folder_structure_img_url,
                     },
                     "project": project
                 },
@@ -428,6 +446,8 @@ async def project_update(
     repo_url = repo_url.strip() if repo_url and repo_url.strip() else None
     scope_size = scope_size.strip() if scope_size and scope_size.strip() else None
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
+    folder_structure = folder_structure.strip() if folder_structure and folder_structure.strip() else None
+    folder_structure_img_url = folder_structure_img_url.strip() if folder_structure_img_url and folder_structure_img_url.strip() else None
 
     try:
         updated = await models.update_project(
@@ -443,6 +463,8 @@ async def project_update(
             scope_size=scope_size,
             learning_goal=learning_goal,
             progress=max(0, min(100, progress or 0)),
+            folder_structure=folder_structure,
+            folder_structure_img_url=folder_structure_img_url,
         )
 
         if not updated:
@@ -462,7 +484,9 @@ async def project_update(
                         "repo_url": repo_url,
                         "scope_size": scope_size,
                         "learning_goal": learning_goal,
-                        "progress": progress
+                        "progress": progress,
+                        "folder_structure": folder_structure,
+                        "folder_structure_img_url": folder_structure_img_url,
                     },
                     "project": project
                 },
@@ -488,7 +512,9 @@ async def project_update(
                     "repo_url": repo_url,
                     "scope_size": scope_size,
                     "learning_goal": learning_goal,
-                    "progress": progress
+                    "progress": progress,
+                    "folder_structure": folder_structure,
+                    "folder_structure_img_url": folder_structure_img_url,
                 },
                 "project": project
             },
