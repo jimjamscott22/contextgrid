@@ -26,6 +26,8 @@ async def create_project(
     scope_size: Optional[str] = None,
     learning_goal: Optional[str] = None,
     progress: int = 0,
+    folder_structure: Optional[str] = None,
+    folder_structure_img_url: Optional[str] = None,
 ) -> int:
     try:
         return await _client.create_project(
@@ -40,6 +42,8 @@ async def create_project(
             scope_size=scope_size,
             learning_goal=learning_goal,
             progress=progress,
+            folder_structure=folder_structure,
+            folder_structure_img_url=folder_structure_img_url,
         )
     except APIError as e:
         _handle_api_error(e)

@@ -178,7 +178,9 @@ async def create_project(project: ProjectCreate):
             repo_url=project.repo_url,
             local_path=project.local_path,
             scope_size=project.scope_size,
-            learning_goal=project.learning_goal
+            learning_goal=project.learning_goal,
+            folder_structure=project.folder_structure,
+            folder_structure_img_url=project.folder_structure_img_url,
         )
         
         # Fetch and return the created project

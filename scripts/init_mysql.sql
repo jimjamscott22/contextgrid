@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS projects (
 
     progress INT DEFAULT 0,                        -- 0-100 percentage completion
 
+    folder_structure TEXT,                         -- text-based folder tree (e.g. `tree` output)
+    folder_structure_img_url VARCHAR(2000),        -- optional URL to a visual diagram
+
     INDEX idx_projects_name (name),
     INDEX idx_projects_status (status),
     INDEX idx_projects_created_at (created_at),
@@ -154,3 +157,9 @@ CREATE TABLE IF NOT EXISTS project_templates (
 
     INDEX idx_project_templates_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =========================
+-- Migrations (idempotent)
+-- =========================
+ALTER TABLE projects ADD COLUMN folder_structure TEXT;
+ALTER TABLE projects ADD COLUMN folder_structure_img_url VARCHAR(2000);

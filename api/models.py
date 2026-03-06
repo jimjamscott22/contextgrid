@@ -25,6 +25,8 @@ class ProjectBase(BaseModel):
     scope_size: Optional[str] = Field(None, pattern="^(tiny|medium|long-haul)?$")
     learning_goal: Optional[str] = None
     progress: int = Field(default=0, ge=0, le=100)
+    folder_structure: Optional[str] = Field(None, max_length=65535)
+    folder_structure_img_url: Optional[str] = Field(None, max_length=2000)
 
 
 class ProjectCreate(ProjectBase):
@@ -45,6 +47,8 @@ class ProjectUpdate(BaseModel):
     scope_size: Optional[str] = Field(None, pattern="^(tiny|medium|long-haul)?$")
     learning_goal: Optional[str] = None
     progress: Optional[int] = Field(None, ge=0, le=100)
+    folder_structure: Optional[str] = Field(None, max_length=65535)
+    folder_structure_img_url: Optional[str] = Field(None, max_length=2000)
 
 
 class ProjectResponse(ProjectBase):
