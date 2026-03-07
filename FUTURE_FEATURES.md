@@ -6,20 +6,20 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ## Recently Completed
 
-- ✅ **Side Navigation Menu** (Completed: 2026-01-24)
+- [x] **Side Navigation Menu** (Completed: 2026-01-24)
   - Collapsible sidebar with project list
   - Search functionality
   - Grouped by status (Active, Ideas, Paused, Archived)
   - Responsive design (persistent on desktop, drawer on mobile)
   - localStorage persistence for open/closed state
 
-- ✅ **Resource Links** (Completed: 2026-03-04)
+- [x] **Resource Links** (Completed: 2026-03-04)
   - `project_links` table with id, project_id, title, url, link_type
   - API endpoints: GET/POST `/api/projects/{id}/links`, DELETE `/api/links/{id}`
   - Links section in project detail sidebar with type icons
   - Auto-detect link type from URL (GitHub→repo, Figma→design, Vercel→deployment, etc.)
 
-- ✅ **Charts & Analytics** (Completed: 2026-03-01)
+- [x] **Charts & Analytics** (Completed: 2026-03-01)
   - Analytics dashboard at `/analytics` with Chart.js
   - Summary stat cards (total, active, ideas, avg progress)
   - 6 charts: status distribution (doughnut), by language (bar), by type (pie), activity over time (line), progress distribution (bar), top tags (bar)
@@ -30,7 +30,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ## High Priority (Quick Wins)
 
-### 1. Kanban Board View
+### [x] 1. Kanban Board View
 **Description:** Visual drag-and-drop board for managing project status
 
 **Features:**
@@ -53,7 +53,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 2. Activity Heatmap
+### [x] 2. Activity Heatmap
 **Description:** GitHub-style contribution calendar showing project activity
 
 **Features:**
@@ -76,7 +76,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 3. Project Progress Tracker
+### [x] 3. Project Progress Tracker
 **Description:** Visual progress tracking for projects
 
 **Features:**
@@ -99,7 +99,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 4. Markdown Support in Notes
+### [ ] 4. Markdown Support in Notes
 **Description:** Rich formatting for notes using Markdown
 
 **Features:**
@@ -121,7 +121,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 5. Saved Filters
+### [ ] 5. Saved Filters
 **Description:** Save custom filter combinations for quick access
 
 **Features:**
@@ -145,7 +145,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ## Medium Priority (Enhanced Features)
 
-### 6. Project Relationships & Dependencies
+### [x] 6. Project Relationships & Dependencies
 **Description:** Link related projects together
 
 **Features:**
@@ -168,7 +168,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 7. Resource Links
+### [x] 7. Resource Links
 **Description:** Attach multiple URLs to projects
 
 **Features:**
@@ -191,7 +191,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 8. Enhanced Search
+### [ ] 8. Enhanced Search
 **Description:** Powerful global search across all content
 
 **Features:**
@@ -215,7 +215,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 9. Time Tracking
+### [ ] 9. Time Tracking
 **Description:** Track time invested in projects
 
 **Features:**
@@ -238,7 +238,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 10. Project Templates
+### [ ] 10. Project Templates
 **Description:** Quick-start templates for common project types
 
 **Features:**
@@ -263,7 +263,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ## Lower Priority (Nice to Have)
 
-### 11. Data Export & Backup
+### [ ] 11. Data Export & Backup
 **Description:** Export and backup project data
 
 **Features:**
@@ -281,7 +281,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 12. Charts & Analytics
+### [x] 12. Charts & Analytics
 **Description:** Visual insights into project portfolio
 
 **Features:**
@@ -299,7 +299,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 13. Goals & Milestones
+### [ ] 13. Goals & Milestones
 **Description:** Track project milestones and goals
 
 **Features:**
@@ -317,7 +317,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 14. PWA Support
+### [ ] 14. PWA Support
 **Description:** Progressive Web App for offline access
 
 **Features:**
@@ -335,7 +335,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### 15. Theme Customization
+### [ ] 15. Theme Customization
 **Description:** More theme options beyond light/dark
 
 **Features:**
@@ -548,4 +548,4 @@ CREATE TABLE project_milestones (
 
 ---
 
-Last updated: 2026-01-24
+Last reviewed against codebase: 2026-03-07
