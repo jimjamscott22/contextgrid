@@ -186,17 +186,45 @@
     </div>
     
     <div class="detail-sidebar">
-        <section class="section">
-            <h3>Tags</h3>
-            {% if tags %}
-            <div class="tag-list">
-                {% for tag in tags %}
-                <a href="/projects?tag={{ tag }}" class="tag">{{ tag }}</a>
-                {% endfor %}
+        <section class="section" id="tags-section">
+            <div class="section-header">
+                <h3>Tags</h3>
+                <button type="button" class="btn btn-secondary btn-compact" id="add-tag-btn">+ Add</button>
             </div>
-            {% else %}
-            <p class="muted">No tags</p>
-            {% endif %}
+
+            <div id="tags-list">
+                {% if tags %}
+                <div class="tag-list" id="tag-list-inner">
+                    {% for tag in tags %}
+                    <span class="tag tag-removable">
+                        <a href="/projects?tag={{ tag }}">{{ tag }}</a>
+                        <button type="button" class="tag-remove-btn" data-tag="{{ tag }}" title="Remove tag">×</button>
+                    </span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="muted" id="tags-empty">No tags</p>
+                {% endif %}
+            </div>
+
+            <!-- Add Tag Form (hidden by default) -->
+            <div id="tag-add-form" style="display:none; margin-top: var(--space-sm);">
+                <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
+                    <input
+                        type="text"
+                        id="tag-input"
+                        class="form-control"
+                        placeholder="e.g. frontend"
+                        list="all-tags-datalist"
+                        style="flex:1; min-width:0;"
+                        autocomplete="off"
+                    >
+                    <datalist id="all-tags-datalist"></datalist>
+                    <button type="button" class="btn btn-primary btn-compact" id="save-tag-btn">Add</button>
+                    <button type="button" class="btn btn-secondary btn-compact" id="cancel-tag-btn">Cancel</button>
+                </div>
+                <p id="tag-error" style="color:var(--color-danger,#ef4444);font-size:0.82rem;margin-top:0.3rem;display:none;"></p>
+            </div>
         </section>
 
         <section class="section" id="links-section">
@@ -984,6 +1012,161 @@
     });
 
     loadLinks();
+})();
+</script>
+
+<script>
+// ========================
+// Tag Management
+// ========================
+(function() {
+    const projectId = {{ project.id }};
+    const apiBase = '{{ api_base_url }}';
+
+    const addTagBtn = document.getElementById('add-tag-btn');
+    const tagAddForm = document.getElementById('tag-add-form');
+    const tagInput = document.getElementById('tag-input');
+    const saveTagBtn = document.getElementById('save-tag-btn');
+    const cancelTagBtn = document.getElementById('cancel-tag-btn');
+    const tagsList = document.getElementById('tags-list');
+    const tagError = document.getElementById('tag-error');
+    const allTagsDatalist = document.getElementById('all-tags-datalist');
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function showError(msg) {
+        tagError.textContent = msg;
+        tagError.style.display = 'block';
+    }
+
+    function clearError() {
+        tagError.textContent = '';
+        tagError.style.display = 'none';
+    }
+
+    async function loadTags() {
+        try {
+            const res = await fetch(`${apiBase}/api/projects/${projectId}/tags`);
+            if (!res.ok) throw new Error('Failed to fetch tags');
+            const data = await res.json();
+            const tagNames = data.map(t => typeof t === 'string' ? t : t.name);
+            renderTags(tagNames);
+        } catch (err) {
+            console.error('Error loading tags:', err);
+        }
+    }
+
+    async function loadAllTagSuggestions() {
+        try {
+            const res = await fetch(`${apiBase}/api/tags`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const tags = data.tags || data;
+            allTagsDatalist.innerHTML = '';
+            tags.forEach(t => {
+                const name = typeof t === 'string' ? t : t.name;
+                const opt = document.createElement('option');
+                opt.value = name;
+                allTagsDatalist.appendChild(opt);
+            });
+        } catch (_) {}
+    }
+
+    function renderTags(tagNames) {
+        if (tagNames.length === 0) {
+            tagsList.innerHTML = '<p class="muted" id="tags-empty">No tags</p>';
+            return;
+        }
+        let html = '<div class="tag-list" id="tag-list-inner">';
+        tagNames.forEach(tag => {
+            html += `
+                <span class="tag tag-removable">
+                    <a href="/projects?tag=${encodeURIComponent(tag)}">${escapeHtml(tag)}</a>
+                    <button type="button" class="tag-remove-btn" data-tag="${escapeHtml(tag)}" title="Remove tag">×</button>
+                </span>
+            `;
+        });
+        html += '</div>';
+        tagsList.innerHTML = html;
+
+        tagsList.querySelectorAll('.tag-remove-btn').forEach(btn => {
+            btn.addEventListener('click', () => removeTag(btn.dataset.tag));
+        });
+    }
+
+    async function addTag() {
+        const name = tagInput.value.trim().toLowerCase();
+        if (!name) { showError('Tag name cannot be empty.'); return; }
+        if (!/^[a-z0-9_\-]+$/.test(name)) {
+            showError('Tags can only contain letters, numbers, hyphens, and underscores.');
+            return;
+        }
+        clearError();
+        saveTagBtn.disabled = true;
+        try {
+            const res = await fetch(`${apiBase}/api/projects/${projectId}/tags`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to add tag');
+            }
+            tagInput.value = '';
+            tagAddForm.style.display = 'none';
+            loadTags();
+            loadAllTagSuggestions();
+        } catch (err) {
+            showError(err.message);
+        } finally {
+            saveTagBtn.disabled = false;
+        }
+    }
+
+    async function removeTag(tagName) {
+        try {
+            const res = await fetch(`${apiBase}/api/projects/${projectId}/tags/${encodeURIComponent(tagName)}`, {
+                method: 'DELETE'
+            });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || 'Failed to remove tag');
+            }
+            loadTags();
+        } catch (err) {
+            alert('Error removing tag: ' + err.message);
+        }
+    }
+
+    addTagBtn.addEventListener('click', () => {
+        const isVisible = tagAddForm.style.display !== 'none';
+        tagAddForm.style.display = isVisible ? 'none' : 'flex';
+        if (!isVisible) { tagInput.focus(); loadAllTagSuggestions(); }
+        clearError();
+    });
+
+    cancelTagBtn.addEventListener('click', () => {
+        tagAddForm.style.display = 'none';
+        tagInput.value = '';
+        clearError();
+    });
+
+    saveTagBtn.addEventListener('click', addTag);
+
+    tagInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); addTag(); }
+        if (e.key === 'Escape') { tagAddForm.style.display = 'none'; clearError(); }
+    });
+
+    // Attach remove handlers to server-rendered tags on initial load
+    document.querySelectorAll('.tag-remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => removeTag(btn.dataset.tag));
+    });
 })();
 </script>
 
