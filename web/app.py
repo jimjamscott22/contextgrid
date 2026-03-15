@@ -762,6 +762,30 @@ async def template_delete(template_id: int):
     return RedirectResponse(url="/templates", status_code=303)
 
 
+# =========================
+# Tasks Routes
+# =========================
+
+@app.get("/tasks", response_class=HTMLResponse)
+async def tasks_list(
+    request: Request,
+    note_type: str = None,
+    project_id: int = None,
+):
+    """Cross-project task/note listing page."""
+    tasks = await models.list_all_notes(note_type=note_type, project_id=project_id)
+    all_projects = await models.list_projects()
+    return templates.TemplateResponse(
+        "tasks.html",
+        {
+            "request": request,
+            "tasks": tasks,
+            "all_projects": all_projects,
+            "current_type": note_type,
+            "current_project_id": project_id,
+        },
+    )
+
 
 @app.post("/api/kanban/move")
 async def kanban_move(request: Request):

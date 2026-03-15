@@ -139,6 +139,20 @@ class AsyncAPIClient:
         notes = await self.list_notes(project_id)
         return notes[:limit]
 
+    async def list_all_notes(
+        self,
+        note_type: Optional[str] = None,
+        project_id: Optional[int] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        params: Dict[str, Any] = {"limit": limit}
+        if note_type:
+            params["note_type"] = note_type
+        if project_id is not None:
+            params["project_id"] = project_id
+        data = await self._request("GET", "/api/tasks", params=params)
+        return data["tasks"]
+
     # =========================
     # Relationship Methods
     # =========================

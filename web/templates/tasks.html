@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Tasks</h1>
+    <p class="page-subtitle">Notes and action items across all projects</p>
+</div>
+
+{# ── Filters ── #}
+<div class="filter-bar">
+    <form method="get" action="/tasks" class="filter-form">
+        <div class="filter-group">
+            <label for="note_type">Type</label>
+            <select name="note_type" id="note_type" class="form-select" onchange="this.form.submit()">
+                <option value="">All types</option>
+                {% for value, label in [
+                    ("log",         "📋 Log"),
+                    ("idea",        "💡 Idea"),
+                    ("blocker",     "🚧 Blocker"),
+                    ("reflection",  "🤔 Reflection"),
+                    ("future_idea", "🔮 Future Idea"),
+                ] %}
+                <option value="{{ value }}" {% if current_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="project_id">Project</label>
+            <select name="project_id" id="project_id" class="form-select" onchange="this.form.submit()">
+                <option value="">All projects</option>
+                {% for project in all_projects %}
+                <option value="{{ project.id }}" {% if current_project_id == project.id %}selected{% endif %}>
+                    {{ project.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {% if current_type or current_project_id %}
+        <a href="/tasks" class="btn btn-secondary btn-compact">Clear filters</a>
+        {% endif %}
+    </form>
+
+    <span class="filter-count">{{ tasks|length }} task{{ 's' if tasks|length != 1 else '' }}</span>
+</div>
+
+{# ── Task list ── #}
+{% if tasks %}
+<div class="tasks-list">
+    {% for task in tasks %}
+    {% set type_info = {
+        "log":         ("📋", "log",        "Log"),
+        "idea":        ("💡", "idea",       "Idea"),
+        "blocker":     ("🚧", "blocker",    "Blocker"),
+        "reflection":  ("🤔", "reflection", "Reflection"),
+        "future_idea": ("🔮", "future",     "Future Idea"),
+    } %}
+    {% set icon, cls, label = type_info.get(task.note_type, ("📌", "log", task.note_type)) %}
+    <div class="task-card note-type-{{ cls }}">
+        <div class="task-card-header">
+            <div class="task-meta">
+                <span class="badge badge-note-{{ cls }}">{{ icon }} {{ label }}</span>
+                <a href="/projects/{{ task.project_id }}" class="task-project-link">
+                    {{ task.project_name }}
+                </a>
+                <span class="badge badge-status-{{ task.project_status }}">{{ task.project_status }}</span>
+            </div>
+            <time class="task-time" data-timestamp="{{ task.created_at }}">{{ task.created_at[:10] }}</time>
+        </div>
+        <p class="task-content">{{ task.content }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <p>No tasks found{% if current_type or current_project_id %} matching the current filters{% endif %}.</p>
+    {% if current_type or current_project_id %}
+    <a href="/tasks" class="btn btn-secondary">Clear filters</a>
+    {% else %}
+    <p class="text-muted">Add notes to your projects using the CLI: <code>cg note add &lt;project_id&gt;</code></p>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+.page-subtitle {
+    color: var(--text-muted);
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.filter-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.filter-group label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.filter-count {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+.tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.task-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+}
+
+.task-card.note-type-blocker  { border-left-color: #ef4444; }
+.task-card.note-type-idea     { border-left-color: #f59e0b; }
+.task-card.note-type-log      { border-left-color: #6366f1; }
+.task-card.note-type-reflection { border-left-color: #8b5cf6; }
+.task-card.note-type-future   { border-left-color: #06b6d4; }
+
+.task-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.task-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.task-project-link {
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.task-project-link:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+.task-time {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.task-content {
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Note type badges */
+.badge-note-log        { background: #6366f120; color: #6366f1; }
+.badge-note-idea       { background: #f59e0b20; color: #d97706; }
+.badge-note-blocker    { background: #ef444420; color: #ef4444; }
+.badge-note-reflection { background: #8b5cf620; color: #8b5cf6; }
+.badge-note-future     { background: #06b6d420; color: #0891b2; }
+
+/* Status badges */
+.badge-status-active   { background: #22c55e20; color: #16a34a; }
+.badge-status-idea     { background: #6366f120; color: #6366f1; }
+.badge-status-paused   { background: #f59e0b20; color: #d97706; }
+.badge-status-archived { background: #6b728020; color: #6b7280; }
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+}
+
+.empty-state code {
+    background: var(--code-bg, #f3f4f6);
+    padding: 0.2em 0.4em;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+}
+
+.text-muted { color: var(--text-muted); }
+</style>
+
+<script>
+(() => {
+    // Render relative timestamps
+    function relativeTime(dateStr) {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'just now';
+        if (diffMins < 60) return diffMins + 'm ago';
+        if (diffHours < 24) return diffHours + 'h ago';
+        if (diffDays < 30) return diffDays + 'd ago';
+        return date.toLocaleDateString();
+    }
+
+    document.querySelectorAll('time.task-time[data-timestamp]').forEach(el => {
+        const ts = el.getAttribute('data-timestamp');
+        if (ts) el.textContent = relativeTime(ts);
+    });
+})();
+</script>
+{% endblock %}

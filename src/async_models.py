@@ -137,6 +137,17 @@ async def get_recent_notes(project_id: int, limit: int = 5) -> List[Dict[str, An
         _handle_api_error(e)
 
 
+async def list_all_notes(
+    note_type: Optional[str] = None,
+    project_id: Optional[int] = None,
+    limit: int = 100,
+) -> List[Dict[str, Any]]:
+    try:
+        return await _client.list_all_notes(note_type=note_type, project_id=project_id, limit=limit)
+    except APIError as e:
+        _handle_api_error(e)
+
+
 async def add_tag_to_project(project_id: int, tag_name: str) -> bool:
     try:
         return await _client.add_tag_to_project(project_id, tag_name)
