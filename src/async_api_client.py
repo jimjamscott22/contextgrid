@@ -210,6 +210,28 @@ class AsyncAPIClient:
         return result is not None
 
     # =========================
+    # Project Command Methods
+    # =========================
+
+    async def list_project_commands(self, project_id: int) -> List[Dict[str, Any]]:
+        data = await self._request("GET", f"/api/projects/{project_id}/commands")
+        return data["commands"]
+
+    async def create_project_command(
+        self, project_id: int, label: str, command: str
+    ) -> Dict[str, Any]:
+        data = await self._request(
+            "POST",
+            f"/api/projects/{project_id}/commands",
+            json={"label": label, "command": command},
+        )
+        return data
+
+    async def delete_command(self, command_id: int) -> bool:
+        result = await self._request("DELETE", f"/api/commands/{command_id}")
+        return result is not None
+
+    # =========================
     # Project Template Methods
     # =========================
 

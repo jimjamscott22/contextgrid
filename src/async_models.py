@@ -324,6 +324,33 @@ async def delete_link(link_id: int) -> bool:
 
 
 # =========================
+# Project Command Operations
+# =========================
+
+async def list_project_commands(project_id: int) -> List[Dict[str, Any]]:
+    try:
+        return await _client.list_project_commands(project_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def create_project_command(
+    project_id: int, label: str, command: str
+) -> Dict[str, Any]:
+    try:
+        return await _client.create_project_command(project_id, label, command)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def delete_command(command_id: int) -> bool:
+    try:
+        return await _client.delete_command(command_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+# =========================
 # Project Template Operations
 # =========================
 

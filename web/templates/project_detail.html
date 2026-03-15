@@ -258,6 +258,29 @@
             </div>
         </section>
 
+        <section class="section" id="commands-section">
+            <div class="section-header">
+                <h3>Commands</h3>
+                <button type="button" class="btn btn-secondary btn-compact" id="add-command-btn">+ Add</button>
+            </div>
+
+            <div id="commands-list">
+                <div class="muted">Loading...</div>
+            </div>
+
+            <!-- Add Command Form (hidden by default) -->
+            <div id="command-add-form" style="display:none; margin-top: var(--space-sm);">
+                <div class="form-group" style="margin-bottom: var(--space-sm);">
+                    <input type="text" id="command-label-input" class="form-control" placeholder="Label (e.g. Start dev server)" style="margin-bottom: 0.4rem;">
+                    <input type="text" id="command-value-input" class="form-control" placeholder="Command (e.g. npm run dev)" style="margin-bottom: 0.4rem; font-family: var(--font-mono, monospace);">
+                    <div style="display:flex; gap:0.5rem;">
+                        <button type="button" class="btn btn-primary btn-compact" id="save-command-btn">Save</button>
+                        <button type="button" class="btn btn-secondary btn-compact" id="cancel-command-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="section">
             <div class="section-header">
                 <h3>Screenshots</h3>
@@ -1012,6 +1035,123 @@
     });
 
     loadLinks();
+})();
+</script>
+
+<script>
+// ========================
+// Commands Management
+// ========================
+(function() {
+    const projectId = {{ project.id }};
+    const apiBase = '{{ api_base_url }}';
+
+    const commandsList = document.getElementById('commands-list');
+    const addCommandBtn = document.getElementById('add-command-btn');
+    const commandAddForm = document.getElementById('command-add-form');
+    const saveCommandBtn = document.getElementById('save-command-btn');
+    const cancelCommandBtn = document.getElementById('cancel-command-btn');
+    const commandLabelInput = document.getElementById('command-label-input');
+    const commandValueInput = document.getElementById('command-value-input');
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    async function loadCommands() {
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/commands`);
+            if (!response.ok) throw new Error('Failed to fetch commands');
+            const data = await response.json();
+            renderCommands(data.commands);
+        } catch (err) {
+            commandsList.innerHTML = '<p class="muted">Failed to load commands</p>';
+        }
+    }
+
+    function renderCommands(commands) {
+        if (!commands || commands.length === 0) {
+            commandsList.innerHTML = '<p class="muted">No commands yet</p>';
+            return;
+        }
+        let html = '<div class="commands-list-inner">';
+        commands.forEach(cmd => {
+            html += `
+                <div class="command-item" data-id="${cmd.id}">
+                    <div class="command-info">
+                        <span class="command-label">${escapeHtml(cmd.label)}</span>
+                        <code class="command-value">${escapeHtml(cmd.command)}</code>
+                    </div>
+                    <div class="command-actions">
+                        <button type="button" class="command-copy-btn" data-command="${escapeHtml(cmd.command)}" title="Copy command">📋</button>
+                        <button type="button" class="command-delete-btn" data-id="${cmd.id}" title="Remove command">×</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        commandsList.innerHTML = html;
+
+        commandsList.querySelectorAll('.command-copy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                navigator.clipboard.writeText(btn.dataset.command).then(() => {
+                    const original = btn.textContent;
+                    btn.textContent = '✓';
+                    setTimeout(() => { btn.textContent = original; }, 1500);
+                });
+            });
+        });
+
+        commandsList.querySelectorAll('.command-delete-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const cmdId = btn.dataset.id;
+                if (confirm('Remove this command?')) {
+                    await fetch(`${apiBase}/api/commands/${cmdId}`, { method: 'DELETE' });
+                    loadCommands();
+                }
+            });
+        });
+    }
+
+    addCommandBtn.addEventListener('click', () => {
+        commandAddForm.style.display = commandAddForm.style.display === 'none' ? 'block' : 'none';
+        if (commandAddForm.style.display !== 'none') commandLabelInput.focus();
+    });
+
+    cancelCommandBtn.addEventListener('click', () => {
+        commandAddForm.style.display = 'none';
+        commandLabelInput.value = '';
+        commandValueInput.value = '';
+    });
+
+    saveCommandBtn.addEventListener('click', async () => {
+        const label = commandLabelInput.value.trim();
+        const command = commandValueInput.value.trim();
+
+        if (!label || !command) { alert('Please enter both a label and a command.'); return; }
+
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/commands`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ label, command })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Failed to save command');
+            }
+            commandLabelInput.value = '';
+            commandValueInput.value = '';
+            commandAddForm.style.display = 'none';
+            loadCommands();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    });
+
+    loadCommands();
 })();
 </script>
 

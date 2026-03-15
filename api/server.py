@@ -26,6 +26,7 @@ from api.models import (
     GraphNode, GraphEdge, GraphDataResponse,
     ActivityDay, ActivityStreakResponse, ActivityHeatmapResponse,
     LinkCreate, LinkResponse, LinkListResponse,
+    CommandCreate, CommandResponse, CommandListResponse,
     TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse,
     AnalyticsChartItem, AnalyticsSummary, AnalyticsResponse,
     ScreenshotResponse, ScreenshotListResponse
@@ -728,6 +729,65 @@ async def delete_link(link_id: int):
         if not success:
             raise HTTPException(status_code=404, detail=f"Link {link_id} not found")
         return MessageResponse(message=f"Link {link_id} deleted successfully")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# Project Command Endpoints
+# =========================
+
+@app.get("/api/projects/{project_id}/commands", response_model=CommandListResponse)
+async def get_project_commands(project_id: int):
+    """Get all commands for a specific project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        commands = db.list_project_commands(project_id)
+        return CommandListResponse(commands=commands, total=len(commands))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/commands", response_model=CommandResponse, status_code=201)
+async def create_project_command(project_id: int, command: CommandCreate):
+    """Add a command to a project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        command_id = db.create_command(
+            project_id=project_id,
+            label=command.label,
+            command=command.command
+        )
+
+        created_command = db.get_command(command_id)
+        return created_command
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/commands/{command_id}", response_model=MessageResponse)
+async def delete_command(command_id: int):
+    """Delete a project command by ID."""
+    try:
+        success = db.delete_command(command_id)
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Command {command_id} not found")
+        return MessageResponse(message=f"Command {command_id} deleted successfully")
 
     except HTTPException:
         raise

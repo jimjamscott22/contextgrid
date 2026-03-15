@@ -1065,6 +1065,78 @@ def delete_link(link_id: int) -> bool:
 
 
 # =========================
+# Project Command Operations
+# =========================
+
+def create_command(project_id: int, label: str, command: str) -> int:
+    """
+    Create a new command for a project.
+
+    Returns:
+        The new command's ID
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO project_commands (project_id, label, command, created_at)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (project_id, label, command, datetime.utcnow())
+        )
+        return cursor.lastrowid
+
+
+def get_command(command_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch a single project command by ID.
+
+    Returns:
+        Dictionary of command fields, or None if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT * FROM project_commands WHERE id = %s", (command_id,))
+        row = cursor.fetchone()
+        if row and row['created_at']:
+            row['created_at'] = row['created_at'].isoformat()
+        return row
+
+
+def list_project_commands(project_id: int) -> List[Dict[str, Any]]:
+    """
+    Get all commands for a project.
+
+    Returns:
+        List of command dictionaries ordered by created_at
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT * FROM project_commands
+            WHERE project_id = %s
+            ORDER BY created_at ASC
+            """,
+            (project_id,)
+        )
+        rows = cursor.fetchall()
+        for row in rows:
+            if row['created_at']:
+                row['created_at'] = row['created_at'].isoformat()
+        return list(rows)
+
+
+def delete_command(command_id: int) -> bool:
+    """
+    Delete a project command by ID.
+
+    Returns:
+        True if deleted, False if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("DELETE FROM project_commands WHERE id = %s", (command_id,))
+        return cursor.rowcount > 0
+
+
+# =========================
 # Project Template Operations
 # =========================
 

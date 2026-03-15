@@ -272,6 +272,37 @@ class LinkListResponse(BaseModel):
 
 
 # =========================
+# Project Command Models
+# =========================
+
+class CommandBase(BaseModel):
+    """Base model for project command data."""
+    label: str = Field(..., min_length=1, max_length=255)
+    command: str = Field(..., min_length=1)
+
+
+class CommandCreate(CommandBase):
+    """Model for creating a new project command."""
+    pass
+
+
+class CommandResponse(CommandBase):
+    """Model for project command response."""
+    id: int
+    project_id: int
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class CommandListResponse(BaseModel):
+    """Response for listing project commands."""
+    commands: list[CommandResponse]
+    total: int
+
+
+# =========================
 # Project Template Models
 # =========================
 
