@@ -535,6 +535,52 @@ def delete_note(note_id: int) -> bool:
         return cursor.rowcount > 0
 
 
+def list_all_notes(
+    note_type: Optional[str] = None,
+    project_id: Optional[int] = None,
+    limit: int = 100,
+) -> List[Dict[str, Any]]:
+    """
+    List notes across all projects, optionally filtered by type or project.
+
+    Returns:
+        List of note dicts including project_name and project_status, ordered by created_at DESC
+    """
+    conditions = []
+    params: List[Any] = []
+
+    if note_type:
+        conditions.append("pn.note_type = %s")
+        params.append(note_type)
+    if project_id is not None:
+        conditions.append("pn.project_id = %s")
+        params.append(project_id)
+
+    where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    params.append(limit)
+
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            f"""
+            SELECT pn.id, pn.project_id, pn.note_type, pn.content, pn.created_at,
+                   p.name AS project_name, p.status AS project_status
+            FROM project_notes pn
+            JOIN projects p ON p.id = pn.project_id
+            {where_clause}
+            ORDER BY pn.created_at DESC
+            LIMIT %s
+            """,
+            params,
+        )
+        rows = cursor.fetchall()
+
+        for row in rows:
+            if row["created_at"]:
+                row["created_at"] = row["created_at"].isoformat()
+
+        return rows
+
+
 # =========================
 # Relationship Operations
 # =========================

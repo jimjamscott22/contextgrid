@@ -154,6 +154,24 @@ class NoteListResponse(BaseModel):
     total: int
 
 
+class TaskNoteResponse(NoteBase):
+    """Note response enriched with parent project info, for cross-project task listing."""
+    id: int
+    project_id: int
+    created_at: str
+    project_name: str
+    project_status: str
+
+    class Config:
+        from_attributes = True
+
+
+class TaskListResponse(BaseModel):
+    """Response for listing notes/tasks across all projects."""
+    tasks: list[TaskNoteResponse]
+    total: int
+
+
 # =========================
 # Relationship Models
 # =========================

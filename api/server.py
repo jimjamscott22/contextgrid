@@ -29,7 +29,8 @@ from api.models import (
     CommandCreate, CommandResponse, CommandListResponse,
     TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse,
     AnalyticsChartItem, AnalyticsSummary, AnalyticsResponse,
-    ScreenshotResponse, ScreenshotListResponse
+    ScreenshotResponse, ScreenshotListResponse,
+    TaskNoteResponse, TaskListResponse
 )
 from api.config import config
 from api import db
@@ -420,6 +421,20 @@ async def update_note(note_id: int, note: NoteCreate):
         
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/tasks", response_model=TaskListResponse)
+async def get_all_tasks(
+    note_type: Optional[str] = None,
+    project_id: Optional[int] = None,
+    limit: int = 100,
+):
+    """List notes/tasks across all projects with optional filtering."""
+    try:
+        tasks = db.list_all_notes(note_type=note_type, project_id=project_id, limit=limit)
+        return TaskListResponse(tasks=tasks, total=len(tasks))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
