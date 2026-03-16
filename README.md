@@ -278,7 +278,7 @@ uv run uvicorn api.server:app --host 0.0.0.0 --port 8000 --reload
 
 **Terminal 2 - Web UI:**
 ```bash
-uv run uvicorn web.app:app --host 0.0.0.0 --port 8001 --reload
+uv run uvicorn web.app:app --port 8001 --reload
 ```
 
 Then open `http://localhost:8001` in your browser.
