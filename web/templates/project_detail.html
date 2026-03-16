@@ -281,6 +281,26 @@
             </div>
         </section>
 
+        <section class="section" id="project-tasks-section">
+            <div class="section-header">
+                <h3>Tasks</h3>
+                <button type="button" class="btn btn-secondary btn-compact" id="add-task-btn">+ Add</button>
+            </div>
+
+            <div id="project-tasks-list">
+                <div class="muted">Loading...</div>
+            </div>
+
+            <!-- Add Task Form (hidden by default) -->
+            <div id="task-add-form" style="display:none; margin-top: var(--space-sm);">
+                <div style="display:flex; gap:0.4rem; align-items:center;">
+                    <input type="text" id="task-title-input" class="form-control" placeholder="Task description..." style="flex:1; min-width:0;">
+                    <button type="button" class="btn btn-primary btn-compact" id="save-task-btn">Add</button>
+                    <button type="button" class="btn btn-secondary btn-compact" id="cancel-task-btn">Cancel</button>
+                </div>
+            </div>
+        </section>
+
         <section class="section">
             <div class="section-header">
                 <h3>Screenshots</h3>
@@ -1152,6 +1172,130 @@
     });
 
     loadCommands();
+})();
+</script>
+
+<script>
+// ========================
+// Project Tasks (Checklist)
+// ========================
+(function() {
+    const projectId = {{ project.id }};
+    const apiBase = '{{ api_base_url }}';
+
+    const tasksList = document.getElementById('project-tasks-list');
+    const addTaskBtn = document.getElementById('add-task-btn');
+    const taskAddForm = document.getElementById('task-add-form');
+    const saveTaskBtn = document.getElementById('save-task-btn');
+    const cancelTaskBtn = document.getElementById('cancel-task-btn');
+    const taskTitleInput = document.getElementById('task-title-input');
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    async function loadTasks() {
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/tasks`);
+            if (!response.ok) throw new Error('Failed to fetch tasks');
+            const data = await response.json();
+            renderTasks(data.tasks);
+        } catch (err) {
+            tasksList.innerHTML = '<p class="muted">Failed to load tasks</p>';
+        }
+    }
+
+    function renderTasks(tasks) {
+        if (!tasks || tasks.length === 0) {
+            tasksList.innerHTML = '<p class="muted">No tasks yet</p>';
+            return;
+        }
+
+        const completed = tasks.filter(t => t.is_completed);
+        const pending = tasks.filter(t => !t.is_completed);
+
+        let html = '<div class="project-tasks-list-inner">';
+        [...pending, ...completed].forEach(task => {
+            const checked = task.is_completed ? 'checked' : '';
+            const completedClass = task.is_completed ? ' task-completed' : '';
+            html += `
+                <div class="project-task-item${completedClass}" data-id="${task.id}">
+                    <label class="project-task-check">
+                        <input type="checkbox" ${checked} data-id="${task.id}">
+                        <span class="project-task-title">${escapeHtml(task.title)}</span>
+                    </label>
+                    <button type="button" class="project-task-delete" data-id="${task.id}" title="Remove task">×</button>
+                </div>
+            `;
+        });
+
+        if (tasks.length > 0) {
+            const pct = tasks.length > 0 ? Math.round((completed.length / tasks.length) * 100) : 0;
+            html += `<div class="project-tasks-progress">${completed.length}/${tasks.length} done (${pct}%)</div>`;
+        }
+
+        html += '</div>';
+        tasksList.innerHTML = html;
+
+        tasksList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.addEventListener('change', async () => {
+                const taskId = cb.dataset.id;
+                await fetch(`${apiBase}/api/project-tasks/${taskId}/toggle`, { method: 'PATCH' });
+                loadTasks();
+            });
+        });
+
+        tasksList.querySelectorAll('.project-task-delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const taskId = btn.dataset.id;
+                if (confirm('Remove this task?')) {
+                    await fetch(`${apiBase}/api/project-tasks/${taskId}`, { method: 'DELETE' });
+                    loadTasks();
+                }
+            });
+        });
+    }
+
+    addTaskBtn.addEventListener('click', () => {
+        taskAddForm.style.display = taskAddForm.style.display === 'none' ? 'block' : 'none';
+        if (taskAddForm.style.display !== 'none') taskTitleInput.focus();
+    });
+
+    cancelTaskBtn.addEventListener('click', () => {
+        taskAddForm.style.display = 'none';
+        taskTitleInput.value = '';
+    });
+
+    saveTaskBtn.addEventListener('click', async () => {
+        const title = taskTitleInput.value.trim();
+        if (!title) { alert('Please enter a task description.'); return; }
+
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/tasks`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Failed to save task');
+            }
+            taskTitleInput.value = '';
+            taskAddForm.style.display = 'none';
+            loadTasks();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    });
+
+    taskTitleInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); saveTaskBtn.click(); }
+        if (e.key === 'Escape') { taskAddForm.style.display = 'none'; taskTitleInput.value = ''; }
+    });
+
+    loadTasks();
 })();
 </script>
 

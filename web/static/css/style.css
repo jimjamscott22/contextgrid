@@ -2829,6 +2829,92 @@ body[data-theme="dark"] .heatmap-cell[data-level="4"] {
 }
 
 /* ==========================
+   Project Tasks (Checklist)
+   ========================== */
+
+.project-tasks-list-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.project-task-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+    padding: 0.3rem 0.4rem;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-elevated, var(--color-surface));
+    border: 1px solid var(--color-border);
+    font-size: 0.88rem;
+    transition: background var(--transition-base);
+}
+
+.project-task-item:hover {
+    background: var(--color-bg);
+}
+
+.project-task-item.task-completed {
+    opacity: 0.6;
+}
+
+.project-task-check {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    flex: 1;
+    min-width: 0;
+}
+
+.project-task-check input[type="checkbox"] {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+    accent-color: var(--color-primary, #3B82F6);
+}
+
+.project-task-title {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+}
+
+.task-completed .project-task-title {
+    text-decoration: line-through;
+    color: var(--color-text-secondary);
+}
+
+.project-task-delete {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0 0.2rem;
+    opacity: 0.5;
+    transition: opacity var(--transition-base), color var(--transition-base);
+}
+
+.project-task-delete:hover {
+    opacity: 1;
+    color: var(--color-danger, #EF4444);
+}
+
+.project-tasks-progress {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    text-align: right;
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--color-border);
+}
+
+/* ==========================
    Project Templates
    ========================== */
 

@@ -1183,6 +1183,99 @@ def delete_command(command_id: int) -> bool:
 
 
 # =========================
+# Project Task Operations
+# =========================
+
+def create_task(project_id: int, title: str) -> int:
+    """
+    Create a new task for a project.
+
+    Returns:
+        The new task's ID
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO project_tasks (project_id, title, is_completed, created_at)
+            VALUES (%s, %s, 0, %s)
+            """,
+            (project_id, title, datetime.utcnow())
+        )
+        return cursor.lastrowid
+
+
+def get_task(task_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch a single project task by ID.
+
+    Returns:
+        Dictionary of task fields, or None if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT * FROM project_tasks WHERE id = %s", (task_id,))
+        row = cursor.fetchone()
+        if row and row['created_at']:
+            row['created_at'] = row['created_at'].isoformat()
+        return row
+
+
+def list_project_tasks(project_id: int) -> List[Dict[str, Any]]:
+    """
+    Get all tasks for a project.
+
+    Returns:
+        List of task dictionaries ordered by completion status then created_at
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT * FROM project_tasks
+            WHERE project_id = %s
+            ORDER BY is_completed ASC, created_at ASC
+            """,
+            (project_id,)
+        )
+        rows = cursor.fetchall()
+        for row in rows:
+            if row['created_at']:
+                row['created_at'] = row['created_at'].isoformat()
+        return list(rows)
+
+
+def toggle_task(task_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Toggle a task's completion status.
+
+    Returns:
+        Updated task dict, or None if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            UPDATE project_tasks
+            SET is_completed = NOT is_completed
+            WHERE id = %s
+            """,
+            (task_id,)
+        )
+        if cursor.rowcount == 0:
+            return None
+    return get_task(task_id)
+
+
+def delete_task(task_id: int) -> bool:
+    """
+    Delete a project task by ID.
+
+    Returns:
+        True if deleted, False if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("DELETE FROM project_tasks WHERE id = %s", (task_id,))
+        return cursor.rowcount > 0
+
+
+# =========================
 # Project Template Operations
 # =========================
 

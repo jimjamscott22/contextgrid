@@ -24,7 +24,14 @@ class AsyncAPIClient:
         self.base_url = (base_url or API_ENDPOINT).rstrip("/")
         self._client = httpx.AsyncClient(base_url=self.base_url, timeout=10.0)
 
-    async def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+    async def _request(
+        self,
+        method: str,
+        endpoint: str,
+        *,
+        allow_404: bool = False,
+        **kwargs,
+    ) -> Any:
         url = endpoint
         try:
             response = await self._client.request(method, url, **kwargs)
@@ -37,7 +44,12 @@ class AsyncAPIClient:
             )
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
-                return None
+                if allow_404:
+                    return None
+                raise APIError(
+                    f"API endpoint not found: {self.base_url}{endpoint}. "
+                    "Check that API_ENDPOINT points to the API server."
+                )
             try:
                 error_detail = e.response.json().get("detail", str(e))
             except Exception:
@@ -51,7 +63,7 @@ class AsyncAPIClient:
         return data["id"]
 
     async def get_project(self, project_id: int) -> Optional[Dict[str, Any]]:
-        return await self._request("GET", f"/api/projects/{project_id}")
+        return await self._request("GET", f"/api/projects/{project_id}", allow_404=True)
 
     async def list_projects(
         self,
@@ -129,7 +141,7 @@ class AsyncAPIClient:
         return notes
 
     async def get_note(self, note_id: int) -> Optional[Dict[str, Any]]:
-        return await self._request("GET", f"/api/notes/{note_id}")
+        return await self._request("GET", f"/api/notes/{note_id}", allow_404=True)
 
     async def delete_note(self, note_id: int) -> bool:
         result = await self._request("DELETE", f"/api/notes/{note_id}")
@@ -246,6 +258,32 @@ class AsyncAPIClient:
         return result is not None
 
     # =========================
+    # Project Task Methods
+    # =========================
+
+    async def list_project_tasks(self, project_id: int) -> List[Dict[str, Any]]:
+        data = await self._request("GET", f"/api/projects/{project_id}/tasks")
+        return data["tasks"]
+
+    async def create_project_task(
+        self, project_id: int, title: str
+    ) -> Dict[str, Any]:
+        data = await self._request(
+            "POST",
+            f"/api/projects/{project_id}/tasks",
+            json={"title": title},
+        )
+        return data
+
+    async def toggle_project_task(self, task_id: int) -> Dict[str, Any]:
+        data = await self._request("PATCH", f"/api/project-tasks/{task_id}/toggle")
+        return data
+
+    async def delete_project_task(self, task_id: int) -> bool:
+        result = await self._request("DELETE", f"/api/project-tasks/{task_id}")
+        return result is not None
+
+    # =========================
     # Project Template Methods
     # =========================
 
@@ -254,7 +292,7 @@ class AsyncAPIClient:
         return data["templates"]
 
     async def get_template(self, template_id: int) -> Optional[Dict[str, Any]]:
-        return await self._request("GET", f"/api/templates/{template_id}")
+        return await self._request("GET", f"/api/templates/{template_id}", allow_404=True)
 
     async def create_template(self, **kwargs) -> Dict[str, Any]:
         return await self._request("POST", "/api/templates", json=kwargs)

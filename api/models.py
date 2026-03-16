@@ -321,6 +321,37 @@ class CommandListResponse(BaseModel):
 
 
 # =========================
+# Project Task Models (checkable per-project tasks)
+# =========================
+
+class ProjectTaskBase(BaseModel):
+    """Base model for a project task."""
+    title: str = Field(..., min_length=1, max_length=500)
+
+
+class ProjectTaskCreate(ProjectTaskBase):
+    """Model for creating a new project task."""
+    pass
+
+
+class ProjectTaskResponse(ProjectTaskBase):
+    """Model for project task response."""
+    id: int
+    project_id: int
+    is_completed: int = 0
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class ProjectTaskListResponse(BaseModel):
+    """Response for listing project tasks."""
+    tasks: list[ProjectTaskResponse]
+    total: int
+
+
+# =========================
 # Project Template Models
 # =========================
 

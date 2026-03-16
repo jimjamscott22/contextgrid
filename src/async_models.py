@@ -362,6 +362,40 @@ async def delete_command(command_id: int) -> bool:
 
 
 # =========================
+# Project Task Operations
+# =========================
+
+async def list_project_tasks(project_id: int) -> List[Dict[str, Any]]:
+    try:
+        return await _client.list_project_tasks(project_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def create_project_task(
+    project_id: int, title: str
+) -> Dict[str, Any]:
+    try:
+        return await _client.create_project_task(project_id, title)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def toggle_project_task(task_id: int) -> Dict[str, Any]:
+    try:
+        return await _client.toggle_project_task(task_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def delete_project_task(task_id: int) -> bool:
+    try:
+        return await _client.delete_project_task(task_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+# =========================
 # Project Template Operations
 # =========================
 

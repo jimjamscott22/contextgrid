@@ -178,6 +178,25 @@ CREATE TABLE IF NOT EXISTS project_commands (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =========================
+-- Project Tasks Table (checkable per-project task list)
+-- =========================
+CREATE TABLE IF NOT EXISTS project_tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+
+    title VARCHAR(500) NOT NULL,
+    is_completed TINYINT(1) NOT NULL DEFAULT 0,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (project_id)
+        REFERENCES projects(id)
+        ON DELETE CASCADE,
+
+    INDEX idx_project_tasks_project_id (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =========================
 -- Migrations (idempotent)
 -- =========================
 ALTER TABLE projects ADD COLUMN folder_structure TEXT;

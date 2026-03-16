@@ -27,6 +27,7 @@ from api.models import (
     ActivityDay, ActivityStreakResponse, ActivityHeatmapResponse,
     LinkCreate, LinkResponse, LinkListResponse,
     CommandCreate, CommandResponse, CommandListResponse,
+    ProjectTaskCreate, ProjectTaskResponse, ProjectTaskListResponse,
     TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse,
     AnalyticsChartItem, AnalyticsSummary, AnalyticsResponse,
     ScreenshotResponse, ScreenshotListResponse,
@@ -803,6 +804,75 @@ async def delete_command(command_id: int):
         if not success:
             raise HTTPException(status_code=404, detail=f"Command {command_id} not found")
         return MessageResponse(message=f"Command {command_id} deleted successfully")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# Project Task Endpoints (checkable per-project tasks)
+# =========================
+
+@app.get("/api/projects/{project_id}/tasks", response_model=ProjectTaskListResponse)
+async def get_project_tasks(project_id: int):
+    """Get all tasks for a specific project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        tasks = db.list_project_tasks(project_id)
+        return ProjectTaskListResponse(tasks=tasks, total=len(tasks))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/tasks", response_model=ProjectTaskResponse, status_code=201)
+async def create_project_task(project_id: int, task: ProjectTaskCreate):
+    """Add a task to a project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        task_id = db.create_task(project_id=project_id, title=task.title)
+        created_task = db.get_task(task_id)
+        return created_task
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/project-tasks/{task_id}/toggle", response_model=ProjectTaskResponse)
+async def toggle_project_task(task_id: int):
+    """Toggle a task's completion status."""
+    try:
+        updated = db.toggle_task(task_id)
+        if not updated:
+            raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+        return updated
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/project-tasks/{task_id}", response_model=MessageResponse)
+async def delete_project_task(task_id: int):
+    """Delete a project task by ID."""
+    try:
+        success = db.delete_task(task_id)
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
+        return MessageResponse(message=f"Task {task_id} deleted successfully")
 
     except HTTPException:
         raise
