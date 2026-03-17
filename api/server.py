@@ -19,7 +19,7 @@ if str(project_root) not in sys.path:
 
 from api.models import (
     ProjectCreate, ProjectUpdate, ProjectResponse, ProjectListResponse,
-    NoteCreate, NoteResponse, NoteListResponse,
+    NoteCreate, NoteResponse, NoteListResponse, NoteStatusUpdate,
     TagCreate, TagResponse, TagListResponse, TagSimple,
     HealthResponse, MessageResponse, TouchResponse,
     RelationshipCreate, RelationshipResponse, RelationshipListResponse,
@@ -429,12 +429,37 @@ async def update_note(note_id: int, note: NoteCreate):
 async def get_all_tasks(
     note_type: Optional[str] = None,
     project_id: Optional[int] = None,
+    task_status: Optional[str] = None,
     limit: int = 100,
 ):
     """List notes/tasks across all projects with optional filtering."""
     try:
-        tasks = db.list_all_notes(note_type=note_type, project_id=project_id, limit=limit)
+        tasks = db.list_all_notes(
+            note_type=note_type,
+            project_id=project_id,
+            task_status=task_status,
+            limit=limit,
+        )
         return TaskListResponse(tasks=tasks, total=len(tasks))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/notes/{note_id}/status", response_model=NoteResponse)
+async def update_note_status(note_id: int, body: NoteStatusUpdate):
+    """Update the task_status of a note (active / completed / archived)."""
+    try:
+        existing = db.get_note(note_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail=f"Note {note_id} not found")
+
+        success = db.update_note_status(note_id, body.status)
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to update note status")
+
+        return db.get_note(note_id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

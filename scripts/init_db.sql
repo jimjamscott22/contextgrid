@@ -39,8 +39,9 @@ CREATE TABLE IF NOT EXISTS project_notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL,
 
-    note_type TEXT,                      -- log, idea, blocker, reflection, future_idea
+    note_type TEXT,                          -- log, idea, blocker, reflection, future_idea
     content TEXT NOT NULL,
+    task_status TEXT NOT NULL DEFAULT 'active',  -- active, completed, archived
 
     created_at TEXT NOT NULL,
 

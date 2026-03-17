@@ -82,9 +82,15 @@ class NoteResponse(NoteBase):
     id: int
     project_id: int
     created_at: str
-    
+    task_status: str = "active"
+
     class Config:
         from_attributes = True
+
+
+class NoteStatusUpdate(BaseModel):
+    """Model for updating only the task_status of a note."""
+    status: str = Field(..., pattern="^(active|completed|archived)$")
 
 
 # =========================
@@ -159,6 +165,7 @@ class TaskNoteResponse(NoteBase):
     id: int
     project_id: int
     created_at: str
+    task_status: str = "active"
     project_name: str
     project_status: str
 

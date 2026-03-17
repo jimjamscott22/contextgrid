@@ -47,16 +47,17 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS project_notes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
-    
-    note_type VARCHAR(50),                        -- log, idea, blocker, reflection, future_idea
+
+    note_type VARCHAR(50),                              -- log, idea, blocker, reflection, future_idea
     content TEXT NOT NULL,
-    
+    task_status VARCHAR(20) NOT NULL DEFAULT 'active',  -- active, completed, archived
+
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    
-    FOREIGN KEY (project_id) 
-        REFERENCES projects(id) 
+
+    FOREIGN KEY (project_id)
+        REFERENCES projects(id)
         ON DELETE CASCADE,
-    
+
     INDEX idx_project_notes_project_id (project_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

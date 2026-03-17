@@ -447,8 +447,8 @@ def create_note(project_id: int, content: str, note_type: str = "log") -> int:
     with get_db_cursor() as cursor:
         cursor.execute(
             """
-            INSERT INTO project_notes (project_id, note_type, content, created_at)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO project_notes (project_id, note_type, content, task_status, created_at)
+            VALUES (%s, %s, %s, 'active', %s)
             """,
             (project_id, note_type, content, datetime.utcnow())
         )
@@ -535,9 +535,29 @@ def delete_note(note_id: int) -> bool:
         return cursor.rowcount > 0
 
 
+def update_note_status(note_id: int, status: str) -> bool:
+    """
+    Update the task_status of a note.
+
+    Args:
+        note_id: ID of the note to update
+        status: New status — one of 'active', 'completed', 'archived'
+
+    Returns:
+        True if updated, False if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            "UPDATE project_notes SET task_status = %s WHERE id = %s",
+            (status, note_id),
+        )
+        return cursor.rowcount > 0
+
+
 def list_all_notes(
     note_type: Optional[str] = None,
     project_id: Optional[int] = None,
+    task_status: Optional[str] = None,
     limit: int = 100,
 ) -> List[Dict[str, Any]]:
     """
@@ -555,6 +575,9 @@ def list_all_notes(
     if project_id is not None:
         conditions.append("pn.project_id = %s")
         params.append(project_id)
+    if task_status:
+        conditions.append("pn.task_status = %s")
+        params.append(task_status)
 
     where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
     params.append(limit)
@@ -562,7 +585,8 @@ def list_all_notes(
     with get_db_cursor() as cursor:
         cursor.execute(
             f"""
-            SELECT pn.id, pn.project_id, pn.note_type, pn.content, pn.created_at,
+            SELECT pn.id, pn.project_id, pn.note_type, pn.content,
+                   pn.task_status, pn.created_at,
                    p.name AS project_name, p.status AS project_status
             FROM project_notes pn
             JOIN projects p ON p.id = pn.project_id
