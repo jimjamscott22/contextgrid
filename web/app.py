@@ -771,9 +771,16 @@ async def tasks_list(
     request: Request,
     note_type: str = None,
     project_id: int = None,
+    task_status: str = "active",
 ):
     """Cross-project task/note listing page."""
-    tasks = await models.list_all_notes(note_type=note_type, project_id=project_id)
+    # "all" is the UI sentinel for no status filter
+    status_filter = None if task_status == "all" else task_status
+    tasks = await models.list_all_notes(
+        note_type=note_type,
+        project_id=project_id,
+        task_status=status_filter,
+    )
     all_projects = await models.list_projects()
     return templates.TemplateResponse(
         "tasks.html",
@@ -783,8 +790,23 @@ async def tasks_list(
             "all_projects": all_projects,
             "current_type": note_type,
             "current_project_id": project_id,
+            "current_task_status": task_status,
         },
     )
+
+
+@app.post("/tasks/{note_id}/status")
+async def task_update_status(note_id: int, request: Request):
+    """Update a task's status via JSON POST (called by the tasks page JS)."""
+    body = await request.json()
+    new_status = body.get("status")
+    valid = {"active", "completed", "archived"}
+    if new_status not in valid:
+        return JSONResponse({"error": "Invalid status"}, status_code=400)
+    result = await models.update_note_status(note_id, new_status)
+    if not result:
+        return JSONResponse({"error": "Note not found"}, status_code=404)
+    return JSONResponse({"ok": True, "status": new_status})
 
 
 @app.post("/api/kanban/move")

@@ -155,6 +155,7 @@ class AsyncAPIClient:
         self,
         note_type: Optional[str] = None,
         project_id: Optional[int] = None,
+        task_status: Optional[str] = None,
         limit: int = 100,
     ) -> List[Dict[str, Any]]:
         params: Dict[str, Any] = {"limit": limit}
@@ -162,8 +163,18 @@ class AsyncAPIClient:
             params["note_type"] = note_type
         if project_id is not None:
             params["project_id"] = project_id
+        if task_status:
+            params["task_status"] = task_status
         data = await self._request("GET", "/api/tasks", params=params)
         return data["tasks"]
+
+    async def update_note_status(self, note_id: int, status: str) -> Dict[str, Any]:
+        """Update the task_status of a note (active / completed / archived)."""
+        return await self._request(
+            "PATCH",
+            f"/api/notes/{note_id}/status",
+            json={"status": status},
+        )
 
     # =========================
     # Relationship Methods

@@ -140,10 +140,23 @@ async def get_recent_notes(project_id: int, limit: int = 5) -> List[Dict[str, An
 async def list_all_notes(
     note_type: Optional[str] = None,
     project_id: Optional[int] = None,
+    task_status: Optional[str] = None,
     limit: int = 100,
 ) -> List[Dict[str, Any]]:
     try:
-        return await _client.list_all_notes(note_type=note_type, project_id=project_id, limit=limit)
+        return await _client.list_all_notes(
+            note_type=note_type,
+            project_id=project_id,
+            task_status=task_status,
+            limit=limit,
+        )
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def update_note_status(note_id: int, status: str) -> Dict[str, Any]:
+    try:
+        return await _client.update_note_status(note_id, status)
     except APIError as e:
         _handle_api_error(e)
 

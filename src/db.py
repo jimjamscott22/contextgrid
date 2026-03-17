@@ -432,8 +432,8 @@ class SQLiteBackend(DatabaseBackend):
         with self._get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO project_notes (project_id, note_type, content, created_at)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO project_notes (project_id, note_type, content, task_status, created_at)
+                VALUES (?, ?, ?, 'active', ?)
                 """,
                 (project_id, note_type, content, _datetime_for_sqlite())
             )
@@ -783,8 +783,8 @@ class MySQLBackend(DatabaseBackend):
         with self._get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO project_notes (project_id, note_type, content, created_at)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO project_notes (project_id, note_type, content, task_status, created_at)
+                VALUES (%s, %s, %s, 'active', %s)
                 """,
                 (project_id, note_type, content, _datetime_for_mysql())
             )
