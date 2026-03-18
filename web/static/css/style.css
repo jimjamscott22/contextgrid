@@ -386,11 +386,9 @@ body {
     }
 
     .sidebar {
+        top: calc(var(--space-sm) * 2 + 2.625rem);
+        height: calc(100vh - (var(--space-sm) * 2 + 2.625rem));
         box-shadow: none;
-    }
-
-    .sidebar-header #sidebar-close {
-        display: none;
     }
 
     .page-wrapper {
