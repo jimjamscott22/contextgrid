@@ -65,6 +65,7 @@
 
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar">
+        <div id="sidebar-resizer" class="sidebar-resizer"></div>
         <div class="sidebar-header">
             <h3>Projects</h3>
             <button
@@ -195,6 +196,12 @@
             const setSidebarState = (state) => {
                 if (storage) storage.setItem("cg-sidebar", state);
             };
+
+            // Restore saved sidebar width
+            const savedWidth = storage ? storage.getItem("cg-sidebar-width") : null;
+            if (savedWidth) {
+                document.documentElement.style.setProperty("--sidebar-width", savedWidth);
+            }
 
             // Toggle sidebar
             const openSidebar = () => {
@@ -380,6 +387,40 @@
                     }
                 }, 100);
             });
+
+            // Drag-to-resize sidebar
+            const sidebarResizer = document.getElementById("sidebar-resizer");
+            if (sidebarResizer) {
+                let isResizing = false;
+
+                sidebarResizer.addEventListener("mousedown", (e) => {
+                    if (window.innerWidth < 1024) return;
+                    isResizing = true;
+                    sidebarResizer.classList.add("resizing");
+                    document.body.style.cursor = "col-resize";
+                    document.body.style.userSelect = "none";
+                    e.preventDefault();
+                });
+
+                document.addEventListener("mousemove", (e) => {
+                    if (!isResizing) return;
+                    const MIN_SIDEBAR_WIDTH = 200;
+                    const MAX_SIDEBAR_WIDTH = Math.min(600, Math.floor(window.innerWidth * 0.5));
+                    const newWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, e.clientX));
+                    document.documentElement.style.setProperty("--sidebar-width", newWidth + "px");
+                });
+
+                document.addEventListener("mouseup", () => {
+                    if (!isResizing) return;
+                    isResizing = false;
+                    sidebarResizer.classList.remove("resizing");
+                    document.body.style.cursor = "";
+                    document.body.style.userSelect = "";
+                    const finalWidth = getComputedStyle(document.documentElement)
+                        .getPropertyValue("--sidebar-width").trim();
+                    if (storage) storage.setItem("cg-sidebar-width", finalWidth);
+                });
+            }
 
             // Initialize
             restoreSidebarState();
