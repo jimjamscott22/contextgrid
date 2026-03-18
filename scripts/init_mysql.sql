@@ -200,5 +200,6 @@ CREATE TABLE IF NOT EXISTS project_tasks (
 -- =========================
 -- Migrations (idempotent)
 -- =========================
+ALTER TABLE project_notes ADD COLUMN task_status VARCHAR(20) NOT NULL DEFAULT 'active';
 ALTER TABLE projects ADD COLUMN folder_structure TEXT;
 ALTER TABLE projects ADD COLUMN folder_structure_img_url VARCHAR(2000);
