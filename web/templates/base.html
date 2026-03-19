@@ -83,6 +83,17 @@
                 class="sidebar-search-input"
                 placeholder="Search projects..."
             >
+            <div class="sidebar-sort">
+                <label for="sidebar-sort-select" class="sidebar-sort-label">Sort</label>
+                <select id="sidebar-sort-select" class="sidebar-sort-select">
+                    <option value="recent">Most Recent</option>
+                    <option value="oldest_recent">Least Recent</option>
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="name_asc">Name (A-Z)</option>
+                    <option value="name_desc">Name (Z-A)</option>
+                </select>
+            </div>
         </div>
 
         <div class="sidebar-content" id="sidebar-projects">
@@ -177,6 +188,7 @@
             const sidebarOverlay = document.getElementById("sidebar-overlay");
             const sidebarContent = document.getElementById("sidebar-projects");
             const searchInput = document.getElementById("sidebar-search-input");
+            const sortSelect = document.getElementById("sidebar-sort-select");
 
             if (!sidebar || !sidebarToggle) return;
 
@@ -189,11 +201,16 @@
 
             let allProjects = [];
             let filteredProjects = [];
+            let currentSort = "recent";
 
             // Get/set sidebar state
             const getSidebarState = () => (storage ? storage.getItem("cg-sidebar") : null);
             const setSidebarState = (state) => {
                 if (storage) storage.setItem("cg-sidebar", state);
+            };
+            const getSidebarSort = () => (storage ? storage.getItem("cg-sidebar-sort") : null);
+            const setSidebarSort = (value) => {
+                if (storage) storage.setItem("cg-sidebar-sort", value);
             };
 
             // Toggle sidebar
@@ -258,77 +275,82 @@
                 }
             };
 
-            // Group projects by status
-            const groupByStatus = (projects) => {
-                const groups = {
-                    active: [],
-                    idea: [],
-                    paused: [],
-                    archived: []
-                };
+            const parseDate = (value) => {
+                if (!value) {
+                    return null;
+                }
 
-                projects.forEach(project => {
-                    const status = project.status || "idea";
-                    if (groups[status]) {
-                        groups[status].push(project);
+                const parsed = new Date(value);
+                return Number.isNaN(parsed.getTime()) ? null : parsed;
+            };
+
+            const getSortTimestamp = (project, field) => {
+                const parsed = parseDate(project[field]);
+                return parsed ? parsed.getTime() : -1;
+            };
+
+            const sortProjects = (projects) => {
+                const sorted = [...projects];
+
+                sorted.sort((a, b) => {
+                    if (currentSort === "name_asc") {
+                        return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
                     }
+                    if (currentSort === "name_desc") {
+                        return b.name.localeCompare(a.name, undefined, { sensitivity: "base" });
+                    }
+                    if (currentSort === "newest") {
+                        return getSortTimestamp(b, "created_at") - getSortTimestamp(a, "created_at");
+                    }
+                    if (currentSort === "oldest") {
+                        return getSortTimestamp(a, "created_at") - getSortTimestamp(b, "created_at");
+                    }
+                    if (currentSort === "oldest_recent") {
+                        return getSortTimestamp(a, "last_worked_at") - getSortTimestamp(b, "last_worked_at");
+                    }
+                    return getSortTimestamp(b, "last_worked_at") - getSortTimestamp(a, "last_worked_at");
                 });
 
-                return groups;
+                return sorted;
             };
+
+            const formatProjectMeta = (project) => {
+                const status = project.status || "idea";
+                const createdAt = parseDate(project.created_at);
+                const lastWorkedAt = parseDate(project.last_worked_at);
+                const datePrefix = lastWorkedAt ? "Viewed" : "Created";
+                const dateValue = lastWorkedAt || createdAt;
+                const formattedDate = dateValue ? dateValue.toLocaleDateString() : "Unknown";
+                return `${capitalize(status)} • ${datePrefix}: ${formattedDate}`;
+            };
+
+            const capitalize = (value) => value.charAt(0).toUpperCase() + value.slice(1);
 
             // Render projects in sidebar
             const renderProjects = () => {
-                if (filteredProjects.length === 0) {
+                const sortedProjects = sortProjects(filteredProjects);
+                if (sortedProjects.length === 0) {
                     sidebarContent.innerHTML = '<div class="sidebar-empty">No projects found</div>';
                     return;
                 }
 
-                const grouped = groupByStatus(filteredProjects);
-                let html = '';
+                let html = '<ul class="sidebar-project-list sidebar-project-list-flat">';
 
-                const statusOrder = ['active', 'idea', 'paused', 'archived'];
-                const statusLabels = {
-                    active: 'Active',
-                    idea: 'Ideas',
-                    paused: 'Paused',
-                    archived: 'Archived'
-                };
-
-                statusOrder.forEach(status => {
-                    const projects = grouped[status];
-                    if (projects.length > 0) {
-                        html += `
-                            <div class="sidebar-group">
-                                <div class="sidebar-group-header">
-                                    <span class="sidebar-group-title">${statusLabels[status]}</span>
-                                    <span class="sidebar-group-count">${projects.length}</span>
-                                </div>
-                                <ul class="sidebar-project-list">
-                        `;
-
-                        projects.forEach(project => {
-                            const lastViewed = project.last_worked_at
-                                ? `Last viewed: ${new Date(project.last_worked_at).toLocaleDateString()}`
-                                : 'Last viewed: Never';
-
-                            html += `
-                                <li class="sidebar-project-item">
-                                    <a href="/projects/${project.id}" class="sidebar-project-link">
-                                        <span class="sidebar-project-name">${escapeHtml(project.name)}</span>
-                                        <span class="sidebar-project-meta">${lastViewed}</span>
-                                    </a>
-                                </li>
-                            `;
-                        });
-
-                        html += `
-                                </ul>
-                            </div>
-                        `;
-                    }
+                sortedProjects.forEach(project => {
+                    html += `
+                        <li class="sidebar-project-item">
+                            <a href="/projects/${project.id}" class="sidebar-project-link">
+                                <span class="sidebar-project-name-row">
+                                    <span class="sidebar-project-name">${escapeHtml(project.name)}</span>
+                                    <span class="sidebar-project-status sidebar-project-status-${escapeHtml(project.status || "idea")}">${escapeHtml(capitalize(project.status || "idea"))}</span>
+                                </span>
+                                <span class="sidebar-project-meta">${escapeHtml(formatProjectMeta(project))}</span>
+                            </a>
+                        </li>
+                    `;
                 });
 
+                html += "</ul>";
                 sidebarContent.innerHTML = html;
             };
 
@@ -354,6 +376,20 @@
                     searchTimeout = setTimeout(() => {
                         filterProjects(e.target.value);
                     }, 300);
+                });
+            }
+
+            if (sortSelect) {
+                const savedSort = getSidebarSort();
+                if (savedSort) {
+                    currentSort = savedSort;
+                    sortSelect.value = savedSort;
+                }
+
+                sortSelect.addEventListener("change", (e) => {
+                    currentSort = e.target.value;
+                    setSidebarSort(currentSort);
+                    renderProjects();
                 });
             }
 
