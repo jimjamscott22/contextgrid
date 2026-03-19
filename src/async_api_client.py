@@ -36,6 +36,11 @@ class AsyncAPIClient:
         try:
             response = await self._client.request(method, url, **kwargs)
             response.raise_for_status()
+            if not response.content:
+                raise APIError(
+                    f"API at {self.base_url}{endpoint} returned an empty response. "
+                    "Make sure the ContextGrid API server is running on the correct port."
+                )
             return response.json()
         except httpx.ConnectError:
             raise APIError(
