@@ -1521,6 +1521,11 @@ code {
     color: var(--color-text);
 }
 
+.form-control::placeholder {
+    color: var(--color-text-secondary);
+    opacity: 0.82;
+}
+
 .form-control:hover {
     border-color: var(--color-primary);
 }
@@ -3002,6 +3007,76 @@ body[data-theme="dark"] .heatmap-cell[data-level="4"] {
 .project-task-delete:hover {
     opacity: 1;
     color: var(--color-danger, #EF4444);
+}
+
+.project-inline-add-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.project-inline-add-input {
+    flex: 1 1 10rem;
+    min-width: 10rem;
+}
+
+.project-inline-action-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.project-inline-action-row .btn,
+.project-inline-add-row .btn {
+    flex-shrink: 0;
+}
+
+.project-add-form {
+    margin-top: var(--space-sm);
+}
+
+.project-add-form.is-hidden {
+    display: none;
+}
+
+.project-add-stack {
+    margin-bottom: var(--space-sm);
+}
+
+.project-add-stack .form-control {
+    margin-bottom: 0.4rem;
+}
+
+.project-command-input {
+    font-family: var(--font-mono, monospace);
+}
+
+.project-tag-error {
+    color: var(--color-danger, #ef4444);
+    font-size: 0.82rem;
+    margin-top: 0.3rem;
+    display: none;
+}
+
+.project-tag-error.is-visible {
+    display: block;
+}
+
+.project-task-add-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.project-task-add-input {
+    flex: 1 1 12rem;
+    min-width: 12rem;
+}
+
+.project-task-add-row .btn {
+    flex-shrink: 0;
 }
 
 .project-tasks-progress {

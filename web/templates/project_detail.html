@@ -208,22 +208,21 @@
             </div>
 
             <!-- Add Tag Form (hidden by default) -->
-            <div id="tag-add-form" style="display:none; margin-top: var(--space-sm);">
-                <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;">
+            <div id="tag-add-form" class="project-add-form is-hidden">
+                <div class="project-inline-add-row">
                     <input
                         type="text"
                         id="tag-input"
-                        class="form-control"
+                        class="form-control project-inline-add-input"
                         placeholder="e.g. frontend"
                         list="all-tags-datalist"
-                        style="flex:1; min-width:0;"
                         autocomplete="off"
                     >
                     <datalist id="all-tags-datalist"></datalist>
                     <button type="button" class="btn btn-primary btn-compact" id="save-tag-btn">Add</button>
                     <button type="button" class="btn btn-secondary btn-compact" id="cancel-tag-btn">Cancel</button>
                 </div>
-                <p id="tag-error" style="color:var(--color-danger,#ef4444);font-size:0.82rem;margin-top:0.3rem;display:none;"></p>
+                <p id="tag-error" class="project-tag-error"></p>
             </div>
         </section>
 
@@ -238,11 +237,11 @@
             </div>
 
             <!-- Add Link Form (hidden by default) -->
-            <div id="link-add-form" style="display:none; margin-top: var(--space-sm);">
-                <div class="form-group" style="margin-bottom: var(--space-sm);">
-                    <input type="text" id="link-title-input" class="form-control" placeholder="Title (e.g. API Docs)" style="margin-bottom: 0.4rem;">
-                    <input type="url" id="link-url-input" class="form-control" placeholder="https://..." style="margin-bottom: 0.4rem;">
-                    <select id="link-type-input" class="form-control" style="margin-bottom: 0.4rem;">
+            <div id="link-add-form" class="project-add-form is-hidden">
+                <div class="form-group project-add-stack">
+                    <input type="text" id="link-title-input" class="form-control" placeholder="Title (e.g. API Docs)">
+                    <input type="url" id="link-url-input" class="form-control" placeholder="https://...">
+                    <select id="link-type-input" class="form-control">
                         <option value="other">Other</option>
                         <option value="docs">Docs</option>
                         <option value="deployment">Deployment</option>
@@ -250,7 +249,7 @@
                         <option value="board">Board</option>
                         <option value="repo">Repo</option>
                     </select>
-                    <div style="display:flex; gap:0.5rem;">
+                    <div class="project-inline-action-row">
                         <button type="button" class="btn btn-primary btn-compact" id="save-link-btn">Save</button>
                         <button type="button" class="btn btn-secondary btn-compact" id="cancel-link-btn">Cancel</button>
                     </div>
@@ -269,11 +268,11 @@
             </div>
 
             <!-- Add Command Form (hidden by default) -->
-            <div id="command-add-form" style="display:none; margin-top: var(--space-sm);">
-                <div class="form-group" style="margin-bottom: var(--space-sm);">
-                    <input type="text" id="command-label-input" class="form-control" placeholder="Label (e.g. Start dev server)" style="margin-bottom: 0.4rem;">
-                    <input type="text" id="command-value-input" class="form-control" placeholder="Command (e.g. npm run dev)" style="margin-bottom: 0.4rem; font-family: var(--font-mono, monospace);">
-                    <div style="display:flex; gap:0.5rem;">
+            <div id="command-add-form" class="project-add-form is-hidden">
+                <div class="form-group project-add-stack">
+                    <input type="text" id="command-label-input" class="form-control" placeholder="Label (e.g. Start dev server)">
+                    <input type="text" id="command-value-input" class="form-control project-command-input" placeholder="Command (e.g. npm run dev)">
+                    <div class="project-inline-action-row">
                         <button type="button" class="btn btn-primary btn-compact" id="save-command-btn">Save</button>
                         <button type="button" class="btn btn-secondary btn-compact" id="cancel-command-btn">Cancel</button>
                     </div>
@@ -292,9 +291,9 @@
             </div>
 
             <!-- Add Task Form (hidden by default) -->
-            <div id="task-add-form" style="display:none; margin-top: var(--space-sm);">
-                <div style="display:flex; gap:0.4rem; align-items:center;">
-                    <input type="text" id="task-title-input" class="form-control" placeholder="Task description..." style="flex:1; min-width:0;">
+            <div id="task-add-form" class="project-add-form is-hidden">
+                <div class="project-task-add-row">
+                    <input type="text" id="task-title-input" class="form-control project-task-add-input" placeholder="Task description...">
                     <button type="button" class="btn btn-primary btn-compact" id="save-task-btn">Add</button>
                     <button type="button" class="btn btn-secondary btn-compact" id="cancel-task-btn">Cancel</button>
                 </div>
@@ -946,6 +945,14 @@
     const linkUrlInput = document.getElementById('link-url-input');
     const linkTypeInput = document.getElementById('link-type-input');
 
+    function setFormVisible(form, isVisible) {
+        form.classList.toggle('is-hidden', !isVisible);
+    }
+
+    function isFormVisible(form) {
+        return !form.classList.contains('is-hidden');
+    }
+
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -994,12 +1001,13 @@
     }
 
     addLinkBtn.addEventListener('click', () => {
-        linkAddForm.style.display = linkAddForm.style.display === 'none' ? 'block' : 'none';
-        if (linkAddForm.style.display !== 'none') linkTitleInput.focus();
+        const shouldShow = !isFormVisible(linkAddForm);
+        setFormVisible(linkAddForm, shouldShow);
+        if (shouldShow) linkTitleInput.focus();
     });
 
     cancelLinkBtn.addEventListener('click', () => {
-        linkAddForm.style.display = 'none';
+        setFormVisible(linkAddForm, false);
         linkTitleInput.value = '';
         linkUrlInput.value = '';
         linkTypeInput.value = 'other';
@@ -1047,7 +1055,7 @@
             linkTitleInput.value = '';
             linkUrlInput.value = '';
             linkTypeInput.value = 'other';
-            linkAddForm.style.display = 'none';
+            setFormVisible(linkAddForm, false);
             loadLinks();
         } catch (err) {
             alert('Error: ' + err.message);
@@ -1073,6 +1081,14 @@
     const cancelCommandBtn = document.getElementById('cancel-command-btn');
     const commandLabelInput = document.getElementById('command-label-input');
     const commandValueInput = document.getElementById('command-value-input');
+
+    function setFormVisible(form, isVisible) {
+        form.classList.toggle('is-hidden', !isVisible);
+    }
+
+    function isFormVisible(form) {
+        return !form.classList.contains('is-hidden');
+    }
 
     function escapeHtml(text) {
         const div = document.createElement('div');
@@ -1136,12 +1152,13 @@
     }
 
     addCommandBtn.addEventListener('click', () => {
-        commandAddForm.style.display = commandAddForm.style.display === 'none' ? 'block' : 'none';
-        if (commandAddForm.style.display !== 'none') commandLabelInput.focus();
+        const shouldShow = !isFormVisible(commandAddForm);
+        setFormVisible(commandAddForm, shouldShow);
+        if (shouldShow) commandLabelInput.focus();
     });
 
     cancelCommandBtn.addEventListener('click', () => {
-        commandAddForm.style.display = 'none';
+        setFormVisible(commandAddForm, false);
         commandLabelInput.value = '';
         commandValueInput.value = '';
     });
@@ -1164,7 +1181,7 @@
             }
             commandLabelInput.value = '';
             commandValueInput.value = '';
-            commandAddForm.style.display = 'none';
+            setFormVisible(commandAddForm, false);
             loadCommands();
         } catch (err) {
             alert('Error: ' + err.message);
@@ -1189,6 +1206,14 @@
     const saveTaskBtn = document.getElementById('save-task-btn');
     const cancelTaskBtn = document.getElementById('cancel-task-btn');
     const taskTitleInput = document.getElementById('task-title-input');
+
+    function setFormVisible(form, isVisible) {
+        form.classList.toggle('is-hidden', !isVisible);
+    }
+
+    function isFormVisible(form) {
+        return !form.classList.contains('is-hidden');
+    }
 
     function escapeHtml(text) {
         const div = document.createElement('div');
@@ -1259,12 +1284,13 @@
     }
 
     addTaskBtn.addEventListener('click', () => {
-        taskAddForm.style.display = taskAddForm.style.display === 'none' ? 'block' : 'none';
-        if (taskAddForm.style.display !== 'none') taskTitleInput.focus();
+        const shouldShow = !isFormVisible(taskAddForm);
+        setFormVisible(taskAddForm, shouldShow);
+        if (shouldShow) taskTitleInput.focus();
     });
 
     cancelTaskBtn.addEventListener('click', () => {
-        taskAddForm.style.display = 'none';
+        setFormVisible(taskAddForm, false);
         taskTitleInput.value = '';
     });
 
@@ -1283,7 +1309,7 @@
                 throw new Error(err.detail || 'Failed to save task');
             }
             taskTitleInput.value = '';
-            taskAddForm.style.display = 'none';
+            setFormVisible(taskAddForm, false);
             loadTasks();
         } catch (err) {
             alert('Error: ' + err.message);
@@ -1292,7 +1318,7 @@
 
     taskTitleInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); saveTaskBtn.click(); }
-        if (e.key === 'Escape') { taskAddForm.style.display = 'none'; taskTitleInput.value = ''; }
+        if (e.key === 'Escape') { setFormVisible(taskAddForm, false); taskTitleInput.value = ''; }
     });
 
     loadTasks();
@@ -1316,6 +1342,14 @@
     const tagError = document.getElementById('tag-error');
     const allTagsDatalist = document.getElementById('all-tags-datalist');
 
+    function setFormVisible(form, isVisible) {
+        form.classList.toggle('is-hidden', !isVisible);
+    }
+
+    function isFormVisible(form) {
+        return !form.classList.contains('is-hidden');
+    }
+
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
@@ -1324,12 +1358,12 @@
 
     function showError(msg) {
         tagError.textContent = msg;
-        tagError.style.display = 'block';
+        tagError.classList.add('is-visible');
     }
 
     function clearError() {
         tagError.textContent = '';
-        tagError.style.display = 'none';
+        tagError.classList.remove('is-visible');
     }
 
     async function loadTags() {
@@ -1402,7 +1436,7 @@
                 throw new Error(err.detail || 'Failed to add tag');
             }
             tagInput.value = '';
-            tagAddForm.style.display = 'none';
+            setFormVisible(tagAddForm, false);
             loadTags();
             loadAllTagSuggestions();
         } catch (err) {
@@ -1428,14 +1462,14 @@
     }
 
     addTagBtn.addEventListener('click', () => {
-        const isVisible = tagAddForm.style.display !== 'none';
-        tagAddForm.style.display = isVisible ? 'none' : 'flex';
-        if (!isVisible) { tagInput.focus(); loadAllTagSuggestions(); }
+        const shouldShow = !isFormVisible(tagAddForm);
+        setFormVisible(tagAddForm, shouldShow);
+        if (shouldShow) { tagInput.focus(); loadAllTagSuggestions(); }
         clearError();
     });
 
     cancelTagBtn.addEventListener('click', () => {
-        tagAddForm.style.display = 'none';
+        setFormVisible(tagAddForm, false);
         tagInput.value = '';
         clearError();
     });
@@ -1444,7 +1478,7 @@
 
     tagInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') { e.preventDefault(); addTag(); }
-        if (e.key === 'Escape') { tagAddForm.style.display = 'none'; clearError(); }
+        if (e.key === 'Escape') { setFormVisible(tagAddForm, false); clearError(); }
     });
 
     // Attach remove handlers to server-rendered tags on initial load
