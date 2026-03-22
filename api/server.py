@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Optional, Dict, List
 import shutil
 import sys
 from pathlib import Path
@@ -31,7 +31,8 @@ from api.models import (
     TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse,
     AnalyticsChartItem, AnalyticsSummary, AnalyticsResponse,
     ScreenshotResponse, ScreenshotListResponse,
-    TaskNoteResponse, TaskListResponse
+    TaskNoteResponse, TaskListResponse,
+    MermaidResponse,
 )
 from api.config import config
 from api import db
@@ -1115,8 +1116,115 @@ async def delete_screenshot(project_id: int, filename: str):
 
 
 # =========================
-# Main Entry Point
+# Mermaid Diagram Endpoints
 # =========================
+
+def _sanitize_mermaid_label(text: str, max_length: int = 40) -> str:
+    """Sanitize text so it is safe to embed inside a Mermaid label."""
+    # Remove characters that break Mermaid syntax
+    sanitized = text.replace('"', "'").replace('[', '(').replace(']', ')')
+    sanitized = sanitized.replace('\n', ' ').replace('\r', ' ')
+    if len(sanitized) > max_length:
+        sanitized = sanitized[:max_length - 1] + '…'
+    return sanitized
+
+
+@app.get("/api/projects/{project_id}/mermaid", response_model=MermaidResponse)
+async def get_project_mermaid(project_id: int):
+    """
+    Return a Mermaid state diagram for a single project showing its lifecycle,
+    current status, notes, and tags.
+    """
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        notes = db.list_notes(project_id)
+        tags = db.list_project_tags(project_id)
+
+        status = project.get('status', 'idea')
+        name = _sanitize_mermaid_label(project.get('name', 'Project'), 50)
+
+        lines = ['stateDiagram-v2']
+        lines.append(f'    [*] --> idea : created')
+        lines.append(f'    idea --> active : start work')
+        lines.append(f'    active --> paused : pause')
+        lines.append(f'    paused --> active : resume')
+        lines.append(f'    active --> archived : complete/archive')
+        lines.append(f'    paused --> archived : archive')
+        lines.append(f'    idea --> archived : archive')
+        lines.append('')
+
+        # Annotate current status
+        status_note = _sanitize_mermaid_label(name)
+        lines.append(f'    note right of {status}')
+        lines.append(f'        Current: {status_note}')
+
+        if tags:
+            tag_labels = [_sanitize_mermaid_label(t, 20) for t in tags[:5]]
+            lines.append(f'        Tags: {", ".join(tag_labels)}')
+
+        # Add the most recent note if available
+        recent_notes = [n for n in notes if n.get('note_type') in ('log', 'reflection', 'blocker')]
+        if recent_notes:
+            last_note = recent_notes[-1]
+            note_text = _sanitize_mermaid_label(last_note.get('content', ''), 50)
+            note_type = last_note.get('note_type', 'log')
+            lines.append(f'        Last {note_type}: {note_text}')
+
+        lines.append(f'    end note')
+
+        diagram = '\n'.join(lines)
+        return MermaidResponse(diagram=diagram, diagram_type='stateDiagram-v2')
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/mermaid/overview", response_model=MermaidResponse)
+async def get_overview_mermaid():
+    """
+    Return a Mermaid mindmap diagram of all projects grouped by status.
+    """
+    try:
+        all_projects = db.list_projects()
+
+        by_status: Dict[str, List] = {'active': [], 'idea': [], 'paused': [], 'archived': []}
+        for p in all_projects:
+            s = p.get('status', 'idea')
+            if s in by_status:
+                by_status[s].append(p)
+
+        lines = ['mindmap']
+        lines.append('  root((ContextGrid))')
+
+        status_icons = {
+            'active': '🟢 Active',
+            'idea': '💡 Ideas',
+            'paused': '⏸ Paused',
+            'archived': '📦 Archived',
+        }
+
+        for status_key in ('active', 'idea', 'paused', 'archived'):
+            projects = by_status[status_key]
+            if not projects:
+                continue
+            label = status_icons[status_key]
+            lines.append(f'    {label}')
+            for p in projects[:15]:  # cap per group to keep diagram readable
+                p_name = _sanitize_mermaid_label(p.get('name', 'Unknown'), 35)
+                lines.append(f'      {p_name}')
+
+        diagram = '\n'.join(lines)
+        return MermaidResponse(diagram=diagram, diagram_type='mindmap')
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 if __name__ == "__main__":
     import uvicorn

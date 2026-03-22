@@ -384,6 +384,16 @@
             </div>
         </section>
 
+        <section class="section" id="mermaid-diagram-section">
+            <div class="section-header">
+                <h3>State Diagram</h3>
+                <a href="/diagrams" class="btn btn-link btn-compact">Overview Diagram</a>
+            </div>
+            <div id="mermaid-diagram-container" class="mermaid-diagram-container">
+                <div class="graph-loading">Loading diagram...</div>
+            </div>
+        </section>
+
         <section class="section">
             <h3>Timestamps</h3>
             <table class="metadata-table small">
@@ -1485,6 +1495,38 @@
     document.querySelectorAll('.tag-remove-btn').forEach(btn => {
         btn.addEventListener('click', () => removeTag(btn.dataset.tag));
     });
+})();
+</script>
+
+<script>
+// Mermaid state diagram for this project
+(async () => {
+    const projectId = {{ project.id }};
+    const apiBase = '{{ api_base_url }}';
+    const container = document.getElementById('mermaid-diagram-container');
+
+    const renderDiagram = async (mermaid) => {
+        try {
+            const resp = await fetch(`${apiBase}/api/projects/${projectId}/mermaid`);
+            if (!resp.ok) throw new Error('Failed to fetch diagram');
+            const data = await resp.json();
+
+            container.innerHTML = '<div class="mermaid-render"></div>';
+            const el = container.querySelector('.mermaid-render');
+            const id = 'mermaid-state-' + projectId;
+            const { svg } = await mermaid.render(id, data.diagram);
+            el.innerHTML = svg;
+        } catch (err) {
+            console.error('Mermaid render error:', err);
+            container.innerHTML = '<p class="muted">Unable to load diagram.</p>';
+        }
+    };
+
+    if (window.__mermaidReady && window.__mermaid) {
+        renderDiagram(window.__mermaid);
+    } else {
+        window.addEventListener('mermaid-ready', () => renderDiagram(window.__mermaid));
+    }
 })();
 </script>
 

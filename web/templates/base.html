@@ -24,6 +24,14 @@
         })();
     </script>
     <link rel="stylesheet" href="/static/css/style.css">
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        window.__mermaid = mermaid;
+        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
+        mermaid.initialize({ startOnLoad: false, theme });
+        window.__mermaidReady = true;
+        window.dispatchEvent(new CustomEvent('mermaid-ready'));
+    </script>
 </head>
 <body>
     <nav class="navbar">
@@ -48,6 +56,7 @@
                     <li><a href="/tags">Tags</a></li>
                     <li><a href="/tasks">Tasks</a></li>
                     <li><a href="/templates">Templates</a></li>
+                    <li><a href="/diagrams">Diagrams</a></li>
                 </ul>
                 <button
                     type="button"
