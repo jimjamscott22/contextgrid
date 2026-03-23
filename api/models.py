@@ -454,3 +454,13 @@ class ScreenshotListResponse(BaseModel):
     """Model for list of screenshots."""
     screenshots: list[ScreenshotResponse]
     count: int
+
+
+# =========================
+# Mermaid Diagram Models
+# =========================
+
+class MermaidResponse(BaseModel):
+    """Response containing a Mermaid diagram definition string."""
+    diagram: str
+    diagram_type: str

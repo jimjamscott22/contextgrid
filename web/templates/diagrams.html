@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Diagrams - ContextGrid{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>📊 Project Diagrams</h1>
+        <p class="muted">Visual overview of all projects using Mermaid diagrams.</p>
+    </div>
+</div>
+
+<section class="section">
+    <div class="section-header">
+        <h2>Projects Overview — Mind Map</h2>
+    </div>
+    <div id="overview-diagram-container" class="mermaid-diagram-container">
+        <div class="graph-loading">Loading diagram...</div>
+    </div>
+</section>
+
+<script>
+(async () => {
+    const apiBase = '{{ api_base_url }}';
+    const container = document.getElementById('overview-diagram-container');
+
+    const renderDiagram = async (mermaid) => {
+        try {
+            const resp = await fetch(`${apiBase}/api/mermaid/overview`);
+            if (!resp.ok) throw new Error('Failed to fetch overview diagram');
+            const data = await resp.json();
+
+            container.innerHTML = '<div class="mermaid-render"></div>';
+            const el = container.querySelector('.mermaid-render');
+            const { svg } = await mermaid.render('mermaid-overview', data.diagram);
+            el.innerHTML = svg;
+        } catch (err) {
+            console.error('Mermaid overview render error:', err);
+            container.innerHTML = '<p class="muted">Unable to load diagram.</p>';
+        }
+    };
+
+    if (window.__mermaidReady && window.__mermaid) {
+        renderDiagram(window.__mermaid);
+    } else {
+        window.addEventListener('mermaid-ready', () => renderDiagram(window.__mermaid));
+    }
+})();
+</script>
+{% endblock %}

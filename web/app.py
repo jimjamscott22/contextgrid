@@ -848,6 +848,12 @@ async def health_check():
     return {"status": "ok", "app": "ContextGrid"}
 
 
+@app.get("/diagrams", response_class=HTMLResponse)
+async def diagrams_view(request: Request):
+    """Mermaid diagram overview page."""
+    return templates.TemplateResponse("diagrams.html", {"request": request})
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8081)
