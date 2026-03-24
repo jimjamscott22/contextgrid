@@ -3,12 +3,12 @@ echo "Starting ContextGrid..."
 echo
 
 # Start API server in background
-uv run uvicorn api.server:app --host 0.0.0.0 --port 8000 &
+uv run uvicorn api.server:app --host 0.0.0.0 --port 8003 &
 API_PID=$!
 
 # Wait for API to be ready
 echo "Waiting for API server..."
-until curl -s http://localhost:8000/api/health > /dev/null 2>&1; do
+until curl -s http://localhost:8003/api/health > /dev/null 2>&1; do
     sleep 1
 done
 echo "API server ready."
@@ -27,7 +27,7 @@ fi
 
 echo
 echo "ContextGrid is running, Jamie, go add some projects!"
-echo "  API:  http://localhost:8000"
+echo "  API:  http://localhost:8003"
 echo "  Web:  http://localhost:8081"
 echo
 echo "Press Ctrl+C to stop."

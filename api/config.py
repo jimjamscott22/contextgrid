@@ -21,7 +21,7 @@ class Config:
     
     # API Server Configuration
     API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
-    API_PORT: int = int(os.getenv("API_PORT", "8000"))
+    API_PORT: int = int(os.getenv("API_PORT", "8003"))
     
     # Database Configuration
     DB_HOST: str = os.getenv("DB_HOST", "localhost")

@@ -30,11 +30,11 @@ class Config:
     USE_API: bool = os.getenv("USE_API", "true").lower() in ("true", "1", "yes")
     
     # API_URL is the base URL for the API server (used when USE_API=true)
-    API_URL: str = os.getenv("API_URL", "http://localhost:8000")
+    API_URL: str = os.getenv("API_URL", "http://localhost:8003")
     
     # Legacy API_ENDPOINT for backward compatibility
     if not API_URL and os.getenv("API_ENDPOINT"):
-        API_URL = os.getenv("API_ENDPOINT", "http://localhost:8000")
+        API_URL = os.getenv("API_ENDPOINT", "http://localhost:8003")
     
     # =========================
     # Database Configuration

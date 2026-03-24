@@ -194,10 +194,10 @@ DB_PASSWORD=your_password
 
 # API Server
 API_HOST=0.0.0.0
-API_PORT=8000
+API_PORT=8003
 
 # CLI
-API_ENDPOINT=http://localhost:8000
+API_ENDPOINT=http://localhost:8003
 ```
 
 ## Known Limitations
@@ -219,11 +219,11 @@ API_ENDPOINT=http://localhost:8000
 
 1. Ensure API server is running
 2. Check `API_ENDPOINT` in `.env`
-3. Test API: `curl http://localhost:8000/api/health`
+3. Test API: `curl http://localhost:8003/api/health`
 
 ### Port Conflicts
 
-- API server uses port 8000
+- API server uses port 8003
 - Web UI uses port 8080
 - Change ports in `.env` if needed
 

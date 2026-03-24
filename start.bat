@@ -6,13 +6,13 @@ echo Starting ContextGrid...
 echo.
 
 :: Start API server in background
-start "ContextGrid API" /min cmd /c "uv run uvicorn api.server:app --host 0.0.0.0 --port 8000"
+start "ContextGrid API" /min cmd /c "uv run uvicorn api.server:app --host 0.0.0.0 --port 8003"
 
 :: Wait for API to be ready
 echo Waiting for API server...
 :wait
 timeout /t 1 /nobreak >nul
-curl -s http://localhost:8000/api/health >nul 2>&1
+curl -s http://localhost:8003/api/health >nul 2>&1
 if errorlevel 1 goto wait
 echo API server ready.
 
@@ -25,7 +25,7 @@ start http://localhost:8081
 
 echo.
 echo ContextGrid is running, Jamie, go add some projects!
-echo   API:  http://localhost:8000
+echo   API:  http://localhost:8003
 echo   Web:  http://localhost:8081
 echo.
 echo Close this window to kill it (or close the minimized windows).

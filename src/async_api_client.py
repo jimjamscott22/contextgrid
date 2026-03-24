@@ -9,7 +9,7 @@ from typing import Optional, List, Dict, Any
 import httpx
 
 # API endpoint configuration
-API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8000")
+API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8003")
 
 
 class APIError(Exception):

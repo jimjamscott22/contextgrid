@@ -122,7 +122,7 @@ MYSQL_DATABASE=contextgrid
 ```bash
 # .env
 USE_API=true
-API_URL=http://localhost:8000
+API_URL=http://localhost:8003
 
 # API Server config (in separate terminal)
 DB_TYPE=sqlite
@@ -133,7 +133,7 @@ DB_PATH=data/projects.db
 ```bash
 # .env
 USE_API=true
-API_URL=http://localhost:8000
+API_URL=http://localhost:8003
 
 # API Server config (in separate terminal)
 DB_HOST=localhost
@@ -149,7 +149,7 @@ DB_PASSWORD=your_password
 - `USE_API`: `true` or `false` (default: `true`)
   - `true`: CLI uses API server (requires API server running)
   - `false`: CLI connects directly to database
-- `API_URL`: API server URL (default: `http://localhost:8000`)
+- `API_URL`: API server URL (default: `http://localhost:8003`)
 
 **Database Backend:**
 - `DB_TYPE`: `sqlite` or `mysql` (default: `sqlite`)
@@ -166,7 +166,7 @@ DB_PASSWORD=your_password
 
 **API Server Configuration:**
 - `API_HOST`: API server bind address (default: `0.0.0.0`)
-- `API_PORT`: API server port (default: `8000`)
+- `API_PORT`: API server port (default: `8003`)
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`: MySQL settings for API server
 
 See `.env.example` for a complete configuration template.
@@ -273,7 +273,7 @@ Same as Option 1, but with a browser interface.
 
 **Terminal 1 - API Server:**
 ```bash
-uv run uvicorn api.server:app --host 0.0.0.0 --port 8000 --reload
+uv run uvicorn api.server:app --host 0.0.0.0 --port 8003 --reload
 ```
 
 **Terminal 2 - Web UI:**
@@ -286,8 +286,8 @@ Then open `http://localhost:8001` in your browser.
 **Configure with `.env`:**
 ```bash
 USE_API=true
-API_URL=http://localhost:8000
-API_ENDPOINT=http://localhost:8000
+API_URL=http://localhost:8003
+API_ENDPOINT=http://localhost:8003
 DB_TYPE=sqlite
 DB_PATH=data/projects.db
 ```
@@ -349,7 +349,7 @@ Use MySQL for persistent storage and API server for cross-device access.
    ```bash
    # CLI Configuration
    USE_API=true
-   API_URL=http://localhost:8000
+   API_URL=http://localhost:8003
    
    # API Server Configuration
    DB_HOST=localhost
@@ -359,7 +359,7 @@ Use MySQL for persistent storage and API server for cross-device access.
    DB_PASSWORD=your_secure_password
    
    API_HOST=0.0.0.0
-   API_PORT=8000
+   API_PORT=8003
    ```
 
 5. **Initialize Database**
@@ -422,8 +422,8 @@ python src/main.py show 1
 python -m api.server
 ```
 
-The API will be available at `http://localhost:8000`.
-API documentation is available at `http://localhost:8000/docs`.
+The API will be available at `http://localhost:8003`.
+API documentation is available at `http://localhost:8003/docs`.
 
 #### Using the CLI
 
@@ -475,7 +475,7 @@ See [API.md](API.md) for complete API documentation.
 Configure the API server via environment variables in `.env`:
 
 - `API_HOST`: API server host (default: `0.0.0.0`)
-- `API_PORT`: API server port (default: `8000`)
+- `API_PORT`: API server port (default: `8003`)
 - `DB_HOST`: MySQL host (default: `localhost`)
 - `DB_PORT`: MySQL port (default: `3306`)
 - `DB_NAME`: MySQL database name
@@ -619,7 +619,7 @@ python web/app.py
 
 The web interface will be available at: **http://127.0.0.1:8080**
 
-**Note:** The Web UI requires the API server to be running on `http://localhost:8000`.
+**Note:** The Web UI requires the API server to be running on `http://localhost:8003`.
 
 ### Features
 
@@ -760,7 +760,7 @@ python src/main.py --help  # Will show mode info
 **Solution:**
 1. Ensure API server is running: `python api/server.py`
 2. Check `API_URL` in `.env` matches the server address
-3. Verify API server is listening: `curl http://localhost:8000/api/health`
+3. Verify API server is listening: `curl http://localhost:8003/api/health`
 4. Or switch to direct mode: Set `USE_API=false` in `.env`
 
 ### CLI Commands Fail (Direct Mode)
@@ -802,7 +802,7 @@ FLUSH PRIVILEGES;
 **Problem:** Web UI loads but shows no projects
 
 **Solution:**
-1. Verify API server is running on the expected port (8000)
+1. Verify API server is running on the expected port (8003)
 2. Check browser console for errors (F12)
 3. Ensure Web UI is configured to connect to the correct API endpoint
 4. Note: Web UI requires API server (doesn't support direct database access)
@@ -822,9 +822,9 @@ FLUSH PRIVILEGES;
 **Problem:** `Address already in use` error
 
 **Solution:**
-1. API server uses port 8000, Web UI uses port 8080
+1. API server uses port 8003, Web UI uses port 8080
 2. Change ports in `.env` or when starting servers
-3. Kill existing processes: `lsof -i :8000` and `kill <PID>`
+3. Kill existing processes: `lsof -i :8003` and `kill <PID>`
 
 ### Switching Modes
 
@@ -846,7 +846,7 @@ python src/main.py list
 ```bash
 # Edit .env
 USE_API=true
-API_URL=http://localhost:8000
+API_URL=http://localhost:8003
 
 # Start API server in another terminal
 python api/server.py

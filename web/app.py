@@ -42,9 +42,9 @@ TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
-templates.env.globals["api_base_url"] = os.getenv("API_ENDPOINT", "http://localhost:8000").rstrip("/")
+templates.env.globals["api_base_url"] = os.getenv("API_ENDPOINT", "http://localhost:8003").rstrip("/")
 
-API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8000").rstrip("/")
+API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8003").rstrip("/")
 
 
 async def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:

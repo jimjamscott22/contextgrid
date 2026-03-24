@@ -4,7 +4,7 @@
 
 The ContextGrid API is a RESTful API built with FastAPI that provides access to project management functionality. It supports CRUD operations for projects, tags, and notes, with MySQL as the backend database.
 
-**Base URL:** `http://localhost:8000`
+**Base URL:** `http://localhost:8003`
 
 ## Authentication
 
@@ -550,7 +550,7 @@ The following features are planned for future versions:
    DB_USER=contextgrid_user
    DB_PASSWORD=your_password
    API_HOST=0.0.0.0
-   API_PORT=8000
+   API_PORT=8003
    ```
 
 3. Start the API server:
@@ -558,7 +558,7 @@ The following features are planned for future versions:
    python api/server.py
    ```
 
-4. The API will be available at `http://localhost:8000`
+4. The API will be available at `http://localhost:8003`
 
 ### Testing the API
 
@@ -566,13 +566,13 @@ You can test the API using curl, HTTPie, Postman, or any HTTP client:
 
 ```bash
 # Health check
-curl http://localhost:8000/api/health
+curl http://localhost:8003/api/health
 
 # List projects
-curl http://localhost:8000/api/projects
+curl http://localhost:8003/api/projects
 
 # Create a project
-curl -X POST http://localhost:8000/api/projects \
+curl -X POST http://localhost:8003/api/projects \
   -H "Content-Type: application/json" \
   -d '{"name": "Test Project", "status": "idea"}'
 ```

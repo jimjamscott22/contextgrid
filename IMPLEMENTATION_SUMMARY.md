@@ -28,7 +28,7 @@ Implemented comprehensive configuration management:
 
 **Environment Variables:**
 - `USE_API`: Choose between API mode (true) or direct database mode (false)
-- `API_URL`: API server endpoint (default: http://localhost:8000)
+- `API_URL`: API server endpoint (default: http://localhost:8003)
 - `DB_TYPE`: Database backend selection (sqlite or mysql)
 - `DB_PATH`: Path to SQLite database file (default: data/projects.db)
 - `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`: MySQL connection settings
@@ -136,7 +136,7 @@ MYSQL_PASSWORD=your_password
 ### Mode 3: SQLite + API + CLI
 ```bash
 USE_API=true
-API_URL=http://localhost:8000
+API_URL=http://localhost:8003
 # API server config: DB_TYPE=sqlite
 ```
 **Best for:** Local testing of API before MySQL setup
@@ -144,7 +144,7 @@ API_URL=http://localhost:8000
 ### Mode 4: MySQL + API + CLI (Current Default)
 ```bash
 USE_API=true
-API_URL=http://localhost:8000
+API_URL=http://localhost:8003
 # API server config: MySQL settings
 ```
 **Best for:** Production, cross-device access, multi-user scenarios

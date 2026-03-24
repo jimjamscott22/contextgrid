@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 
 # Check if API server is running
 echo "1. Checking API server..."
-if curl -s http://localhost:8000/api/health > /dev/null; then
+if curl -s http://localhost:8003/api/health > /dev/null; then
     echo -e "${GREEN}✓ API server is running${NC}"
 else
     echo -e "${RED}✗ API server is not running${NC}"
@@ -26,7 +26,7 @@ fi
 # Test API health endpoint
 echo ""
 echo "2. Testing API health endpoint..."
-HEALTH=$(curl -s http://localhost:8000/api/health | python -c "import sys, json; print(json.load(sys.stdin)['status'])")
+HEALTH=$(curl -s http://localhost:8003/api/health | python -c "import sys, json; print(json.load(sys.stdin)['status'])")
 if [ "$HEALTH" = "ok" ]; then
     echo -e "${GREEN}✓ API health check passed${NC}"
 else
@@ -45,14 +45,14 @@ else
 fi
 
 # Count projects
-PROJECT_COUNT=$(curl -s http://localhost:8000/api/projects | python -c "import sys, json; print(json.load(sys.stdin)['total'])")
+PROJECT_COUNT=$(curl -s http://localhost:8003/api/projects | python -c "import sys, json; print(json.load(sys.stdin)['total'])")
 echo ""
 echo "4. Current project count: $PROJECT_COUNT"
 
 # Test creating a project via API
 echo ""
 echo "5. Creating test project via API..."
-NEW_PROJECT=$(curl -s -X POST http://localhost:8000/api/projects \
+NEW_PROJECT=$(curl -s -X POST http://localhost:8003/api/projects \
   -H "Content-Type: application/json" \
   -d '{"name":"Test Project '$(date +%s)'","status":"idea","description":"Automated test project"}' | \
   python -c "import sys, json; print(json.load(sys.stdin)['id'])")
@@ -97,7 +97,7 @@ fi
 # Clean up test project
 echo ""
 echo "9. Cleaning up test project..."
-if curl -s -X DELETE http://localhost:8000/api/projects/$NEW_PROJECT > /dev/null; then
+if curl -s -X DELETE http://localhost:8003/api/projects/$NEW_PROJECT > /dev/null; then
     echo -e "${GREEN}✓ Test project deleted${NC}"
 else
     echo -e "${RED}✗ Failed to delete test project${NC}"
@@ -113,5 +113,5 @@ echo ""
 echo "Quick commands:"
 echo "  - List projects: python src/main.py list"
 echo "  - Add project: python src/main.py add 'Project Name'"
-echo "  - API docs: http://localhost:8000/docs"
+echo "  - API docs: http://localhost:8003/docs"
 echo "  - Web UI: http://localhost:8080 (if running)"

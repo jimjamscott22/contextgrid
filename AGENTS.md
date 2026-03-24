@@ -10,7 +10,7 @@
 
 ## Architecture
 - **Dual-Mode CLI**: Auto-selects based on `USE_API` environment variable:
-  - `API Mode` (`USE_API=true`): CLI → HTTP → FastAPI → MySQL (runs via port 8000/8001)
+  - `API Mode` (`USE_API=true`): CLI → HTTP → FastAPI → MySQL (runs via port 8003/8001)
   - `Direct Mode` (`USE_API=false`): CLI → DB backend directly
 - **Database Abstraction**: `DatabaseBackend` ABC in `src/db.py` abstracts SQLite (local) and MySQL (production). `src/models.py` uses either API or Direct mode based on config.
 - **Web UI**: Read-focused SSR via Jinja2 & Uvicorn (port 8001). Edits only done via CLI. See `web/templates/base.html` for global UI structures.
