@@ -36,6 +36,7 @@ from api.models import (
 )
 from api.config import config
 from api import db
+from src.utils.paths import get_base_dir
 
 
 @asynccontextmanager
@@ -77,6 +78,7 @@ app = FastAPI(
 
 # Serve uploaded screenshots as static files
 config.UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(get_base_dir() / "web" / "static")), name="static")
 app.mount("/uploads", StaticFiles(directory=str(config.UPLOADS_DIR)), name="uploads")
 
 # Add CORS middleware for web UI

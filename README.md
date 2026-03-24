@@ -726,6 +726,28 @@ The roadmap is perfect for:
 
 ---
 
+## Building Executables
+
+You can bundle ContextGrid into standalone executables using PyInstaller. This ensures you do not need to rely on the `uv` environment or a python runtime to run the CLI, Web Server, or API. 
+
+### Building
+
+To generate the binaries, simply run the orchestration script from the project root:
+
+```bash
+uv run python build.py
+```
+
+This will run PyInstaller sequentially to build the three main applications and collect them into the `dist/` directory:
+
+1. `dist/cg/cg.exe` — The fast direct CLI (no python required).
+2. `dist/contextgrid-api/contextgrid-api.exe` — The standalone FastAPI web server.
+3. `dist/contextgrid-web/contextgrid-web.exe` — The standalone Jinja UI front-end.
+
+To use the standalone CLI, add `contextgrid/dist/cg` to your `PATH` variable, and you can run it anywhere directly using `cg list`.
+
+---
+
 ## Troubleshooting
 
 ### Configuration Issues

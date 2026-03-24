@@ -9,6 +9,13 @@ from contextlib import contextmanager
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from pathlib import Path
+import sys
+
+# Add src to python path to allow importing src.utils
+src_path = Path(__file__).resolve().parent.parent / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+from src.utils.paths import get_base_dir
 
 from api.config import config
 
@@ -63,7 +70,7 @@ def initialize_database():
     Initialize the database schema.
     Creates all tables if they don't exist and applies migrations.
     """
-    schema_path = Path(__file__).parent.parent / "scripts" / "init_mysql.sql"
+    schema_path = get_base_dir() / "scripts" / "init_mysql.sql"
     
     with open(schema_path, 'r', encoding='utf-8') as f:
         schema_sql = f.read()

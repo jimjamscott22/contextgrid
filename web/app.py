@@ -14,17 +14,16 @@ import sys
 import httpx
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# Add src to python path to allow importing src.utils
+src_path = Path(__file__).resolve().parent.parent / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+from src.utils.paths import get_base_dir
+
+BASE_DIR = get_base_dir()
 ENV_FILE = BASE_DIR / ".env"
 
-if ENV_FILE.exists():
-    load_dotenv(ENV_FILE, override=True)
-
-# Add src to path to import our existing models
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
-
-import async_models as models
+from src import async_models as models
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -37,8 +36,8 @@ app = FastAPI(
 app.add_event_handler("shutdown", models.aclose_client)
 
 # Setup static files and templates
-STATIC_DIR = Path(__file__).parent / "static"
-TEMPLATE_DIR = Path(__file__).parent / "templates"
+STATIC_DIR = get_base_dir() / "web" / "static"
+TEMPLATE_DIR = get_base_dir() / "web" / "templates"
 
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))

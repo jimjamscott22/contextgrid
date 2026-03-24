@@ -6,7 +6,7 @@ Handles user commands and presents formatted output.
 import argparse
 import sys
 from typing import Optional
-import models
+from src import models
 
 
 def cmd_add(args) -> int:

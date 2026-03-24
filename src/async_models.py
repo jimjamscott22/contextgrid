@@ -5,7 +5,7 @@ Wraps the async API client so the web UI can remain fully async.
 
 from typing import Optional, List, Dict, Any
 
-from async_api_client import get_async_api_client, APIError, aclose_async_api_client
+from src.async_api_client import get_async_api_client, APIError, aclose_async_api_client
 
 _client = get_async_api_client()
 

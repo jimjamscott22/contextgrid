@@ -7,9 +7,16 @@ import os
 from pathlib import Path
 from typing import Tuple
 from dotenv import load_dotenv
+import sys
+
+# Add src to python path to allow importing src.utils
+src_path = Path(__file__).resolve().parent.parent / "src"
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+from src.utils.paths import get_base_dir
 
 # Load environment variables from .env file if it exists
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = get_base_dir()
 ENV_FILE = BASE_DIR / ".env"
 
 if ENV_FILE.exists():

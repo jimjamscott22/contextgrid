@@ -13,15 +13,15 @@ import sys
 from typing import Optional, List, Dict, Any
 
 # Import configuration
-from config import config
+from src.config import config
 
 # Conditional imports based on mode
 if config.USE_API:
-    from api_client import get_api_client, APIError
+    from src.api_client import get_api_client, APIError
     _client = get_api_client()
     _db_backend = None
 else:
-    from db import get_database_backend
+    from src.db import get_database_backend
     _client = None
     _db_backend = get_database_backend()
     # Initialize database on first use
