@@ -77,6 +77,22 @@ CREATE TABLE IF NOT EXISTS project_tags (
 );
 
 -- =========================
+-- README Snapshots
+-- =========================
+CREATE TABLE IF NOT EXISTS project_readme_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL UNIQUE,
+
+    content TEXT NOT NULL,         -- Raw Markdown content of README.md
+    source_ref TEXT,               -- Branch/ref the README was fetched from (e.g. "main")
+    fetched_at TEXT NOT NULL,      -- ISO-8601 timestamp of when it was fetched
+
+    FOREIGN KEY (project_id)
+        REFERENCES projects(id)
+        ON DELETE CASCADE
+);
+
+-- =========================
 -- Indexes for Performance
 -- =========================
 CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(name);
@@ -87,3 +103,4 @@ CREATE INDEX IF NOT EXISTS idx_projects_is_archived ON projects(is_archived);
 CREATE INDEX IF NOT EXISTS idx_project_notes_project_id ON project_notes(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_tags_project_id ON project_tags(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_tags_tag_id ON project_tags(tag_id);
+CREATE INDEX IF NOT EXISTS idx_project_readme_snapshots_project_id ON project_readme_snapshots(project_id);

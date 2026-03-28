@@ -323,6 +323,29 @@ class AsyncAPIClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
+    # =========================
+    # README Snapshot Methods
+    # =========================
+
+    async def get_readme_snapshot(self, project_id: int) -> Optional[Dict[str, Any]]:
+        """Get the stored README snapshot for a project."""
+        return await self._request(
+            "GET", f"/api/projects/{project_id}/readme", allow_404=True
+        )
+
+    async def attach_readme(self, project_id: int) -> Dict[str, Any]:
+        """Fetch README.md from GitHub and store a snapshot for the project."""
+        return await self._request(
+            "POST", f"/api/projects/{project_id}/readme/attach"
+        )
+
+    async def delete_readme_snapshot(self, project_id: int) -> bool:
+        """Delete the stored README snapshot for a project."""
+        result = await self._request(
+            "DELETE", f"/api/projects/{project_id}/readme"
+        )
+        return result is not None
+
 
 
 _async_client: Optional[AsyncAPIClient] = None

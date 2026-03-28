@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from typing import Optional, List, Dict
+import markdown as md_lib
 import os
 import sys
 import httpx
@@ -44,6 +45,14 @@ templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 templates.env.globals["api_base_url"] = os.getenv("API_ENDPOINT", "http://localhost:8003").rstrip("/")
 
 API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8003").rstrip("/")
+
+
+def _render_markdown(content: str) -> str:
+    """Render a Markdown string to safe HTML."""
+    return md_lib.markdown(
+        content,
+        extensions=["fenced_code", "tables", "toc"],
+    )
 
 
 async def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:
@@ -551,6 +560,20 @@ async def project_detail(request: Request, project_id: int):
     
     screenshots = await get_project_screenshots(project_id)
 
+    # Fetch stored README snapshot (if any) and render as HTML
+    readme_html = None
+    readme_meta = None
+    try:
+        readme_snapshot = await models.get_readme_snapshot(project_id)
+        if readme_snapshot:
+            readme_html = _render_markdown(readme_snapshot.get("content", ""))
+            readme_meta = {
+                "source_ref": readme_snapshot.get("source_ref"),
+                "fetched_at": readme_snapshot.get("fetched_at"),
+            }
+    except Exception as e:
+        print(f"Warning: Failed to fetch README snapshot: {e}")
+
     return templates.TemplateResponse(
         "project_detail.html",
         {
@@ -559,6 +582,8 @@ async def project_detail(request: Request, project_id: int):
             "tags": project_tags,
             "notes": notes,
             "screenshots": screenshots,
+            "readme_html": readme_html,
+            "readme_meta": readme_meta,
         }
     )
 
@@ -571,6 +596,34 @@ async def project_delete(project_id: int):
         return RedirectResponse(url="/projects", status_code=303)
     except Exception as e:
         return RedirectResponse(url="/projects", status_code=303)
+
+
+@app.post("/projects/{project_id}/readme/attach")
+async def project_readme_attach(request: Request, project_id: int):
+    """Attach or refresh README snapshot from the project's GitHub repository."""
+    try:
+        await models.attach_readme(project_id)
+        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+    except Exception as e:
+        error_msg = str(e)
+        # Extract API error detail if present
+        if "API error:" in error_msg:
+            error_msg = error_msg.split("API error:", 1)[-1].strip()
+        return templates.TemplateResponse(
+            "error.html",
+            {"request": request, "error": f"Could not attach README: {error_msg}"},
+            status_code=400,
+        )
+
+
+@app.post("/projects/{project_id}/readme/delete")
+async def project_readme_delete(request: Request, project_id: int):
+    """Remove the stored README snapshot for a project."""
+    try:
+        await models.delete_readme_snapshot(project_id)
+        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+    except Exception as e:
+        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 
 @app.post("/projects/{project_id}/screenshots")

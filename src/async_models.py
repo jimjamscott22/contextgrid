@@ -446,3 +446,28 @@ async def delete_template(template_id: int) -> bool:
     except APIError as e:
         _handle_api_error(e)
 
+
+
+# =========================
+# README Snapshot Operations
+# =========================
+
+async def get_readme_snapshot(project_id: int) -> Optional[Dict[str, Any]]:
+    try:
+        return await _client.get_readme_snapshot(project_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def attach_readme(project_id: int) -> Dict[str, Any]:
+    try:
+        return await _client.attach_readme(project_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def delete_readme_snapshot(project_id: int) -> bool:
+    try:
+        return await _client.delete_readme_snapshot(project_id)
+    except APIError as e:
+        _handle_api_error(e)
