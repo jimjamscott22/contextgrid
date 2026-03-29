@@ -27,7 +27,7 @@
   - Always use parameterized queries, NO f-strings for user data.
   - Use context managers for DB connection management.
 - **Git workflow**: 
-  - Use feature branches, no direct push to `master`. 
+  - Use feature branches, no direct push to `main`. 
   - Conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`).
 
 ## References
