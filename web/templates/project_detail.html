@@ -116,6 +116,48 @@
         </section>
         {% endif %}
 
+        <!-- README Snapshot Section -->
+        <section class="section" id="readme-section">
+            <div class="section-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                <h2 style="margin: 0;">README</h2>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    {% if readme_html %}
+                    <form method="post" action="/projects/{{ project.id }}/readme/attach" style="display:inline;">
+                        <button type="submit" class="btn btn-secondary btn-compact" title="Re-fetch README from GitHub">↻ Refresh</button>
+                    </form>
+                    <form method="post" action="/projects/{{ project.id }}/readme/delete" style="display:inline;" onsubmit="return confirm('Remove the stored README snapshot?');">
+                        <button type="submit" class="btn btn-danger btn-compact" title="Remove README snapshot">Remove</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="/projects/{{ project.id }}/readme/attach" style="display:inline;">
+                        <button type="submit" class="btn btn-primary btn-compact" {% if not project.repo_url %}disabled title="Set a GitHub repo URL on the project first"{% else %}title="Fetch README from GitHub and store a snapshot"{% endif %}>Attach README</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if readme_html %}
+            {% if readme_meta %}
+            <p class="muted" style="font-size: 0.82rem; margin: 0.4rem 0 0.8rem;">
+                Fetched from branch <code>{{ readme_meta.source_ref }}</code>
+                {% if readme_meta.fetched_at %}· {{ readme_meta.fetched_at[:19] }}{% endif %}
+            </p>
+            {% endif %}
+            <div class="readme-content markdown-body">
+                {{ readme_html | safe }}
+            </div>
+            {% else %}
+            <p class="muted" style="font-size: 0.9rem; margin-top: 0.5rem;">
+                No README snapshot attached.
+                {% if project.repo_url %}
+                Click <strong>Attach README</strong> to fetch and store a snapshot from the repository.
+                {% else %}
+                Set a GitHub repository URL on this project, then attach the README.
+                {% endif %}
+            </p>
+            {% endif %}
+        </section>
+
         <!-- Future Ideas Section -->
         <section class="future-ideas-section">
             <div class="future-ideas-header">

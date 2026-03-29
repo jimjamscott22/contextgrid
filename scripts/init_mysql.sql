@@ -203,3 +203,21 @@ CREATE TABLE IF NOT EXISTS project_tasks (
 ALTER TABLE project_notes ADD COLUMN task_status VARCHAR(20) NOT NULL DEFAULT 'active';
 ALTER TABLE projects ADD COLUMN folder_structure TEXT;
 ALTER TABLE projects ADD COLUMN folder_structure_img_url VARCHAR(2000);
+
+-- =========================
+-- README Snapshots Table
+-- =========================
+CREATE TABLE IF NOT EXISTS project_readme_snapshots (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL UNIQUE,
+
+    content LONGTEXT NOT NULL,       -- Raw Markdown content of README.md
+    source_ref VARCHAR(255),         -- Branch/ref the README was fetched from (e.g. "main")
+    fetched_at DATETIME NOT NULL,    -- Timestamp of when it was fetched
+
+    FOREIGN KEY (project_id)
+        REFERENCES projects(id)
+        ON DELETE CASCADE,
+
+    INDEX idx_project_readme_snapshots_project_id (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

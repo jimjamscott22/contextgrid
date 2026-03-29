@@ -145,6 +145,24 @@ class DatabaseBackend(ABC):
         """Delete a note by ID."""
         pass
 
+    # README Snapshot operations
+    @abstractmethod
+    def get_readme_snapshot(self, project_id: int) -> Optional[Dict[str, Any]]:
+        """Get the stored README snapshot for a project."""
+        pass
+
+    @abstractmethod
+    def upsert_readme_snapshot(
+        self, project_id: int, content: str, source_ref: Optional[str] = None
+    ) -> bool:
+        """Create or replace the README snapshot for a project."""
+        pass
+
+    @abstractmethod
+    def delete_readme_snapshot(self, project_id: int) -> bool:
+        """Delete the README snapshot for a project."""
+        pass
+
 
 # =========================
 # SQLite Backend
@@ -467,10 +485,43 @@ class SQLiteBackend(DatabaseBackend):
             cursor.execute("DELETE FROM project_notes WHERE id = ?", (note_id,))
             return cursor.rowcount > 0
 
+    def get_readme_snapshot(self, project_id: int) -> Optional[Dict[str, Any]]:
+        """Get the stored README snapshot for a project."""
+        with self._get_cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM project_readme_snapshots WHERE project_id = ?",
+                (project_id,)
+            )
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
-# =========================
-# MySQL Backend
-# =========================
+    def upsert_readme_snapshot(
+        self, project_id: int, content: str, source_ref: Optional[str] = None
+    ) -> bool:
+        """Create or replace the README snapshot for a project."""
+        fetched_at = _datetime_for_sqlite()
+        with self._get_cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO project_readme_snapshots (project_id, content, source_ref, fetched_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(project_id) DO UPDATE SET
+                    content = excluded.content,
+                    source_ref = excluded.source_ref,
+                    fetched_at = excluded.fetched_at
+                """,
+                (project_id, content, source_ref, fetched_at)
+            )
+            return True
+
+    def delete_readme_snapshot(self, project_id: int) -> bool:
+        """Delete the README snapshot for a project."""
+        with self._get_cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM project_readme_snapshots WHERE project_id = ?",
+                (project_id,)
+            )
+            return cursor.rowcount > 0
 
 class MySQLBackend(DatabaseBackend):
     """MySQL database backend implementation."""
@@ -826,6 +877,47 @@ class MySQLBackend(DatabaseBackend):
         """Delete a note by ID."""
         with self._get_cursor() as cursor:
             cursor.execute("DELETE FROM project_notes WHERE id = %s", (note_id,))
+            return cursor.rowcount > 0
+
+    def get_readme_snapshot(self, project_id: int) -> Optional[Dict[str, Any]]:
+        """Get the stored README snapshot for a project."""
+        with self._get_cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM project_readme_snapshots WHERE project_id = %s",
+                (project_id,)
+            )
+            row = cursor.fetchone()
+            if row and row.get('fetched_at'):
+                if hasattr(row['fetched_at'], 'isoformat'):
+                    row['fetched_at'] = row['fetched_at'].isoformat()
+            return row
+
+    def upsert_readme_snapshot(
+        self, project_id: int, content: str, source_ref: Optional[str] = None
+    ) -> bool:
+        """Create or replace the README snapshot for a project."""
+        fetched_at = _datetime_for_mysql()
+        with self._get_cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO project_readme_snapshots (project_id, content, source_ref, fetched_at)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    content = VALUES(content),
+                    source_ref = VALUES(source_ref),
+                    fetched_at = VALUES(fetched_at)
+                """,
+                (project_id, content, source_ref, fetched_at)
+            )
+            return True
+
+    def delete_readme_snapshot(self, project_id: int) -> bool:
+        """Delete the README snapshot for a project."""
+        with self._get_cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM project_readme_snapshots WHERE project_id = %s",
+                (project_id,)
+            )
             return cursor.rowcount > 0
 
 

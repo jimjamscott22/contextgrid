@@ -7,10 +7,13 @@ from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
+import re
 import shutil
 import sys
 from pathlib import Path
+
+import httpx
 
 # Add project root to path for imports to work when running directly
 project_root = Path(__file__).parent.parent
@@ -33,6 +36,7 @@ from api.models import (
     ScreenshotResponse, ScreenshotListResponse,
     TaskNoteResponse, TaskListResponse,
     MermaidResponse,
+    ReadmeSnapshotResponse, ReadmeAttachResponse,
 )
 from api.config import config
 from api import db
@@ -1226,6 +1230,151 @@ async def get_overview_mermaid():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# =========================
+# README Snapshot Helpers
+# =========================
+
+def _parse_github_url(url: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Parse a GitHub repository URL into (owner, repo) tuple.
+    Handles https://github.com/owner/repo, https://github.com/owner/repo.git,
+    and git@github.com:owner/repo.git formats.
+
+    Returns:
+        (owner, repo) or (None, None) if parsing fails
+    """
+    # https://github.com/owner/repo or https://github.com/owner/repo.git
+    match = re.match(r'https?://github\.com/([^/\s]+)/([^/\s]+?)(?:\.git)?/?$', url.strip())
+    if match:
+        return match.group(1), match.group(2)
+    # git@github.com:owner/repo.git
+    match = re.match(r'git@github\.com:([^/\s]+)/([^/\s]+?)(?:\.git)?$', url.strip())
+    if match:
+        return match.group(1), match.group(2)
+    return None, None
+
+
+# Timeout (in seconds) for fetching README content from GitHub raw URLs
+_GITHUB_README_FETCH_TIMEOUT = 15.0
+
+
+async def _fetch_github_readme(
+    owner: str, repo: str
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Fetch README.md content from a public GitHub repository.
+    Tries 'main' and 'master' branches in order.
+
+    Returns:
+        (content, ref) if found, or (None, None) if not found
+    """
+    async with httpx.AsyncClient(timeout=_GITHUB_README_FETCH_TIMEOUT) as client:
+        for ref in ("main", "master"):
+            url = f"https://raw.githubusercontent.com/{owner}/{repo}/{ref}/README.md"
+            try:
+                response = await client.get(url)
+                if response.status_code == 200:
+                    return response.text, ref
+            except httpx.RequestError:
+                continue
+    return None, None
+
+
+# =========================
+# README Snapshot Endpoints
+# =========================
+
+@app.get("/api/projects/{project_id}/readme", response_model=ReadmeSnapshotResponse)
+async def get_readme_snapshot(project_id: int):
+    """Get the stored README snapshot for a project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        snapshot = db.get_readme_snapshot(project_id)
+        if not snapshot:
+            raise HTTPException(
+                status_code=404,
+                detail="No README snapshot attached to this project. Use the attach action to fetch one."
+            )
+        return ReadmeSnapshotResponse(
+            project_id=snapshot['project_id'],
+            content=snapshot['content'],
+            source_ref=snapshot.get('source_ref'),
+            fetched_at=snapshot['fetched_at'],
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/readme/attach", response_model=ReadmeAttachResponse)
+async def attach_readme(project_id: int):
+    """
+    Fetch README.md from the project's GitHub repository and store a snapshot.
+    Requires the project to have a valid GitHub repo_url set.
+    """
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        repo_url = project.get("repo_url")
+        if not repo_url:
+            raise HTTPException(
+                status_code=400,
+                detail="Project has no repository URL. Set a GitHub repo URL on the project first."
+            )
+
+        owner, repo = _parse_github_url(repo_url)
+        if not owner or not repo:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Could not parse a GitHub URL from: {repo_url}"
+            )
+
+        content, ref = await _fetch_github_readme(owner, repo)
+        if content is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"README.md not found in {owner}/{repo} (tried branches: main, master)"
+            )
+
+        db.upsert_readme_snapshot(project_id, content, ref)
+        snapshot = db.get_readme_snapshot(project_id)
+
+        return ReadmeAttachResponse(
+            message=f"README.md snapshot attached from {owner}/{repo} ({ref})",
+            project_id=project_id,
+            source_ref=ref,
+            fetched_at=snapshot['fetched_at'],
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/projects/{project_id}/readme", response_model=MessageResponse)
+async def delete_readme_snapshot(project_id: int):
+    """Delete the stored README snapshot for a project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        deleted = db.delete_readme_snapshot(project_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="No README snapshot found for this project")
+
+        return MessageResponse(message=f"README snapshot for project {project_id} deleted")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

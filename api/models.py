@@ -464,3 +464,26 @@ class MermaidResponse(BaseModel):
     """Response containing a Mermaid diagram definition string."""
     diagram: str
     diagram_type: str
+
+
+# =========================
+# README Snapshot Models
+# =========================
+
+class ReadmeSnapshotResponse(BaseModel):
+    """Model for a stored README snapshot."""
+    project_id: int
+    content: str
+    source_ref: Optional[str] = None
+    fetched_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class ReadmeAttachResponse(BaseModel):
+    """Response after attaching/refreshing a README snapshot."""
+    message: str
+    project_id: int
+    source_ref: Optional[str] = None
+    fetched_at: str

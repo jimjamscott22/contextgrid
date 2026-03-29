@@ -1417,3 +1417,68 @@ def delete_template(template_id: int) -> bool:
         cursor.execute("DELETE FROM project_templates WHERE id = %s", (template_id,))
         return cursor.rowcount > 0
 
+
+# =========================
+# README Snapshot Operations
+# =========================
+
+def get_readme_snapshot(project_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch the stored README snapshot for a project.
+
+    Returns:
+        Dictionary with content, source_ref, and fetched_at, or None if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            "SELECT * FROM project_readme_snapshots WHERE project_id = %s",
+            (project_id,)
+        )
+        row = cursor.fetchone()
+        if row and row.get('fetched_at'):
+            if hasattr(row['fetched_at'], 'isoformat'):
+                row['fetched_at'] = row['fetched_at'].isoformat()
+        return row
+
+
+def upsert_readme_snapshot(
+    project_id: int,
+    content: str,
+    source_ref: Optional[str] = None,
+) -> bool:
+    """
+    Create or replace the README snapshot for a project.
+
+    Returns:
+        True on success
+    """
+    fetched_at = datetime.utcnow()
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO project_readme_snapshots (project_id, content, source_ref, fetched_at)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                content = VALUES(content),
+                source_ref = VALUES(source_ref),
+                fetched_at = VALUES(fetched_at)
+            """,
+            (project_id, content, source_ref, fetched_at)
+        )
+        return True
+
+
+def delete_readme_snapshot(project_id: int) -> bool:
+    """
+    Delete the README snapshot for a project.
+
+    Returns:
+        True if deleted, False if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            "DELETE FROM project_readme_snapshots WHERE project_id = %s",
+            (project_id,)
+        )
+        return cursor.rowcount > 0
+

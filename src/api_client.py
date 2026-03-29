@@ -194,6 +194,23 @@ class APIClient:
         notes = self.list_notes(project_id)
         return notes[:limit]
 
+    # =========================
+    # README Snapshot Operations
+    # =========================
+
+    def get_readme_snapshot(self, project_id: int) -> Optional[Dict[str, Any]]:
+        """Get the stored README snapshot for a project."""
+        return self._request('GET', f'/api/projects/{project_id}/readme')
+
+    def attach_readme(self, project_id: int) -> Optional[Dict[str, Any]]:
+        """Fetch README.md from GitHub and store a snapshot for the project."""
+        return self._request('POST', f'/api/projects/{project_id}/readme/attach')
+
+    def delete_readme_snapshot(self, project_id: int) -> bool:
+        """Delete the stored README snapshot for a project."""
+        result = self._request('DELETE', f'/api/projects/{project_id}/readme')
+        return result is not None
+
 
 # Global API client instance
 _api_client = None

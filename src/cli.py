@@ -829,6 +829,74 @@ def cmd_search(args) -> int:
         return 1
 
 
+def cmd_readme_attach(args) -> int:
+    """Handle 'readme attach' command - fetch README from GitHub and store snapshot."""
+    project_id = args.project_id
+    try:
+        project = models.get_project(project_id)
+        if not project:
+            print(f"[ERROR] Project {project_id} not found.", file=sys.stderr)
+            return 1
+        result = models.attach_readme(project_id)
+        if result:
+            ref = result.get("source_ref", "unknown")
+            fetched_at = result.get("fetched_at", "")
+            print(f"[OK] README snapshot attached from branch '{ref}'")
+            if fetched_at:
+                print(f"     Fetched at: {fetched_at[:19]}")
+        else:
+            print("[ERROR] Attach returned no data.", file=sys.stderr)
+            return 1
+        return 0
+    except Exception as e:
+        print(f"[ERROR] {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_readme_show(args) -> int:
+    """Handle 'readme show' command - display stored README snapshot."""
+    project_id = args.project_id
+    try:
+        project = models.get_project(project_id)
+        if not project:
+            print(f"[ERROR] Project {project_id} not found.", file=sys.stderr)
+            return 1
+        snapshot = models.get_readme_snapshot(project_id)
+        if not snapshot:
+            print(f"No README snapshot attached to project {project_id}.")
+            print("Run: contextgrid readme attach <project_id>")
+            return 0
+        ref = snapshot.get("source_ref", "unknown")
+        fetched_at = snapshot.get("fetched_at", "")
+        print(f"\nREADME snapshot for project {project_id} ({project.get('name', '')})")
+        print(f"Branch: {ref}  |  Fetched: {fetched_at[:19] if fetched_at else 'n/a'}")
+        print("=" * 60)
+        print(snapshot.get("content", ""))
+        return 0
+    except Exception as e:
+        print(f"[ERROR] {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_readme_delete(args) -> int:
+    """Handle 'readme delete' command - remove stored README snapshot."""
+    project_id = args.project_id
+    try:
+        project = models.get_project(project_id)
+        if not project:
+            print(f"[ERROR] Project {project_id} not found.", file=sys.stderr)
+            return 1
+        deleted = models.delete_readme_snapshot(project_id)
+        if deleted:
+            print(f"[OK] README snapshot for project {project_id} deleted.")
+        else:
+            print(f"No README snapshot found for project {project_id}.")
+        return 0
+    except Exception as e:
+        print(f"[ERROR] {e}", file=sys.stderr)
+        return 1
+
+
 def create_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser."""
     parser = argparse.ArgumentParser(
@@ -940,7 +1008,32 @@ def create_parser() -> argparse.ArgumentParser:
     parser_tag_list = tag_subparsers.add_parser("list", help="List all tags or tags for a project")
     parser_tag_list.add_argument("project_id", type=int, nargs='?', help="Optional: Project ID to show tags for")
     parser_tag_list.set_defaults(func=cmd_tag_list)
-    
+
+    # README commands
+    parser_readme = subparsers.add_parser("readme", help="Manage README snapshots for projects")
+    readme_subparsers = parser_readme.add_subparsers(dest="readme_command", help="README operations")
+
+    # readme attach command
+    parser_readme_attach = readme_subparsers.add_parser(
+        "attach", help="Fetch README.md from GitHub and store a snapshot"
+    )
+    parser_readme_attach.add_argument("project_id", type=int, help="Project ID")
+    parser_readme_attach.set_defaults(func=cmd_readme_attach)
+
+    # readme show command
+    parser_readme_show = readme_subparsers.add_parser(
+        "show", help="Show the stored README snapshot for a project"
+    )
+    parser_readme_show.add_argument("project_id", type=int, help="Project ID")
+    parser_readme_show.set_defaults(func=cmd_readme_show)
+
+    # readme delete command
+    parser_readme_delete = readme_subparsers.add_parser(
+        "delete", help="Remove the stored README snapshot for a project"
+    )
+    parser_readme_delete.add_argument("project_id", type=int, help="Project ID")
+    parser_readme_delete.set_defaults(func=cmd_readme_delete)
+
     return parser
 
 

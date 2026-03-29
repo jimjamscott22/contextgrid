@@ -393,3 +393,51 @@ def get_projects_count(status: Optional[str] = None, tag: Optional[str] = None, 
             return len(projects)
     except Exception as e:
         _handle_error(e)
+
+
+# =========================
+# README Snapshot Functions
+# =========================
+
+def get_readme_snapshot(project_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Get the stored README snapshot for a project.
+    """
+    try:
+        if config.USE_API:
+            return _client.get_readme_snapshot(project_id)
+        else:
+            return _db_backend.get_readme_snapshot(project_id)
+    except Exception as e:
+        _handle_error(e)
+
+
+def attach_readme(project_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch README.md from GitHub and store a snapshot for the project.
+    Only available in API mode (requires network access via the API server).
+    """
+    try:
+        if config.USE_API:
+            return _client.attach_readme(project_id)
+        else:
+            raise NotImplementedError(
+                "README attach requires API mode (USE_API=true). "
+                "Set USE_API=true in your environment and ensure the API server is running. "
+                "The API server handles GitHub fetching."
+            )
+    except Exception as e:
+        _handle_error(e)
+
+
+def delete_readme_snapshot(project_id: int) -> bool:
+    """
+    Delete the stored README snapshot for a project.
+    """
+    try:
+        if config.USE_API:
+            return _client.delete_readme_snapshot(project_id)
+        else:
+            return _db_backend.delete_readme_snapshot(project_id)
+    except Exception as e:
+        _handle_error(e)
