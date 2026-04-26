@@ -190,6 +190,7 @@ See `.env.example` for a complete configuration template.
 contextgrid/
 ├── README.md
 ├── API.md                        # API documentation
+├── PYTHON_APP_RUN_MODES.md       # Guide to Python UI/backend app shapes
 ├── .env.example                  # Example environment variables
 ├── requirements.txt              # Python dependencies
 ├── api/
