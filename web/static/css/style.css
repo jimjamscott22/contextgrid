@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Lexend+Deca:wght@300;400&display=swap');
+
 /* ===========================
    ContextGrid - Modern CSS
    =========================== */
@@ -566,9 +568,39 @@ h3 {
     padding: var(--space-xl) 0;
 }
 
+@keyframes hero-shimmer {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 .hero h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
     font-size: 3rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
     margin-bottom: var(--space-sm);
+    background: linear-gradient(120deg, #38BDF8, #7DD3FC, #0EA5E9, #BAE6FD, #38BDF8);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: hero-shimmer 6s ease infinite;
+}
+
+.hero .subtitle {
+    font-family: 'Lexend Deca', sans-serif;
+    font-size: 1.125rem;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    color: #0284C7;
+    margin-bottom: var(--space-lg);
+}
+
+:root[data-theme="dark"] .hero .subtitle,
+body[data-theme="dark"] .hero .subtitle {
+    color: #7DD3FC;
 }
 
 /* ===========================
