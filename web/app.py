@@ -7,8 +7,9 @@ from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from html.parser import HTMLParser
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Tuple
 import markdown as md_lib
 import os
 import sys
@@ -46,13 +47,142 @@ templates.env.globals["api_base_url"] = os.getenv("API_ENDPOINT", "http://localh
 
 API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8003").rstrip("/")
 
+ALLOWED_MARKDOWN_TAGS = {
+    "a", "abbr", "blockquote", "br", "code", "dd", "del", "details",
+    "div", "dl", "dt", "em", "h1", "h2", "h3", "h4", "h5", "h6",
+    "hr", "img", "ins", "kbd", "li", "ol", "p", "pre", "span",
+    "strong", "summary", "table", "tbody", "td", "th", "thead",
+    "tr", "ul",
+}
+
+ALLOWED_MARKDOWN_ATTRIBUTES = {
+    "a": {"href", "title"},
+    "abbr": {"title"},
+    "img": {"alt", "src", "title"},
+    "th": {"align"},
+    "td": {"align"},
+    "div": {"class"},
+    "span": {"class"},
+    "code": {"class"},
+    "pre": {"class"},
+}
+
+ALLOWED_URL_SCHEMES = ("http://", "https://", "mailto:", "#", "/")
+
+
+class MarkdownSanitizer(HTMLParser):
+    """Restrict rendered Markdown HTML to safe tags and attributes."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: List[str] = []
+        self._skip_stack: List[str] = []
+
+    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        """Handle an opening HTML tag from rendered Markdown."""
+        if self._skip_stack:
+            return
+
+        tag = tag.lower()
+        if tag in {"script", "style", "iframe", "object", "embed"}:
+            self._skip_stack.append(tag)
+            return
+
+        if tag not in ALLOWED_MARKDOWN_TAGS:
+            return
+
+        safe_attrs = self._safe_attrs(tag, attrs)
+        attr_text = "".join(
+            f' {name}="{self._escape_attr(value)}"'
+            for name, value in safe_attrs
+        )
+        self.parts.append(f"<{tag}{attr_text}>")
+
+    def handle_endtag(self, tag: str) -> None:
+        """Handle a closing HTML tag from rendered Markdown."""
+        tag = tag.lower()
+        if self._skip_stack:
+            if self._skip_stack[-1] == tag:
+                self._skip_stack.pop()
+            return
+
+        if tag in ALLOWED_MARKDOWN_TAGS:
+            self.parts.append(f"</{tag}>")
+
+    def handle_startendtag(
+        self,
+        tag: str,
+        attrs: List[Tuple[str, Optional[str]]]
+    ) -> None:
+        """Handle a self-closing HTML tag from rendered Markdown."""
+        self.handle_starttag(tag, attrs)
+
+    def handle_data(self, data: str) -> None:
+        """Escape text nodes in rendered Markdown."""
+        if not self._skip_stack:
+            self.parts.append(self._escape_text(data))
+
+    def handle_entityref(self, name: str) -> None:
+        """Preserve safe named character references."""
+        if not self._skip_stack:
+            self.parts.append(f"&{name};")
+
+    def handle_charref(self, name: str) -> None:
+        """Preserve safe numeric character references."""
+        if not self._skip_stack:
+            self.parts.append(f"&#{name};")
+
+    def get_html(self) -> str:
+        """Return sanitized HTML."""
+        return "".join(self.parts)
+
+    def _safe_attrs(
+        self,
+        tag: str,
+        attrs: List[Tuple[str, Optional[str]]]
+    ) -> List[Tuple[str, str]]:
+        safe_attrs = []
+        allowed = ALLOWED_MARKDOWN_ATTRIBUTES.get(tag, set())
+        for name, value in attrs:
+            name = name.lower()
+            value = value or ""
+            if name not in allowed:
+                continue
+            if name in {"href", "src"} and not value.startswith(ALLOWED_URL_SCHEMES):
+                continue
+            safe_attrs.append((name, value))
+        if tag == "a":
+            safe_attrs.append(("rel", "noopener noreferrer"))
+        return safe_attrs
+
+    @staticmethod
+    def _escape_text(value: str) -> str:
+        return (
+            value.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+        )
+
+    @classmethod
+    def _escape_attr(cls, value: str) -> str:
+        return cls._escape_text(value).replace('"', "&quot;")
+
+
+def _sanitize_html(content: str) -> str:
+    """Sanitize rendered Markdown HTML."""
+    sanitizer = MarkdownSanitizer()
+    sanitizer.feed(content)
+    sanitizer.close()
+    return sanitizer.get_html()
+
 
 def _render_markdown(content: str) -> str:
     """Render a Markdown string to safe HTML."""
-    return md_lib.markdown(
+    rendered = md_lib.markdown(
         content,
         extensions=["fenced_code", "tables", "toc"],
     )
+    return _sanitize_html(rendered)
 
 
 async def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:

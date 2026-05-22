@@ -46,6 +46,14 @@
                     {% endif %}
                     <span class="kanban-card-time" data-timestamp="{{ project.last_worked_at or project.created_at }}"></span>
                 </a>
+                <label class="kanban-status-control">
+                    <span>Status</span>
+                    <select class="kanban-status-select" data-project-id="{{ project.id }}">
+                        {% for option_status, option_label in [("idea", "Ideas"), ("active", "Active"), ("paused", "Paused"), ("archived", "Archived")] %}
+                        <option value="{{ option_status }}" {% if option_status == status %}selected{% endif %}>{{ option_label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
             </div>
             {% endfor %}
         </div>
@@ -185,6 +193,53 @@
             }
         });
     }
+
+    document.querySelectorAll('.kanban-status-select').forEach(select => {
+        select.addEventListener('change', async () => {
+            const projectId = select.dataset.projectId;
+            const newStatus = select.value;
+            const card = select.closest('.kanban-card');
+            const oldStatus = card ? card.dataset.status : '';
+            if (!card || !projectId || newStatus === oldStatus) return;
+
+            const newColumn = document.querySelector(
+                '.kanban-column-body[data-status="' + newStatus + '"]'
+            );
+            const oldColumn = document.querySelector(
+                '.kanban-column-body[data-status="' + oldStatus + '"]'
+            );
+            if (newColumn) {
+                newColumn.appendChild(card);
+                card.dataset.status = newStatus;
+                updateColumnCounts();
+            }
+
+            try {
+                const response = await fetch('/api/kanban/move', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: parseInt(projectId, 10),
+                        status: newStatus
+                    })
+                });
+                if (!response.ok) {
+                    throw new Error('Server returned ' + response.status);
+                }
+                const statusLabels = { idea: 'Ideas', active: 'Active', paused: 'Paused', archived: 'Archived' };
+                showToast('Moved to ' + statusLabels[newStatus], false);
+            } catch (err) {
+                if (oldColumn) {
+                    oldColumn.appendChild(card);
+                    card.dataset.status = oldStatus;
+                    select.value = oldStatus;
+                    updateColumnCounts();
+                }
+                showToast('Failed to update status', true);
+                console.error('Kanban status error:', err);
+            }
+        });
+    });
 })();
 </script>
 {% endblock %}

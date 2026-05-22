@@ -25,16 +25,10 @@
     </script>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/style.css">
-    <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-        window.__mermaid = mermaid;
-        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default';
-        mermaid.initialize({ startOnLoad: false, theme });
-        window.__mermaidReady = true;
-        window.dispatchEvent(new CustomEvent('mermaid-ready'));
-    </script>
+    {% block head_scripts %}{% endblock %}
 </head>
-<body>
+<body data-current-path="{{ request.url.path }}">
+    {% set current_path = request.url.path %}
     <nav class="navbar">
         <div class="container">
             <div class="nav-brand">
@@ -43,21 +37,18 @@
                     id="sidebar-toggle"
                     class="btn btn-secondary btn-compact sidebar-toggle"
                     aria-label="Toggle sidebar"
+                    aria-controls="sidebar"
+                    aria-expanded="false"
                     title="Toggle sidebar"
-                >☰</button>
-                <a href="/">📦 ContextGrid</a>
+                ><span aria-hidden="true">☰</span></button>
+                <a href="/" class="brand-link">ContextGrid</a>
             </div>
             <div class="nav-actions">
                 <ul class="nav-links">
-                    <li><a href="/">Home</a></li>
-                    <li><a href="/projects">Projects</a></li>
-                    <li><a href="/kanban">Kanban</a></li>
-                    <li><a href="/graph">Graph</a></li>
-                    <li><a href="/analytics">Analytics</a></li>
-                    <li><a href="/tags">Tags</a></li>
-                    <li><a href="/tasks">Tasks</a></li>
-                    <li><a href="/templates">Templates</a></li>
-                    <li><a href="/diagrams">Diagrams</a></li>
+                    <li><a href="/projects" {% if current_path.startswith('/projects') %}aria-current="page"{% endif %}>Projects</a></li>
+                    <li><a href="/tasks" {% if current_path.startswith('/tasks') %}aria-current="page"{% endif %}>Tasks</a></li>
+                    <li><a href="/kanban" {% if current_path.startswith('/kanban') %}aria-current="page"{% endif %}>Kanban</a></li>
+                    <li><a href="/analytics" {% if current_path.startswith('/analytics') %}aria-current="page"{% endif %}>Analytics</a></li>
                 </ul>
                 <button
                     type="button"
@@ -65,7 +56,7 @@
                     class="btn btn-secondary btn-compact theme-toggle"
                     aria-label="Switch to dark mode"
                     title="Switch to dark mode"
-                >🌙</button>
+                ><span aria-hidden="true">🌙</span></button>
             </div>
         </div>
     </nav>
@@ -74,18 +65,26 @@
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar">
+    <aside id="sidebar" class="sidebar" aria-label="Workspace navigation" aria-hidden="true">
         <div id="sidebar-resizer" class="sidebar-resizer"></div>
         <div class="sidebar-header">
-            <h3>Projects</h3>
+            <h3>Workspace</h3>
             <button
                 type="button"
                 id="sidebar-close"
                 class="btn btn-secondary btn-compact"
                 aria-label="Close sidebar"
                 title="Close sidebar"
-            >✕</button>
+            ><span aria-hidden="true">✕</span></button>
         </div>
+
+        <nav class="sidebar-secondary-nav" aria-label="Secondary navigation">
+            <a href="/" {% if current_path == '/' %}aria-current="page"{% endif %}>Overview</a>
+            <a href="/graph" {% if current_path.startswith('/graph') %}aria-current="page"{% endif %}>Graph</a>
+            <a href="/tags" {% if current_path.startswith('/tags') %}aria-current="page"{% endif %}>Tags</a>
+            <a href="/templates" {% if current_path.startswith('/templates') %}aria-current="page"{% endif %}>Templates</a>
+            <a href="/diagrams" {% if current_path.startswith('/diagrams') %}aria-current="page"{% endif %}>Diagrams</a>
+        </nav>
 
         <div class="sidebar-search">
             <input
@@ -234,15 +233,27 @@
             const openSidebar = () => {
                 sidebar.classList.add("sidebar-open");
                 sidebarOverlay.classList.add("active");
-                document.body.style.overflow = "hidden";
+                sidebar.setAttribute("aria-hidden", "false");
+                sidebarToggle.setAttribute("aria-expanded", "true");
+                if (window.innerWidth < 1024) {
+                    document.body.style.overflow = "hidden";
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+                }
                 setSidebarState("open");
             };
 
             const closeSidebar = () => {
                 sidebar.classList.remove("sidebar-open");
                 sidebarOverlay.classList.remove("active");
+                sidebar.setAttribute("aria-hidden", "true");
+                sidebarToggle.setAttribute("aria-expanded", "false");
                 document.body.style.overflow = "";
                 setSidebarState("closed");
+                if (window.innerWidth < 1024) {
+                    sidebarToggle.focus();
+                }
             };
 
             const toggleSidebar = () => {
@@ -271,6 +282,8 @@
                     const state = getSidebarState();
                     if (state === "open" || state === null) {
                         sidebar.classList.add("sidebar-open");
+                        sidebar.setAttribute("aria-hidden", "false");
+                        sidebarToggle.setAttribute("aria-expanded", "true");
                         document.body.style.overflow = "";
                     }
                 }
@@ -346,6 +359,8 @@
             // Render projects in sidebar
             const renderProjects = () => {
                 const sortedProjects = sortProjects(filteredProjects);
+                const activeProjectMatch = window.location.pathname.match(/^\/projects\/(\d+)/);
+                const activeProjectId = activeProjectMatch ? activeProjectMatch[1] : null;
                 if (sortedProjects.length === 0) {
                     sidebarContent.innerHTML = '<div class="sidebar-empty">No projects found</div>';
                     return;
@@ -354,9 +369,10 @@
                 let html = '<ul class="sidebar-project-list sidebar-project-list-flat">';
 
                 sortedProjects.forEach(project => {
+                    const isActive = activeProjectId === String(project.id);
                     html += `
                         <li class="sidebar-project-item">
-                            <a href="/projects/${project.id}" class="sidebar-project-link">
+                            <a href="/projects/${project.id}" class="sidebar-project-link${isActive ? " is-active" : ""}"${isActive ? ' aria-current="page"' : ""}>
                                 <span class="sidebar-project-name-row">
                                     <span class="sidebar-project-name">${escapeHtml(project.name)}</span>
                                     <span class="sidebar-project-status sidebar-project-status-${escapeHtml(project.status || "idea")}">${escapeHtml(capitalize(project.status || "idea"))}</span>
@@ -424,10 +440,12 @@
                 resizeTimeout = setTimeout(() => {
                     if (window.innerWidth >= 1024) {
                         sidebarOverlay.classList.remove("active");
+                        sidebar.setAttribute("aria-hidden", sidebar.classList.contains("sidebar-open") ? "false" : "true");
                         document.body.style.overflow = "";
                     } else {
                         if (sidebar.classList.contains("sidebar-open")) {
                             sidebarOverlay.classList.add("active");
+                            sidebar.setAttribute("aria-hidden", "false");
                             document.body.style.overflow = "hidden";
                         }
                     }
@@ -473,5 +491,6 @@
             fetchProjects();
         })();
     </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>
