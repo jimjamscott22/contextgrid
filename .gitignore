@@ -217,3 +217,10 @@ web/static/screenshots/15/py_md_preview_scrnsht.png
 Link to start.sh
 .claude/settings.local.json
 frontend/tsconfig.app.tsbuildinfo
+
+# Frontend / Node
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.tsbuildinfo
+.vite/
