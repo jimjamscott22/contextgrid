@@ -215,3 +215,10 @@ marimo/_lsp/
 __marimo__/
 web/static/screenshots/15/py_md_preview_scrnsht.png
 Link to start.sh
+
+# Frontend / Node
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.tsbuildinfo
+.vite/
