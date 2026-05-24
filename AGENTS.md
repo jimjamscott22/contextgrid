@@ -13,7 +13,9 @@
   - `API Mode` (`USE_API=true`): CLI → HTTP → FastAPI → MySQL (default port 8003, overridden to 8000 via `.env`)
   - `Direct Mode` (`USE_API=false`): CLI → DB backend directly
 - **Database Abstraction**: `DatabaseBackend` ABC in `src/db.py` abstracts SQLite (local) and MySQL (production). `src/models.py` uses either API or Direct mode based on config.
-- **Web UI**: Read-focused SSR via Jinja2 & Uvicorn (port 8081, binds `0.0.0.0` for LAN access). Edits only done via CLI. See `web/templates/base.html` for global UI structures.
+- **Web UI**: Two coexisting frontends, both consuming the same FastAPI:
+  - **Legacy Jinja2 SSR** in `web/` on port 8081 (read-focused, edits via CLI).
+  - **React SPA** in `frontend/` (Vite + React + TS + Tailwind + TanStack Query). Dev: `npm run dev` on port 5173 (proxies `/api/*` to 8003). Prod: `bash scripts/build_frontend.sh` builds `frontend/dist/`, then `api/server.py` serves the SPA from `/` with a catch-all fallback to `index.html` for client-side routes. The SPA supports full editing (Kanban drag-drop, inline forms, optimistic mutations).
 
 ## Build and Test
 - **Dependencies**: Use **`uv`** (not pip/poetry). Run scripts via `uv run`. 

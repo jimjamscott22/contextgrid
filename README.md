@@ -35,8 +35,30 @@ ContextGrid is designed for one user: me.
 - ✅ REST API for programmatic access
 - ✅ MySQL-backed, production-ready storage
 - ✅ Command-line interface
-- ✅ Web-based interface
+- ✅ Web-based interface (legacy Jinja SSR in `web/` and a new React SPA in `frontend/`)
 - ✅ Cross-device access via API
+
+### React SPA frontend (experimental)
+
+A new React + Vite + TypeScript SPA lives in `frontend/` and runs on the
+`feature/react-frontend` branch. It consumes the existing FastAPI REST API and
+adds full editing (drag-and-drop Kanban, optimistic mutations, in-place forms,
+relationship graph via React Flow, charts via Recharts).
+
+```bash
+# Dev (two terminals):
+uv run uvicorn api.server:app --host 0.0.0.0 --port 8003   # backend
+cd frontend && npm install && npm run dev                  # frontend on :5173
+# Vite proxies /api/* → http://localhost:8003
+
+# Production (single server):
+bash scripts/build_frontend.sh                             # builds frontend/dist
+uv run uvicorn api.server:app --host 0.0.0.0 --port 8003
+# → http://localhost:8003 serves both the SPA and the API
+```
+
+The legacy Jinja UI (`web/app.py`, port 8081) is preserved unchanged so the
+two can run side-by-side during evaluation.
 
 Simple to use, powerful to extend.
 
