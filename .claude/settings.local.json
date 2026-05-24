@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(Get-ChildItem -Path \"d:\\\\Code\\\\Python\\\\PythonApps\\\\contextgrid\\\\frontend\\\\src\\\\lib\" -Force)"
+      "Bash(Get-ChildItem -Path \"d:\\\\Code\\\\Python\\\\PythonApps\\\\contextgrid\\\\frontend\\\\src\\\\lib\" -Force)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)"
     ]
   }
 }

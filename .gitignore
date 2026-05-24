@@ -215,7 +215,7 @@ marimo/_lsp/
 __marimo__/
 web/static/screenshots/15/py_md_preview_scrnsht.png
 Link to start.sh
-.claude/settings.local.json
+.claude/*
 frontend/tsconfig.app.tsbuildinfo
 
 # Frontend / Node
