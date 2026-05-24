@@ -3,8 +3,9 @@ ContextGrid API Server
 FastAPI application providing REST API for project management
 """
 
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, List, Tuple
@@ -1375,6 +1376,46 @@ async def delete_readme_snapshot(project_id: int):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# React SPA serving (production)
+# =========================
+# If the React frontend has been built (frontend/dist/index.html exists),
+# serve its assets and fall back to index.html for any non-/api route so
+# client-side routing works on hard refresh. The Jinja UI at web/ is
+# unaffected because it runs on a separate port.
+
+_SPA_DIST = get_base_dir() / "frontend" / "dist"
+_SPA_INDEX = _SPA_DIST / "index.html"
+
+if _SPA_INDEX.exists():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=str(_SPA_DIST / "assets")),
+        name="spa-assets",
+    )
+
+    @app.get("/favicon.svg", include_in_schema=False)
+    async def spa_favicon():
+        path = _SPA_DIST / "favicon.svg"
+        if path.exists():
+            return FileResponse(str(path))
+        raise HTTPException(status_code=404)
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str, request: Request):
+        # API and reserved mounts should never hit this route.
+        if (
+            full_path.startswith("api/")
+            or full_path.startswith("uploads/")
+            or full_path.startswith("static/")
+            or full_path.startswith("assets/")
+            or full_path.startswith("docs")
+            or full_path.startswith("openapi.json")
+        ):
+            raise HTTPException(status_code=404, detail="Not Found")
+        return FileResponse(str(_SPA_INDEX))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * ContextGrid design tokens ported from web/static/css/style.css.
+ * Light defaults live on :root; dark theme flips via [data-theme="dark"].
+ * Color values are emitted as space-separated RGB triples so that Tailwind's
+ * "rgb(var(--cg-*) / <alpha-value>)" pattern can apply opacity utilities.
+ */
+@layer base {
+  :root {
+    --cg-bg: 249 250 251;
+    --cg-surface: 255 255 255;
+    --cg-surface-alt: 243 244 246;
+    --cg-border: 229 231 235;
+    --cg-fg: 17 24 39;
+    --cg-fg-soft: 75 85 99;
+    --cg-muted: 156 163 175;
+    --cg-primary: 59 130 246;
+    --cg-primary-fg: 255 255 255;
+    --cg-accent: 139 92 246;
+    --cg-success: 16 185 129;
+    --cg-warning: 245 158 11;
+    --cg-danger: 239 68 68;
+
+    --radius: 0.5rem;
+    --sidebar-width: 280px;
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    --cg-bg: 11 15 23;
+    --cg-surface: 18 24 38;
+    --cg-surface-alt: 23 30 47;
+    --cg-border: 38 48 65;
+    --cg-fg: 243 244 246;
+    --cg-fg-soft: 168 176 191;
+    --cg-muted: 123 132 150;
+    --cg-primary: 96 165 250;
+    --cg-primary-fg: 11 15 23;
+    --cg-accent: 167 139 250;
+    --cg-success: 52 211 153;
+    --cg-warning: 251 191 36;
+    --cg-danger: 248 113 113;
+
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-bg text-fg antialiased;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+      Helvetica, Arial, sans-serif;
+  }
+
+  a {
+    @apply text-primary hover:underline;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgb(var(--cg-bg));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--cg-border));
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--cg-muted));
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-bg;
+  }
+}
+
+@layer components {
+  .cg-card {
+    @apply rounded-lg border border-border bg-surface shadow-sm;
+  }
+
+  .cg-card-hover {
+    @apply transition-shadow hover:shadow-md;
+  }
+
+  .cg-input {
+    @apply w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-fg
+           placeholder:text-muted focus:border-primary focus:outline-none
+           focus:ring-2 focus:ring-primary/40;
+  }
+
+  .cg-textarea {
+    @apply cg-input min-h-[6rem] resize-y;
+  }
+
+  .cg-label {
+    @apply text-sm font-medium text-fg-soft;
+  }
+
+  .cg-badge {
+    @apply inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs font-medium text-fg-soft;
+  }
+}
+
+/*
+ * Markdown content styles. Kept minimal so we don't need @tailwindcss/typography.
+ */
+.cg-markdown {
+  line-height: 1.65;
+}
+.cg-markdown > * + * {
+  @apply mt-3;
+}
+.cg-markdown h1 {
+  @apply mt-4 text-2xl font-bold text-fg;
+}
+.cg-markdown h2 {
+  @apply mt-4 text-xl font-semibold text-fg;
+}
+.cg-markdown h3 {
+  @apply mt-3 text-lg font-semibold text-fg;
+}
+.cg-markdown h4 {
+  @apply mt-3 text-base font-semibold text-fg;
+}
+.cg-markdown p {
+  @apply text-fg;
+}
+.cg-markdown a {
+  @apply text-primary underline;
+}
+.cg-markdown ul,
+.cg-markdown ol {
+  @apply ml-6;
+}
+.cg-markdown ul {
+  @apply list-disc;
+}
+.cg-markdown ol {
+  @apply list-decimal;
+}
+.cg-markdown li {
+  @apply my-1;
+}
+.cg-markdown code {
+  @apply rounded bg-surface-alt px-1 py-0.5 font-mono text-xs;
+}
+.cg-markdown pre {
+  @apply overflow-x-auto rounded-md border border-border bg-surface-alt p-3;
+}
+.cg-markdown pre code {
+  @apply bg-transparent p-0 text-xs;
+}
+.cg-markdown blockquote {
+  @apply border-l-4 border-primary/40 pl-4 italic text-fg-soft;
+}
+.cg-markdown table {
+  @apply w-full border-collapse text-sm;
+}
+.cg-markdown th,
+.cg-markdown td {
+  @apply border border-border px-2 py-1 text-left;
+}
+.cg-markdown th {
+  @apply bg-surface-alt;
+}
+.cg-markdown img {
+  @apply max-w-full rounded-md border border-border;
+}
+.cg-markdown hr {
+  @apply my-4 border-border;
+}
