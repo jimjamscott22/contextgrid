@@ -1,5 +1,5 @@
 import { NavLink, Link } from "react-router-dom";
-import { Menu, Moon, Sun } from "lucide-react";
+import { Code2, GitBranch, Menu, Moon, Sun, Terminal } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
 import { cn } from "@/lib/cn";
 
@@ -12,6 +12,12 @@ const links = [
   { to: "/tasks", label: "Tasks" },
   { to: "/kanban", label: "Kanban" },
   { to: "/analytics", label: "Analytics" },
+];
+
+const softwareIcons = [
+  { Icon: Code2, className: "border-primary/20 bg-primary/10 text-primary" },
+  { Icon: GitBranch, className: "border-accent/20 bg-accent/10 text-accent" },
+  { Icon: Terminal, className: "border-success/20 bg-success/10 text-success" },
 ];
 
 export function Navbar({ onToggleSidebar }: NavbarProps) {
@@ -29,6 +35,22 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
           >
             <Menu size={20} />
           </button>
+          <div
+            aria-hidden="true"
+            className="hidden items-center gap-1.5 min-[430px]:flex"
+          >
+            {softwareIcons.map(({ Icon, className }, index) => (
+              <span
+                key={index}
+                className={cn(
+                  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border",
+                  className
+                )}
+              >
+                <Icon size={15} strokeWidth={2} />
+              </span>
+            ))}
+          </div>
           <Link
             to="/"
             className="flex items-center gap-2 text-lg font-bold text-fg no-underline hover:no-underline"
