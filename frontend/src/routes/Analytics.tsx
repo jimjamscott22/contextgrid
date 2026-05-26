@@ -23,7 +23,7 @@ import { useTheme } from "@/components/ThemeProvider";
 const PALETTE = ["#60A5FA", "#A78BFA", "#34D399", "#FBBF24", "#F87171", "#22D3EE", "#FB7185", "#A3E635"];
 
 export default function Analytics() {
-  const { theme } = useTheme();
+  const { themeMode } = useTheme();
   const { data, isLoading, error } = useQuery({
     queryKey: qk.analytics,
     queryFn: api.analytics,
@@ -33,8 +33,8 @@ export default function Analytics() {
   if (error) return <ErrorState error={error} />;
   if (!data) return null;
 
-  const axis = theme === "dark" ? "#A8B0BF" : "#6B7280";
-  const grid = theme === "dark" ? "#263041" : "#E5E7EB";
+  const axis = themeMode === "dark" ? "#A8B0BF" : "#6B7280";
+  const grid = themeMode === "dark" ? "#263041" : "#E5E7EB";
 
   return (
     <div className="space-y-6">

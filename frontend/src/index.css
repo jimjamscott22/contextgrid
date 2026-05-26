@@ -4,12 +4,13 @@
 
 /*
  * ContextGrid design tokens ported from web/static/css/style.css.
- * Light defaults live on :root; dark theme flips via [data-theme="dark"].
+ * Light+ defaults live on :root; named themes flip via [data-theme].
  * Color values are emitted as space-separated RGB triples so that Tailwind's
  * "rgb(var(--cg-*) / <alpha-value>)" pattern can apply opacity utilities.
  */
 @layer base {
-  :root {
+  :root,
+  :root[data-theme="light-plus"] {
     --cg-bg: 249 250 251;
     --cg-surface: 255 255 255;
     --cg-surface-alt: 243 244 246;
@@ -29,7 +30,7 @@
     color-scheme: light;
   }
 
-  :root[data-theme="dark"] {
+  :root[data-theme="dark-plus"] {
     --cg-bg: 11 15 23;
     --cg-surface: 18 24 38;
     --cg-surface-alt: 23 30 47;
@@ -43,6 +44,114 @@
     --cg-success: 52 211 153;
     --cg-warning: 251 191 36;
     --cg-danger: 248 113 113;
+
+    color-scheme: dark;
+  }
+
+  :root[data-theme="monokai"] {
+    --cg-bg: 39 40 34;
+    --cg-surface: 49 51 44;
+    --cg-surface-alt: 62 61 50;
+    --cg-border: 82 80 66;
+    --cg-fg: 248 248 242;
+    --cg-fg-soft: 207 207 197;
+    --cg-muted: 117 113 94;
+    --cg-primary: 102 217 239;
+    --cg-primary-fg: 39 40 34;
+    --cg-accent: 174 129 255;
+    --cg-success: 166 226 46;
+    --cg-warning: 253 151 31;
+    --cg-danger: 249 38 114;
+
+    color-scheme: dark;
+  }
+
+  :root[data-theme="solarized-light"] {
+    --cg-bg: 253 246 227;
+    --cg-surface: 238 232 213;
+    --cg-surface-alt: 230 223 202;
+    --cg-border: 211 203 181;
+    --cg-fg: 101 123 131;
+    --cg-fg-soft: 88 110 117;
+    --cg-muted: 147 161 161;
+    --cg-primary: 38 139 210;
+    --cg-primary-fg: 253 246 227;
+    --cg-accent: 108 113 196;
+    --cg-success: 133 153 0;
+    --cg-warning: 181 137 0;
+    --cg-danger: 220 50 47;
+
+    color-scheme: light;
+  }
+
+  :root[data-theme="solarized-dark"] {
+    --cg-bg: 0 43 54;
+    --cg-surface: 7 54 66;
+    --cg-surface-alt: 12 66 78;
+    --cg-border: 31 83 94;
+    --cg-fg: 238 232 213;
+    --cg-fg-soft: 147 161 161;
+    --cg-muted: 101 123 131;
+    --cg-primary: 38 139 210;
+    --cg-primary-fg: 253 246 227;
+    --cg-accent: 211 54 130;
+    --cg-success: 133 153 0;
+    --cg-warning: 181 137 0;
+    --cg-danger: 220 50 47;
+
+    color-scheme: dark;
+  }
+
+  :root[data-theme="github-light"] {
+    --cg-bg: 246 248 250;
+    --cg-surface: 255 255 255;
+    --cg-surface-alt: 246 248 250;
+    --cg-border: 208 215 222;
+    --cg-fg: 36 41 47;
+    --cg-fg-soft: 87 96 106;
+    --cg-muted: 110 119 129;
+    --cg-primary: 9 105 218;
+    --cg-primary-fg: 255 255 255;
+    --cg-accent: 130 80 223;
+    --cg-success: 26 127 55;
+    --cg-warning: 154 103 0;
+    --cg-danger: 207 34 46;
+
+    color-scheme: light;
+  }
+
+  :root[data-theme="github-dark"] {
+    --cg-bg: 13 17 23;
+    --cg-surface: 22 27 34;
+    --cg-surface-alt: 33 38 45;
+    --cg-border: 48 54 61;
+    --cg-fg: 201 209 217;
+    --cg-fg-soft: 139 148 158;
+    --cg-muted: 110 118 129;
+    --cg-primary: 88 166 255;
+    --cg-primary-fg: 13 17 23;
+    --cg-accent: 188 140 255;
+    --cg-success: 63 185 80;
+    --cg-warning: 210 153 34;
+    --cg-danger: 248 81 73;
+
+    color-scheme: dark;
+  }
+
+  :root[data-theme="high-contrast"] {
+    --cg-bg: 0 0 0;
+    --cg-surface: 10 10 10;
+    --cg-surface-alt: 24 24 24;
+    --cg-border: 111 111 111;
+    --cg-fg: 255 255 255;
+    --cg-fg-soft: 222 222 222;
+    --cg-muted: 180 180 180;
+    --cg-primary: 55 148 255;
+    --cg-primary-fg: 0 0 0;
+    --cg-accent: 255 0 255;
+    --cg-success: 0 255 0;
+    --cg-warning: 255 255 0;
+    --cg-danger: 255 80 80;
 
     color-scheme: dark;
   }

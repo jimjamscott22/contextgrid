@@ -1,6 +1,7 @@
 import { NavLink, Link } from "react-router-dom";
-import { Code2, GitBranch, Menu, Moon, Sun, Terminal } from "lucide-react";
+import { Code2, GitBranch, Menu, Palette, Terminal } from "lucide-react";
 import { useTheme } from "@/components/ThemeProvider";
+import { Select } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 
 interface NavbarProps {
@@ -21,7 +22,7 @@ const softwareIcons = [
 ];
 
 export function Navbar({ onToggleSidebar }: NavbarProps) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, themes, setTheme } = useTheme();
 
   return (
     <nav className="sticky top-0 z-40 border-b border-border bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
@@ -81,14 +82,22 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
             ))}
           </ul>
 
-          <button
-            type="button"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            className="rounded-md p-2 text-fg-soft hover:bg-surface-alt hover:text-fg"
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          <label className="flex items-center gap-2 text-fg-soft">
+            <Palette size={18} aria-hidden="true" />
+            <span className="sr-only">Theme</span>
+            <Select
+              aria-label="Theme"
+              value={theme}
+              onChange={(event) => setTheme(event.target.value as typeof theme)}
+              className="h-9 w-[9.5rem] py-1.5 text-xs"
+            >
+              {themes.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </label>
         </div>
       </div>
     </nav>

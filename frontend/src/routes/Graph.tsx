@@ -25,7 +25,7 @@ const statusColors: Record<ProjectStatus, string> = {
 
 export default function Graph() {
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { themeMode } = useTheme();
   const { data, isLoading, error } = useQuery({
     queryKey: qk.graph,
     queryFn: api.graph,
@@ -46,8 +46,8 @@ export default function Graph() {
         },
         data: { label: n.label, status: n.status },
         style: {
-          background: theme === "dark" ? "#121826" : "#FFFFFF",
-          color: theme === "dark" ? "#F3F4F6" : "#111827",
+          background: themeMode === "dark" ? "#121826" : "#FFFFFF",
+          color: themeMode === "dark" ? "#F3F4F6" : "#111827",
           border: `2px solid ${statusColors[n.status]}`,
           borderRadius: 8,
           padding: "8px 12px",
@@ -65,7 +65,7 @@ export default function Graph() {
       animated: e.relationship_type === "depends_on",
       style: {
         stroke: e.is_inferred
-          ? theme === "dark"
+          ? themeMode === "dark"
             ? "#7B8496"
             : "#9CA3AF"
           : "#60A5FA",
@@ -73,12 +73,12 @@ export default function Graph() {
       },
       labelStyle: {
         fontSize: 10,
-        fill: theme === "dark" ? "#A8B0BF" : "#6B7280",
+        fill: themeMode === "dark" ? "#A8B0BF" : "#6B7280",
       },
       markerEnd: { type: MarkerType.ArrowClosed },
     }));
     return { nodes: flowNodes, edges: flowEdges };
-  }, [data, theme]);
+  }, [data, themeMode]);
 
   return (
     <div className="space-y-4">

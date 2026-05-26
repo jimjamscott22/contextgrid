@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 import animate from "tailwindcss-animate";
 
 const config: Config = {
-  darkMode: ["class", '[data-theme="dark"]'],
+  darkMode: ["class", '[data-theme-mode="dark"]'],
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     container: {
@@ -15,7 +15,7 @@ const config: Config = {
     extend: {
       colors: {
         // ContextGrid palette mirrors web/static/css/style.css :root vars.
-        // Values are CSS variables so dark/light theming flips via [data-theme].
+        // Values are CSS variables so named themes flip via [data-theme].
         bg: "rgb(var(--cg-bg) / <alpha-value>)",
         surface: "rgb(var(--cg-surface) / <alpha-value>)",
         "surface-alt": "rgb(var(--cg-surface-alt) / <alpha-value>)",

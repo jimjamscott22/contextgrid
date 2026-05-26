@@ -11,14 +11,14 @@ interface MermaidProps {
 
 export function Mermaid({ chart, id }: MermaidProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const { theme } = useTheme();
+  const { themeMode } = useTheme();
 
   useEffect(() => {
     if (!initialized) {
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: "strict",
-        theme: theme === "dark" ? "dark" : "default",
+        theme: themeMode === "dark" ? "dark" : "default",
       });
       initialized = true;
     } else {
@@ -26,10 +26,10 @@ export function Mermaid({ chart, id }: MermaidProps) {
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: "strict",
-        theme: theme === "dark" ? "dark" : "default",
+        theme: themeMode === "dark" ? "dark" : "default",
       });
     }
-  }, [theme]);
+  }, [themeMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +52,7 @@ export function Mermaid({ chart, id }: MermaidProps) {
     return () => {
       cancelled = true;
     };
-  }, [chart, id, theme]);
+  }, [chart, id, themeMode]);
 
   return <div ref={ref} className="overflow-x-auto" />;
 }
