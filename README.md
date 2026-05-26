@@ -1,5 +1,7 @@
 # ContextGrid
 
+![ChatArchive Preview]()
+
 ContextGrid is a personal, local-first application for tracking coding projects across time, tools, and mental states.
 
 It exists to answer a few simple questions clearly:
