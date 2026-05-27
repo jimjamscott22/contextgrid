@@ -44,6 +44,9 @@ from api import db
 from src.utils.paths import get_base_dir
 
 
+MAX_PROJECT_LIST_LIMIT = 50
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize database on startup."""
@@ -125,7 +128,7 @@ async def health_check():
 async def list_projects(
     status: Optional[str] = Query(None, pattern="^(idea|active|paused|archived)$"),
     tag: Optional[str] = Query(None),
-    limit: Optional[int] = Query(None, ge=1, le=100),
+    limit: Optional[int] = Query(None, ge=1),
     offset: Optional[int] = Query(None, ge=0),
     sort_by: str = Query("last_worked_at", pattern="^(name|created_at|last_worked_at|status)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$")
@@ -142,6 +145,9 @@ async def list_projects(
     - sort_order: Sort order (asc or desc)
     """
     try:
+        if limit is not None:
+            limit = min(limit, MAX_PROJECT_LIST_LIMIT)
+
         projects = db.list_projects(
             status=status,
             tag=tag,
