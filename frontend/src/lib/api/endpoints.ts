@@ -44,17 +44,24 @@ interface ListProjectsParams {
   kanban?: boolean;
 }
 
+const PROJECT_LIST_LIMIT = 50;
+
 const SORT_MAP: Record<string, string> = {
   recent: "last_worked_at",
   name: "name",
   created: "created_at",
 };
 
+function projectLimit(limit?: number): number | undefined {
+  if (limit === undefined) return undefined;
+  return Math.min(limit, PROJECT_LIST_LIMIT);
+}
+
 function mapProjectQuery(p: ListProjectsParams = {}): Record<string, string | number | undefined> {
   return {
     status: p.status || undefined,
     tag: p.tag || undefined,
-    limit: p.limit,
+    limit: projectLimit(p.limit),
     offset: p.offset,
     sort_by: p.sort ? SORT_MAP[p.sort] ?? p.sort : undefined,
   };

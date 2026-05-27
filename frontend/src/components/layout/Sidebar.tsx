@@ -45,7 +45,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const { data } = useQuery({
     queryKey: qk.projects({ all: true }),
     queryFn: () =>
-      api.listProjects({ include_archived: true, limit: 500 }),
+      api.listProjects({ include_archived: true, limit: 50 }),
   });
 
   const projects = useMemo(() => {

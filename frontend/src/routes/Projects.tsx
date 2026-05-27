@@ -37,7 +37,7 @@ export default function Projects() {
         status: status || undefined,
         tag: tag || undefined,
         sort: "recent",
-        limit: 200,
+        limit: 50,
       }),
   });
   const tagsQ = useQuery({ queryKey: qk.tags, queryFn: api.listTags });

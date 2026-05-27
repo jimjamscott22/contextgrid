@@ -40,7 +40,7 @@ export default function Kanban() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: qk.projects({ kanban: true }),
-    queryFn: () => api.listProjects({ include_archived: true, limit: 500 }),
+    queryFn: () => api.listProjects({ include_archived: true, limit: 50 }),
   });
 
   const grouped = useMemo(() => {

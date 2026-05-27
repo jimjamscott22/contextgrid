@@ -23,7 +23,7 @@ export function RelationshipsPanel({ projectId }: { projectId: number }) {
   });
   const projectsQ = useQuery({
     queryKey: qk.projects({ all: true }),
-    queryFn: () => api.listProjects({ limit: 500, include_archived: true }),
+    queryFn: () => api.listProjects({ limit: 50, include_archived: true }),
   });
 
   const createMut = useMutation({
