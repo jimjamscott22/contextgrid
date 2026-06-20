@@ -448,12 +448,18 @@ class ScreenshotResponse(BaseModel):
     filename: str
     url: str
     label: str
+    is_cover: bool = False
 
 
 class ScreenshotListResponse(BaseModel):
     """Model for list of screenshots."""
     screenshots: list[ScreenshotResponse]
     count: int
+
+
+class CoverRequest(BaseModel):
+    """Request body for selecting a project's cover screenshot."""
+    filename: str
 
 
 # =========================

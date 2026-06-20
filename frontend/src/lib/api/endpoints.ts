@@ -212,6 +212,17 @@ export const api = {
       { method: "DELETE" },
     ),
 
+  setCover: (projectId: number, filename: string) =>
+    request<MessageResponse>(`/api/projects/${projectId}/screenshots/cover`, {
+      method: "PUT",
+      body: { filename },
+    }),
+
+  clearCover: (projectId: number) =>
+    request<MessageResponse>(`/api/projects/${projectId}/screenshots/cover`, {
+      method: "DELETE",
+    }),
+
   overviewMermaid: () => request<Mermaid>("/api/mermaid/overview"),
 
   getReadme: (projectId: number) =>

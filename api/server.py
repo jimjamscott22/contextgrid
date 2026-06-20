@@ -34,7 +34,7 @@ from api.models import (
     ProjectTaskCreate, ProjectTaskResponse, ProjectTaskListResponse,
     TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse,
     AnalyticsChartItem, AnalyticsSummary, AnalyticsResponse,
-    ScreenshotResponse, ScreenshotListResponse,
+    ScreenshotResponse, ScreenshotListResponse, CoverRequest,
     TaskNoteResponse, TaskListResponse,
     MermaidResponse,
     ReadmeSnapshotResponse, ReadmeAttachResponse,
@@ -1067,14 +1067,41 @@ def _compute_inferred_edges(projects: list) -> list[GraphEdge]:
 
 ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 
+# Marker file (one per project upload dir) holding the chosen cover filename.
+# Its ".meta" suffix keeps it out of ALLOWED_IMAGE_EXTS so it never appears as
+# a screenshot itself.
+COVER_MARKER_NAME = "_cover.meta"
+
+
+def _read_cover(project_dir: Path) -> Optional[str]:
+    """Return the chosen cover filename for a project, if one is set and exists."""
+    marker = project_dir / COVER_MARKER_NAME
+    if not marker.is_file():
+        return None
+    filename = marker.read_text(encoding="utf-8").strip()
+    if filename and (project_dir / filename).is_file():
+        return filename
+    return None
+
+
+def _write_cover(project_dir: Path, filename: str) -> None:
+    """Persist the chosen cover filename for a project."""
+    (project_dir / COVER_MARKER_NAME).write_text(filename, encoding="utf-8")
+
+
+def _clear_cover(project_dir: Path) -> None:
+    """Remove the cover marker for a project, if present."""
+    (project_dir / COVER_MARKER_NAME).unlink(missing_ok=True)
+
 
 @app.get("/api/projects/{project_id}/screenshots", response_model=ScreenshotListResponse)
 async def list_screenshots(project_id: int):
-    """List screenshots for a project."""
+    """List screenshots for a project, with the chosen cover sorted first."""
     project_dir = config.UPLOADS_DIR / str(project_id)
     if not project_dir.is_dir():
         return ScreenshotListResponse(screenshots=[], count=0)
 
+    cover = _read_cover(project_dir)
     screenshots = []
     for path in sorted(project_dir.iterdir(), key=lambda p: p.name.lower()):
         if not path.is_file() or path.suffix.lower() not in ALLOWED_IMAGE_EXTS:
@@ -1084,9 +1111,38 @@ async def list_screenshots(project_id: int):
             filename=path.name,
             url=f"/uploads/{project_id}/{path.name}",
             label=label,
+            is_cover=path.name == cover,
         ))
 
+    # Surface the cover first so consumers can treat screenshots[0] as the cover.
+    screenshots.sort(key=lambda s: not s.is_cover)
+
     return ScreenshotListResponse(screenshots=screenshots, count=len(screenshots))
+
+
+@app.put("/api/projects/{project_id}/screenshots/cover", response_model=MessageResponse)
+async def set_cover(project_id: int, payload: CoverRequest):
+    """Choose which screenshot is used as the project's card cover."""
+    project_dir = config.UPLOADS_DIR / str(project_id)
+    filename = Path(payload.filename).name
+    file_path = project_dir / filename
+
+    if not file_path.resolve().is_relative_to(project_dir.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    if file_path.suffix.lower() not in ALLOWED_IMAGE_EXTS or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Screenshot not found")
+
+    _write_cover(project_dir, filename)
+    return MessageResponse(message=f"Cover set to '{filename}'")
+
+
+@app.delete("/api/projects/{project_id}/screenshots/cover", response_model=MessageResponse)
+async def clear_cover(project_id: int):
+    """Clear the project's chosen cover, reverting to the default first screenshot."""
+    project_dir = config.UPLOADS_DIR / str(project_id)
+    if project_dir.is_dir():
+        _clear_cover(project_dir)
+    return MessageResponse(message="Cover cleared")
 
 
 @app.post("/api/projects/{project_id}/screenshots", response_model=MessageResponse)
@@ -1125,6 +1181,9 @@ async def delete_screenshot(project_id: int, filename: str):
         raise HTTPException(status_code=404, detail="Screenshot not found")
 
     file_path.unlink()
+    # If the deleted file was the chosen cover, revert to the default.
+    if _read_cover(project_dir) is None:
+        _clear_cover(project_dir)
     return MessageResponse(message=f"Screenshot '{filename}' deleted")
 
 

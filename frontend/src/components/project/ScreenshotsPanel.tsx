@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Upload } from "lucide-react";
+import { Star, Trash2, Upload } from "lucide-react";
 import { api } from "@/lib/api/endpoints";
 import { qk } from "@/lib/api/keys";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -30,6 +30,15 @@ export function ScreenshotsPanel({ projectId }: { projectId: number }) {
   const deleteMut = useMutation({
     mutationFn: (filename: string) => api.deleteScreenshot(projectId, filename),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.screenshots(projectId) }),
+  });
+
+  const coverMut = useMutation({
+    mutationFn: (filename: string) => api.setCover(projectId, filename),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.screenshots(projectId) });
+      toast("Cover updated", "success");
+    },
+    onError: (e) => toast(`Couldn't set cover: ${(e as Error).message}`, "error"),
   });
 
   return (
@@ -70,21 +79,44 @@ export function ScreenshotsPanel({ projectId }: { projectId: number }) {
           {data?.screenshots.map((s) => (
             <figure
               key={s.filename}
-              className="group relative overflow-hidden rounded-md border border-border bg-surface-alt"
+              className={`group relative overflow-hidden rounded-md border bg-surface-alt ${
+                s.is_cover ? "border-primary ring-1 ring-primary/40" : "border-border"
+              }`}
             >
               <img src={s.url} alt={s.label} className="block w-full" />
+
+              {s.is_cover && (
+                <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-fg shadow-sm">
+                  <Star size={11} fill="currentColor" /> Cover
+                </span>
+              )}
+
               <figcaption className="flex items-center justify-between gap-2 border-t border-border p-2 text-xs text-fg-soft">
                 <span className="truncate">{s.label}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm(`Delete ${s.filename}?`)) deleteMut.mutate(s.filename);
-                  }}
-                  className="text-fg-soft hover:text-danger"
-                  aria-label="Delete"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  {!s.is_cover && (
+                    <button
+                      type="button"
+                      onClick={() => coverMut.mutate(s.filename)}
+                      disabled={coverMut.isPending}
+                      className="text-fg-soft transition-colors hover:text-primary"
+                      aria-label="Set as cover"
+                      title="Set as card cover"
+                    >
+                      <Star size={14} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm(`Delete ${s.filename}?`)) deleteMut.mutate(s.filename);
+                    }}
+                    className="text-fg-soft transition-colors hover:text-danger"
+                    aria-label="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </figcaption>
             </figure>
           ))}

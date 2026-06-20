@@ -293,6 +293,7 @@ export interface Screenshot {
   filename: string;
   url: string;
   label: string;
+  is_cover: boolean;
 }
 
 export interface ScreenshotListResponse {

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"d:\\\\Code\\\\Python\\\\PythonApps\\\\contextgrid\\\\frontend\\\\src\\\\lib\" -Force)",
       "Bash(npx tsc *)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "PowerShell(& \"C:\\\\Users\\\\jimja\\\\github_repos\\\\Python\\\\contextgrid\\\\frontend\\\\node_modules\\\\.bin\\\\tsc.cmd\" -b \"C:\\\\Users\\\\jimja\\\\github_repos\\\\Python\\\\contextgrid\\\\frontend\" --noEmit --force 2>&1 | Select-Object -First 40; \"EXIT=$LASTEXITCODE\")"
     ]
   }
 }
