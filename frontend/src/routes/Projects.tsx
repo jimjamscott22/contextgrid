@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { Dialog } from "@/components/ui/Dialog";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/Empty";
 import { ProjectForm } from "@/components/forms/ProjectForm";
+import { ProjectThumbnail } from "@/components/project/ProjectThumbnail";
 import { useToast } from "@/components/Toast";
 import { relativeTime } from "@/lib/format";
 
@@ -154,10 +155,11 @@ function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       to={`/projects/${project.id}`}
-      className="block text-fg no-underline hover:no-underline"
+      className="group block text-fg no-underline hover:no-underline"
     >
-      <Card className="h-full cg-card-hover">
-        <CardContent className="space-y-3">
+      <Card className="flex h-full flex-col overflow-hidden cg-card-hover">
+        <ProjectThumbnail project={project} />
+        <CardContent className="flex-1 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <h3 className="text-lg font-semibold leading-tight">{project.name}</h3>
             <StatusBadge status={project.status} />
