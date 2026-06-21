@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { lastNDays, toISODate, shiftDays } from "@/lib/activity";
+import { lastNDays, toISODate, shiftDays, mostActiveProject } from "@/lib/activity";
 import type { ActivityDay } from "@/lib/api/types";
 
 const today = new Date(Date.UTC(2026, 5, 21)); // 2026-06-21
@@ -28,5 +28,27 @@ describe("lastNDays", () => {
     expect(out[5].count).toBe(3); // 2026-06-20
     expect(out[3].count).toBe(1); // 2026-06-18
     expect(out[4].count).toBe(0); // 2026-06-19 gap
+  });
+});
+
+describe("mostActiveProject", () => {
+  it("returns the most frequently appearing project", () => {
+    const input: ActivityDay[] = [
+      { date: "2026-06-20", count: 2, projects: "Alpha, Beta" },
+      { date: "2026-06-19", count: 1, projects: "Alpha" },
+      { date: "2026-06-18", count: 1, projects: "Beta" },
+    ];
+    expect(mostActiveProject(input)).toBe("Alpha"); // 2 appearances vs 2... tie -> alpha
+  });
+  it("breaks ties alphabetically", () => {
+    const input: ActivityDay[] = [
+      { date: "2026-06-20", count: 1, projects: "Zeta" },
+      { date: "2026-06-19", count: 1, projects: "Alpha" },
+    ];
+    expect(mostActiveProject(input)).toBe("Alpha");
+  });
+  it("returns null when there is no activity", () => {
+    expect(mostActiveProject([{ date: "2026-06-20", count: 0, projects: "" }])).toBeNull();
+    expect(mostActiveProject([])).toBeNull();
   });
 });

@@ -27,3 +27,25 @@ export function lastNDays(
   }
   return out;
 }
+
+/**
+ * Top project by number of days it appears in `projects`.
+ * NOTE: ranks by frequency of appearance, not activity volume — the payload
+ * does not attribute per-day counts to individual projects. Ties break
+ * alphabetically. Returns null when no project appears.
+ */
+export function mostActiveProject(days: ActivityDay[]): string | null {
+  const tally = new Map<string, number>();
+  for (const d of days) {
+    if (!d.projects) continue;
+    for (const name of d.projects.split(", ")) {
+      const key = name.trim();
+      if (!key) continue;
+      tally.set(key, (tally.get(key) ?? 0) + 1);
+    }
+  }
+  if (tally.size === 0) return null;
+  return [...tally.entries()].sort(
+    (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+  )[0][0];
+}
