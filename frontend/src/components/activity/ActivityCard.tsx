@@ -1,14 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { HeatmapGrid } from "@/components/activity/HeatmapGrid";
 import { Sparkline } from "@/components/activity/Sparkline";
-import { lastNDays, mostActiveProject } from "@/lib/activity";
+import { lastNDays, mostActiveProject, resolveToday } from "@/lib/activity";
 import type { ActivityHeatmap } from "@/lib/api/types";
 
 /** Home overview "Activity" card: heatmap, 7-day sparkline, streaks, top project. */
 export function ActivityCard({ data }: { data?: ActivityHeatmap }) {
   const days = data?.days ?? [];
   const streak = data?.streak;
-  const week = lastNDays(days, 7);
+  const week = lastNDays(days, 7, resolveToday(days));
   const topProject = mostActiveProject(days);
 
   return (

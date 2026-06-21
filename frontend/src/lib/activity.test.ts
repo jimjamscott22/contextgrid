@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { lastNDays, toISODate, shiftDays, mostActiveProject, buildHeatmap } from "@/lib/activity";
+import { lastNDays, toISODate, shiftDays, mostActiveProject, buildHeatmap, resolveToday } from "@/lib/activity";
 import type { ActivityDay } from "@/lib/api/types";
 
 const today = new Date(Date.UTC(2026, 5, 21)); // 2026-06-21
@@ -90,5 +90,22 @@ describe("buildHeatmap", () => {
     const out = buildHeatmap([], 8, today);
     expect(out.weeks).toBe(2); // 8 days span 2 Sunday-started columns
     expect(out.months[0]).toEqual({ label: "Jun", column: 0 });
+  });
+});
+
+describe("resolveToday", () => {
+  it("returns now when no payload date is ahead of the clock", () => {
+    const now = new Date(Date.UTC(2026, 5, 21, 10)); // 2026-06-21T10:00Z
+    const days: ActivityDay[] = [{ date: "2026-06-21", count: 1, projects: "A" }];
+    expect(toISODate(resolveToday(days, now))).toBe("2026-06-21");
+  });
+  it("extends to a payload date ahead of the client clock", () => {
+    const now = new Date(Date.UTC(2026, 5, 21, 10));
+    const days: ActivityDay[] = [{ date: "2026-06-22", count: 1, projects: "A" }];
+    expect(toISODate(resolveToday(days, now))).toBe("2026-06-22");
+  });
+  it("handles an empty payload", () => {
+    const now = new Date(Date.UTC(2026, 5, 21, 10));
+    expect(toISODate(resolveToday([], now))).toBe("2026-06-21");
   });
 });

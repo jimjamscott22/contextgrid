@@ -17,7 +17,7 @@ export function Sparkline({ days }: { days: ActivityDay[] }) {
               minHeight: 2,
               backgroundColor:
                 d.count === 0
-                  ? "rgba(var(--cg-fg), 0.10)"
+                  ? "rgba(var(--cg-fg), 0.07)"
                   : "rgb(var(--cg-primary))",
             }}
           />

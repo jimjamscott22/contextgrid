@@ -1,4 +1,4 @@
-import { buildHeatmap, type HeatmapCell } from "@/lib/activity";
+import { buildHeatmap, resolveToday, type HeatmapCell } from "@/lib/activity";
 import type { ActivityDay } from "@/lib/api/types";
 
 const WINDOW_DAYS = 182; // ~6 months
@@ -19,7 +19,7 @@ function cellColor(cell: HeatmapCell): string {
 
 /** GitHub-style activity heatmap, ~6 months, week-per-column. */
 export function HeatmapGrid({ days }: { days: ActivityDay[] }) {
-  const { cells, weeks, months } = buildHeatmap(days, WINDOW_DAYS);
+  const { cells, weeks, months } = buildHeatmap(days, WINDOW_DAYS, resolveToday(days));
   const columns = `repeat(${weeks}, minmax(0, 1fr))`;
 
   return (

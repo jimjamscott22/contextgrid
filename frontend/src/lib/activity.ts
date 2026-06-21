@@ -118,3 +118,19 @@ export function buildHeatmap(
 
   return { cells, weeks: Math.ceil(cells.length / 7), months };
 }
+
+/**
+ * The window-end date for activity widgets: the later of `now` and the latest
+ * date present in `days`. The backend uses server-local CURDATE, so a payload
+ * day can sit one date ahead of the client's UTC clock; without this it would
+ * fall outside the window and be silently dropped. Using one resolved value
+ * across all widgets also keeps the heatmap, sparkline, and tally consistent.
+ */
+export function resolveToday(days: ActivityDay[], now: Date = new Date()): Date {
+  let latest = now;
+  for (const d of days) {
+    const dt = new Date(`${d.date}T00:00:00Z`);
+    if (dt.getTime() > latest.getTime()) latest = dt;
+  }
+  return latest;
+}
