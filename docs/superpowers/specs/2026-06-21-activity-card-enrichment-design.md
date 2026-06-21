@@ -129,10 +129,9 @@ The `lib/activity.ts` functions are pure and the natural test surface:
 - `buildHeatmapWeeks` — leading pad count for a known start weekday, bucket
   boundaries (0 → empty, max → top bucket), window slicing.
 
-Note: the repo's existing tests are shell-based and there is no JS test runner
-configured. The implementation plan must decide whether to add a lightweight
-runner (e.g. Vitest) for these pure functions or defer test wiring; this is called
-out as an open decision for the plan, not the spec.
+**Decision:** the repo has no JS test runner (existing tests are shell-based). The
+plan will add **Vitest** as a frontend dev dependency, wire a `test` script, and
+cover the `lib/activity.ts` functions with unit tests.
 
 ## Risks / Notes
 
