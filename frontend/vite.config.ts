@@ -17,6 +17,13 @@ export default defineConfig({
         target: process.env.API_ENDPOINT || "http://localhost:8003",
         changeOrigin: true,
       },
+      // Uploaded screenshots/covers are served by the API as static files.
+      // Without this, /uploads/* requests hit the Vite dev server and return
+      // index.html, so project thumbnails and the Screenshots panel render broken.
+      "/uploads": {
+        target: process.env.API_ENDPOINT || "http://localhost:8003",
+        changeOrigin: true,
+      },
     },
   },
   build: {

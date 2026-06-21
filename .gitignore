@@ -224,3 +224,4 @@ frontend/dist/
 frontend/dist-ssr/
 *.tsbuildinfo
 .vite/
+.claude/settings.local.json
