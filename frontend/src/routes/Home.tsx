@@ -6,36 +6,8 @@ import { qk } from "@/lib/api/keys";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/Badge";
 import { LoadingState, ErrorState } from "@/components/ui/Empty";
+import { ActivityCard } from "@/components/activity/ActivityCard";
 import { relativeTime } from "@/lib/format";
-import type { ActivityDay } from "@/lib/api/types";
-
-function HeatmapGrid({ days }: { days: ActivityDay[] }) {
-  // Last 26 weeks (~6 months) for compact dashboard view.
-  const cells = days.slice(-182);
-  const max = Math.max(1, ...cells.map((d) => d.count));
-  return (
-    <div
-      className="grid gap-[2px]"
-      style={{ gridTemplateColumns: `repeat(${Math.ceil(cells.length / 7)}, 1fr)` }}
-    >
-      {cells.map((d) => {
-        const intensity = d.count === 0 ? 0 : Math.min(1, d.count / max);
-        const bg =
-          d.count === 0
-            ? "rgb(var(--cg-surface-alt))"
-            : `rgba(var(--cg-primary), ${0.25 + intensity * 0.75})`;
-        return (
-          <div
-            key={d.date}
-            title={`${d.date}: ${d.count} activity`}
-            className="h-3 w-3 rounded-[2px]"
-            style={{ backgroundColor: bg }}
-          />
-        );
-      })}
-    </div>
-  );
-}
 
 export default function Home() {
   const projectsQ = useQuery({
@@ -133,25 +105,7 @@ export default function Home() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-3 text-xs text-fg-soft">Last ~6 months</div>
-            {heatQ.data && <HeatmapGrid days={heatQ.data.days} />}
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <div>
-                <div className="text-xs text-fg-soft">Current</div>
-                <div className="font-semibold">{streak?.current_streak ?? 0} days</div>
-              </div>
-              <div>
-                <div className="text-xs text-fg-soft">Longest</div>
-                <div className="font-semibold">{streak?.longest_streak ?? 0} days</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ActivityCard data={heatQ.data} />
       </div>
     </div>
   );
