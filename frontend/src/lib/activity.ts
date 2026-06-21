@@ -49,3 +49,72 @@ export function mostActiveProject(days: ActivityDay[]): string | null {
     (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
   )[0][0];
 }
+
+export interface HeatmapCell {
+  date: string | null; // null = leading pad cell
+  count: number;
+  level: number; // 0-4
+}
+
+export interface HeatmapMonthLabel {
+  label: string;
+  column: number; // 0-based grid column
+}
+
+export interface HeatmapData {
+  cells: HeatmapCell[];
+  weeks: number;
+  months: HeatmapMonthLabel[];
+}
+
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function bucket(count: number, max: number): number {
+  if (count <= 0) return 0;
+  const r = count / max;
+  if (r <= 0.25) return 1;
+  if (r <= 0.5) return 2;
+  if (r <= 0.75) return 3;
+  return 4;
+}
+
+/**
+ * Cells ordered for a `grid-auto-flow: column`, 7-row grid (row 0 = Sunday).
+ * Leading pad cells align the first real day to its weekday row.
+ */
+export function buildHeatmap(
+  days: ActivityDay[],
+  windowDays: number,
+  today: Date = new Date(),
+): HeatmapData {
+  const byDate = new Map(days.map((d) => [d.date, d]));
+  const start = shiftDays(today, -(windowDays - 1));
+  const max = Math.max(1, ...days.map((d) => d.count));
+  const cells: HeatmapCell[] = [];
+
+  // Leading pads: weekday of the first real day (0 = Sunday).
+  const leadingPads = new Date(`${toISODate(start)}T00:00:00Z`).getUTCDay();
+  for (let i = 0; i < leadingPads; i++) {
+    cells.push({ date: null, count: 0, level: 0 });
+  }
+
+  const months: HeatmapMonthLabel[] = [];
+  let lastMonth = -1;
+  for (let i = 0; i < windowDays; i++) {
+    const d = shiftDays(start, i);
+    const iso = toISODate(d);
+    const count = byDate.get(iso)?.count ?? 0;
+    const column = Math.floor(cells.length / 7);
+    const month = d.getUTCMonth();
+    if (month !== lastMonth) {
+      months.push({ label: MONTHS[month], column });
+      lastMonth = month;
+    }
+    cells.push({ date: iso, count, level: bucket(count, max) });
+  }
+
+  return { cells, weeks: Math.ceil(cells.length / 7), months };
+}
