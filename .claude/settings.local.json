@@ -4,7 +4,16 @@
       "Bash(Get-ChildItem -Path \"d:\\\\Code\\\\Python\\\\PythonApps\\\\contextgrid\\\\frontend\\\\src\\\\lib\" -Force)",
       "Bash(npx tsc *)",
       "Bash(npx vite *)",
-      "PowerShell(& \"C:\\\\Users\\\\jimja\\\\github_repos\\\\Python\\\\contextgrid\\\\frontend\\\\node_modules\\\\.bin\\\\tsc.cmd\" -b \"C:\\\\Users\\\\jimja\\\\github_repos\\\\Python\\\\contextgrid\\\\frontend\" --noEmit --force 2>&1 | Select-Object -First 40; \"EXIT=$LASTEXITCODE\")"
+      "PowerShell(& \"C:\\\\Users\\\\jimja\\\\github_repos\\\\Python\\\\contextgrid\\\\frontend\\\\node_modules\\\\.bin\\\\tsc.cmd\" -b \"C:\\\\Users\\\\jimja\\\\github_repos\\\\Python\\\\contextgrid\\\\frontend\" --noEmit --force 2>&1 | Select-Object -First 40; \"EXIT=$LASTEXITCODE\")",
+      "Bash(echo \"=====UPLOADS DIR CONTENTS=====\" ; ls -laR ~/.contextgrid/uploads 2>/dev/null | head -60)",
+      "Read(//home/jimjamscozz22/.contextgrid/uploads/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\\\\n\" \"http://localhost:8003/uploads/2/ChatArchive-Scrnsht.png\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\\\\n\" \"http://localhost:5173/uploads/2/ChatArchive-Scrnsht.png\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"http://localhost:8003/api/projects/2/screenshots\")",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'docs: design for Activity card enrichment *)",
+      "Bash(git commit -q -m 'docs: lock Vitest decision in Activity card spec *)"
     ]
   }
 }
