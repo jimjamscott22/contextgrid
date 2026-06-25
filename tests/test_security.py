@@ -35,3 +35,67 @@ def test_cors_credentials_not_sent(api_client):
     )
     # allow_credentials=False means this header must not say "true"
     assert resp.headers.get("access-control-allow-credentials") != "true"
+
+
+import io
+from unittest.mock import patch
+
+
+# ── SVG rejection ─────────────────────────────────────────────────────────
+
+def test_svg_rejected_by_extension(api_client):
+    resp = api_client.post(
+        "/api/projects/1/screenshots",
+        files={"file": ("diagram.svg", b"<svg/>", "image/png")},
+    )
+    assert resp.status_code == 400
+
+
+def test_svg_rejected_by_content_type(api_client):
+    resp = api_client.post(
+        "/api/projects/1/screenshots",
+        files={"file": ("diagram.svg", b"<svg/>", "image/svg+xml")},
+    )
+    assert resp.status_code == 400
+
+
+# ── Upload size cap ───────────────────────────────────────────────────────
+
+def test_upload_over_cap_returns_413(api_client, tmp_path):
+    from api.config import config as api_config
+
+    large = b"x" * (10 * 1024 * 1024 + 1)  # 10 MB + 1 byte
+    with patch.object(api_config, "UPLOADS_DIR", tmp_path / "uploads"):
+        resp = api_client.post(
+            "/api/projects/1/screenshots",
+            files={"file": ("shot.png", large, "image/png")},
+        )
+    assert resp.status_code == 413
+
+
+def test_upload_at_cap_succeeds(api_client, tmp_path):
+    from api.config import config as api_config
+
+    at_cap = b"x" * (10 * 1024 * 1024)  # exactly 10 MB
+    with patch.object(api_config, "UPLOADS_DIR", tmp_path / "uploads"):
+        resp = api_client.post(
+            "/api/projects/1/screenshots",
+            files={"file": ("shot.png", at_cap, "image/png")},
+        )
+    assert resp.status_code == 200
+
+
+def test_upload_over_cap_leaves_no_partial_file(api_client, tmp_path):
+    from api.config import config as api_config
+
+    upload_dir = tmp_path / "uploads"
+    large = b"x" * (10 * 1024 * 1024 + 1)
+    with patch.object(api_config, "UPLOADS_DIR", upload_dir):
+        api_client.post(
+            "/api/projects/1/screenshots",
+            files={"file": ("shot.png", large, "image/png")},
+        )
+    # No partial file should exist
+    project_dir = upload_dir / "1"
+    png_files = list(project_dir.glob("*.png")) if project_dir.exists() else []
+    assert png_files == []

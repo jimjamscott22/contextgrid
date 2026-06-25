@@ -10,7 +10,6 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from typing import Optional, Dict, List, Tuple
 import re
-import shutil
 import sys
 from pathlib import Path
 
@@ -1065,7 +1064,7 @@ def _compute_inferred_edges(projects: list) -> list[GraphEdge]:
 # Screenshot Endpoints
 # =========================
 
-ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+ALLOWED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
 # Marker file (one per project upload dir) holding the chosen cover filename.
 # Its ".meta" suffix keeps it out of ALLOWED_IMAGE_EXTS so it never appears as
@@ -1148,10 +1147,11 @@ async def clear_cover(project_id: int):
 @app.post("/api/projects/{project_id}/screenshots", response_model=MessageResponse)
 async def upload_screenshot(project_id: int, file: UploadFile = File(...)):
     """Upload a screenshot for a project."""
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File must be an image")
+    content_type = file.content_type or ""
+    if not content_type.startswith("image/") or content_type == "image/svg+xml":
+        raise HTTPException(status_code=400, detail="File must be a raster image")
 
-    filename = Path(file.filename).name
+    filename = Path(file.filename or "").name
     if not filename or Path(filename).suffix.lower() not in ALLOWED_IMAGE_EXTS:
         raise HTTPException(status_code=400, detail="Invalid image file type")
 
@@ -1162,8 +1162,24 @@ async def upload_screenshot(project_id: int, file: UploadFile = File(...)):
     if not file_path.resolve().is_relative_to(project_dir.resolve()):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    _CHUNK = 65536  # 64 KB
+    written = 0
+    try:
+        with open(file_path, "wb") as buffer:
+            while True:
+                chunk = await file.read(_CHUNK)
+                if not chunk:
+                    break
+                written += len(chunk)
+                if written > config.MAX_UPLOAD_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Upload exceeds maximum allowed size of {config.MAX_UPLOAD_BYTES} bytes",
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        file_path.unlink(missing_ok=True)
+        raise
 
     return MessageResponse(message=f"Screenshot '{filename}' uploaded successfully")
 
