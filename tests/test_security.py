@@ -145,3 +145,45 @@ def test_readme_under_cap_stores_snapshot(api_client):
     ):
         resp = api_client.post("/api/projects/1/readme/attach")
     assert resp.status_code == 200
+
+
+import pytest
+from pydantic import ValidationError
+
+
+# ── URL scheme validation ─────────────────────────────────────────────────
+
+def test_repo_url_rejects_javascript_scheme():
+    from api.models import ProjectBase
+    with pytest.raises(ValidationError):
+        ProjectBase(name="Test", repo_url="javascript:alert(1)")
+
+
+def test_repo_url_rejects_data_scheme():
+    from api.models import ProjectBase
+    with pytest.raises(ValidationError):
+        ProjectBase(name="Test", repo_url="data:text/html,<h1>XSS</h1>")
+
+
+def test_repo_url_accepts_https():
+    from api.models import ProjectBase
+    p = ProjectBase(name="Test", repo_url="https://github.com/test/repo")
+    assert p.repo_url == "https://github.com/test/repo"
+
+
+def test_repo_url_accepts_none():
+    from api.models import ProjectBase
+    p = ProjectBase(name="Test")
+    assert p.repo_url is None
+
+
+def test_link_url_rejects_javascript_scheme():
+    from api.models import LinkCreate
+    with pytest.raises(ValidationError):
+        LinkCreate(title="Bad", url="javascript:void(0)", link_type="other")
+
+
+def test_link_url_accepts_https():
+    from api.models import LinkCreate
+    link = LinkCreate(title="GitHub", url="https://github.com", link_type="repo")
+    assert link.url == "https://github.com"

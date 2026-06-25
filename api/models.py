@@ -3,9 +3,19 @@ Pydantic models for API request/response validation.
 These models define the structure of data exchanged via the API.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
+from urllib.parse import urlparse
+
+
+def _validate_http_scheme(v: Optional[str]) -> Optional[str]:
+    """Reject URLs with non-http(s) schemes (blocks javascript:, data:, file:, etc.)."""
+    if v is None:
+        return v
+    if urlparse(v).scheme.lower() not in ("http", "https"):
+        raise ValueError("URL must use http or https scheme")
+    return v
 
 
 # =========================
@@ -27,6 +37,11 @@ class ProjectBase(BaseModel):
     progress: int = Field(default=0, ge=0, le=100)
     folder_structure: Optional[str] = Field(None, max_length=65535)
     folder_structure_img_url: Optional[str] = Field(None, max_length=2000)
+
+    @field_validator("repo_url")
+    @classmethod
+    def validate_repo_url(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_http_scheme(v)
 
 
 class ProjectCreate(ProjectBase):
@@ -273,6 +288,11 @@ class LinkBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=255)
     url: str = Field(..., min_length=1, max_length=2000)
     link_type: str = Field(default="other", pattern="^(docs|deployment|design|board|repo|other)$")
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        return _validate_http_scheme(v)
 
 
 class LinkCreate(LinkBase):
