@@ -1425,6 +1425,12 @@ async def attach_readme(project_id: int):
                 detail=f"README.md not found in {owner}/{repo} (tried branches: main, master)"
             )
 
+        if len(content.encode("utf-8")) > config.MAX_README_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"README exceeds maximum allowed size of {config.MAX_README_BYTES} bytes",
+            )
+
         db.upsert_readme_snapshot(project_id, content, ref)
         snapshot = db.get_readme_snapshot(project_id)
 

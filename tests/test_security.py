@@ -38,7 +38,7 @@ def test_cors_credentials_not_sent(api_client):
 
 
 import io
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 
 
 # ── SVG rejection ─────────────────────────────────────────────────────────
@@ -99,3 +99,49 @@ def test_upload_over_cap_leaves_no_partial_file(api_client, tmp_path):
     project_dir = upload_dir / "1"
     png_files = list(project_dir.glob("*.png")) if project_dir.exists() else []
     assert png_files == []
+
+
+# ── README size cap ───────────────────────────────────────────────────────
+
+def test_readme_over_cap_returns_413(api_client):
+    big_content = "x" * (1024 * 1024 + 1)  # 1 MB + 1 byte
+    with (
+        patch(
+            "api.server._fetch_github_readme",
+            new_callable=AsyncMock,
+            return_value=(big_content, "main"),
+        ),
+        patch(
+            "api.db.get_project",
+            return_value={"id": 1, "repo_url": "https://github.com/test/repo"},
+        ),
+    ):
+        resp = api_client.post("/api/projects/1/readme/attach")
+    assert resp.status_code == 413
+
+
+def test_readme_under_cap_stores_snapshot(api_client):
+    content = "# Test README"
+    with (
+        patch(
+            "api.server._fetch_github_readme",
+            new_callable=AsyncMock,
+            return_value=(content, "main"),
+        ),
+        patch(
+            "api.db.get_project",
+            return_value={"id": 1, "repo_url": "https://github.com/test/repo"},
+        ),
+        patch("api.db.upsert_readme_snapshot", return_value=None),
+        patch(
+            "api.db.get_readme_snapshot",
+            return_value={
+                "project_id": 1,
+                "content": content,
+                "source_ref": "main",
+                "fetched_at": "2026-01-01T00:00:00",
+            },
+        ),
+    ):
+        resp = api_client.post("/api/projects/1/readme/attach")
+    assert resp.status_code == 200
