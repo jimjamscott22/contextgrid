@@ -4,7 +4,7 @@ Handles environment variables and provides sensible defaults.
 """
 
 import os
-from typing import Optional
+from typing import Optional, List
 from pathlib import Path
 from dotenv import load_dotenv
 import sys
@@ -43,6 +43,17 @@ class Config:
 
     # File Storage
     UPLOADS_DIR: Path = Path(os.getenv("UPLOADS_DIR", str(Path.home() / ".contextgrid" / "uploads")))
+
+    # Security
+    ALLOWED_ORIGINS: List[str] = [
+        o.strip()
+        for o in os.getenv(
+            "ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8003"
+        ).split(",")
+        if o.strip()
+    ]
+    MAX_UPLOAD_BYTES: int = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))   # 10 MB
+    MAX_README_BYTES: int = int(os.getenv("MAX_README_BYTES", str(1 * 1024 * 1024)))    # 1 MB
     
     @classmethod
     def get_database_url(cls) -> str:

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import mermaid from "mermaid";
 import { useTheme } from "@/components/ThemeProvider";
 
@@ -12,6 +12,7 @@ interface MermaidProps {
 export function Mermaid({ chart, id }: MermaidProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { themeMode } = useTheme();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!initialized) {
@@ -22,7 +23,6 @@ export function Mermaid({ chart, id }: MermaidProps) {
       });
       initialized = true;
     } else {
-      // Re-initialize on theme change.
       mermaid.initialize({
         startOnLoad: false,
         securityLevel: "strict",
@@ -41,12 +41,11 @@ export function Mermaid({ chart, id }: MermaidProps) {
         if (!cancelled && ref.current) {
           ref.current.innerHTML = svg;
         }
+        if (!cancelled) setError(null);
       })
       .catch((err) => {
-        if (!cancelled && ref.current) {
-          ref.current.innerHTML = `<pre class="text-danger text-xs">${String(
-            err
-          )}</pre>`;
+        if (!cancelled) {
+          setError(String(err));
         }
       });
     return () => {
@@ -54,5 +53,10 @@ export function Mermaid({ chart, id }: MermaidProps) {
     };
   }, [chart, id, themeMode]);
 
-  return <div ref={ref} className="overflow-x-auto" />;
+  return (
+    <>
+      <div ref={ref} className="overflow-x-auto" />
+      {error && <pre className="text-danger text-xs">{error}</pre>}
+    </>
+  );
 }
