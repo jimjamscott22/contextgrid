@@ -91,11 +91,20 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
               onChange={(event) => setTheme(event.target.value as typeof theme)}
               className="h-9 w-[9.5rem] py-1.5 text-xs"
             >
-              {themes.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
+              <optgroup label="Editor Themes">
+                {themes.filter((o) => o.group === "editor").map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Lifestyle Themes">
+                {themes.filter((o) => o.group === "lifestyle").map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
             </Select>
           </label>
         </div>

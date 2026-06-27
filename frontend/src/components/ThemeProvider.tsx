@@ -15,25 +15,43 @@ export type ThemeId =
   | "solarized-dark"
   | "github-light"
   | "github-dark"
-  | "high-contrast";
+  | "high-contrast"
+  | "ocean-light"
+  | "ocean-dark"
+  | "coffee-light"
+  | "coffee-dark"
+  | "forest-light"
+  | "forest-dark"
+  | "cyberpunk"
+  | "rose";
 
 export type ThemeMode = "light" | "dark";
+export type ThemeGroup = "editor" | "lifestyle";
 
 export interface ThemeOption {
   id: ThemeId;
   label: string;
   mode: ThemeMode;
+  group: ThemeGroup;
 }
 
 export const THEME_OPTIONS: ThemeOption[] = [
-  { id: "light-plus", label: "Light+", mode: "light" },
-  { id: "dark-plus", label: "Dark+", mode: "dark" },
-  { id: "monokai", label: "Monokai", mode: "dark" },
-  { id: "solarized-light", label: "Solarized Light", mode: "light" },
-  { id: "solarized-dark", label: "Solarized Dark", mode: "dark" },
-  { id: "github-light", label: "GitHub Light", mode: "light" },
-  { id: "github-dark", label: "GitHub Dark", mode: "dark" },
-  { id: "high-contrast", label: "High Contrast", mode: "dark" },
+  { id: "light-plus", label: "Light+", mode: "light", group: "editor" },
+  { id: "dark-plus", label: "Dark+", mode: "dark", group: "editor" },
+  { id: "monokai", label: "Monokai", mode: "dark", group: "editor" },
+  { id: "solarized-light", label: "Solarized Light", mode: "light", group: "editor" },
+  { id: "solarized-dark", label: "Solarized Dark", mode: "dark", group: "editor" },
+  { id: "github-light", label: "GitHub Light", mode: "light", group: "editor" },
+  { id: "github-dark", label: "GitHub Dark", mode: "dark", group: "editor" },
+  { id: "high-contrast", label: "High Contrast", mode: "dark", group: "editor" },
+  { id: "ocean-light", label: "Ocean Light", mode: "light", group: "lifestyle" },
+  { id: "ocean-dark", label: "Ocean Dark", mode: "dark", group: "lifestyle" },
+  { id: "coffee-light", label: "Coffee Light", mode: "light", group: "lifestyle" },
+  { id: "coffee-dark", label: "Coffee Dark", mode: "dark", group: "lifestyle" },
+  { id: "forest-light", label: "Forest Light", mode: "light", group: "lifestyle" },
+  { id: "forest-dark", label: "Forest Dark", mode: "dark", group: "lifestyle" },
+  { id: "cyberpunk", label: "Cyberpunk", mode: "dark", group: "lifestyle" },
+  { id: "rose", label: "Rose", mode: "light", group: "lifestyle" },
 ];
 
 const DEFAULT_LIGHT_THEME: ThemeId = "light-plus";
