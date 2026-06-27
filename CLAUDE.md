@@ -33,12 +33,14 @@ bash scripts/build_frontend.sh   # npm install + npm run build
 uv sync                  # Install all deps
 uv add <package>         # Add a dependency
 uv run python src/main.py <cmd>   # Run CLI
+python cg.py <cmd>                # Shortcut: root-level CLI entry point
 ```
 
 ### Tests
 ```bash
 bash tests/test_db_abstraction.sh   # DB layer tests
 bash test_system.sh                 # Integration tests
+uv run pytest                       # Python unit/security tests (42 tests)
 ```
 
 ## Architecture
@@ -90,4 +92,4 @@ Copy `.env.example` → `.env`:
 - The `.env` overrides `API_PORT` to `8003`; `.env.example` shows `8001` — trust `.env`
 - `scripts/build_frontend.sh` must be run before the API server can serve the SPA in production
 - `web/` (Jinja2) runs on :8081 separately from the API — it's not built, just served by its own process
-- Tests are shell-script based despite `pytest` being in `pyproject.toml` dev deps
+- Shell scripts (`test_db_abstraction.sh`, `test_system.sh`) are integration tests; `tests/` also has pytest unit tests — run both suites
