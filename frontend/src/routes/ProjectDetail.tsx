@@ -172,7 +172,7 @@ export default function ProjectDetail() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="notes" className="space-y-4">
+      <Tabs defaultValue="readme" className="space-y-4">
         <TabsList>
           <TabsTrigger value="notes">Notes</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
