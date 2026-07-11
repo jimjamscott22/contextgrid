@@ -78,9 +78,6 @@ export default function Kanban() {
       }
       toast(`Move failed: ${(err as Error).message}`, "error");
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["projects"] });
-    },
   });
 
   const handleDragStart = (e: DragStartEvent) => {
