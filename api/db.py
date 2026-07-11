@@ -83,9 +83,9 @@ def initialize_database():
             try:
                 cursor.execute(statement)
             except pymysql.err.OperationalError as e:
-                # Ignore "duplicate column" errors (1060) from idempotent
-                # ALTER TABLE migrations so re-running init is always safe.
-                if e.args[0] == 1060:
+                # Ignore duplicate column (1060) and duplicate key/index (1061)
+                # so re-running init is always safe.
+                if e.args[0] in (1060, 1061):
                     pass
                 else:
                     raise

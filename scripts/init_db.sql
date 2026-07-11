@@ -104,3 +104,6 @@ CREATE INDEX IF NOT EXISTS idx_project_notes_project_id ON project_notes(project
 CREATE INDEX IF NOT EXISTS idx_project_tags_project_id ON project_tags(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_tags_tag_id ON project_tags(tag_id);
 CREATE INDEX IF NOT EXISTS idx_project_readme_snapshots_project_id ON project_readme_snapshots(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_notes_created_at ON project_notes(created_at);
+CREATE INDEX IF NOT EXISTS idx_project_notes_task_status ON project_notes(task_status);
+CREATE INDEX IF NOT EXISTS idx_project_notes_project_created ON project_notes(project_id, created_at);

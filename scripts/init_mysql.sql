@@ -204,6 +204,11 @@ ALTER TABLE project_notes ADD COLUMN task_status VARCHAR(20) NOT NULL DEFAULT 'a
 ALTER TABLE projects ADD COLUMN folder_structure TEXT;
 ALTER TABLE projects ADD COLUMN folder_structure_img_url VARCHAR(2000);
 
+-- Performance indexes for notes / activity / tasks (idempotent via 1061 ignore)
+CREATE INDEX idx_project_notes_created_at ON project_notes (created_at);
+CREATE INDEX idx_project_notes_task_status ON project_notes (task_status);
+CREATE INDEX idx_project_notes_project_created ON project_notes (project_id, created_at);
+
 -- =========================
 -- README Snapshots Table
 -- =========================
