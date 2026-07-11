@@ -20,9 +20,11 @@ import { ProjectForm } from "@/components/forms/ProjectForm";
 import { ProjectThumbnail } from "@/components/project/ProjectThumbnail";
 import { useToast } from "@/components/Toast";
 import { relativeTime } from "@/lib/format";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 export default function Projects() {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 200);
   const [status, setStatus] = useState<ProjectStatus | "">("");
   const [tag, setTag] = useState<string>("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -31,15 +33,16 @@ export default function Projects() {
   const qc = useQueryClient();
 
   const projectsQ = useQuery({
-    queryKey: qk.projects({ search, status, tag }),
+    queryKey: qk.projects({ search: debouncedSearch, status, tag }),
     queryFn: () =>
       api.listProjects({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         status: status || undefined,
         tag: tag || undefined,
         sort: "recent",
         limit: 50,
       }),
+    placeholderData: (prev) => prev,
   });
   const tagsQ = useQuery({ queryKey: qk.tags, queryFn: api.listTags });
 
