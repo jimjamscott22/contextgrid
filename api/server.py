@@ -39,6 +39,7 @@ from api.models import (
     ReadmeSnapshotResponse, ReadmeAttachResponse,
 )
 from api.config import config
+from api.middleware import RequestTimingMiddleware
 from api import db
 from src.utils.paths import get_base_dir
 
@@ -87,6 +88,9 @@ app = FastAPI(
 config.UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(get_base_dir() / "web" / "static")), name="static")
 app.mount("/uploads", StaticFiles(directory=str(config.UPLOADS_DIR)), name="uploads")
+
+# Innermost relative to CORS: records full handler + DB time
+app.add_middleware(RequestTimingMiddleware)
 
 # Add CORS middleware for web UI
 app.add_middleware(
