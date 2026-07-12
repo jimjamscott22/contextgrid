@@ -19,7 +19,9 @@ uv run uvicorn api.server:app --host 0.0.0.0 --port 8003
 cd frontend
 npm run dev        # Dev server on :5173, proxies /api/* to :8003
 npm run build      # Type-check + Vite build → frontend/dist/
-npm run lint       # tsc --noEmit only (no ESLint configured)
+npm run lint       # tsc -b --noEmit only (no ESLint configured)
+npm run test       # Vitest unit tests
+npm run test:watch # Vitest watch mode
 ```
 
 ### Build for Production
@@ -38,9 +40,8 @@ python cg.py <cmd>                # Shortcut: root-level CLI entry point
 
 ### Tests
 ```bash
-bash tests/test_db_abstraction.sh   # DB layer tests
-bash test_system.sh                 # Integration tests
-uv run pytest                       # Python unit/security tests (42 tests)
+uv run pytest                       # Python unit/security tests
+cd frontend && npm run test         # Frontend unit tests (Vitest)
 ```
 
 ## Architecture
@@ -60,6 +61,7 @@ uv run pytest                       # Python unit/security tests (42 tests)
 - `src/models.py` — mode-switching models (API or Direct based on config)
 - `src/cli.py` — CLI handlers (`cmd_<name>(args) -> int`)
 - `frontend/src/App.tsx` — React router root
+- `api/middleware.py` — `RequestTimingMiddleware` logs every request's duration; WARNs if it exceeds `SLOW_REQUEST_MS`
 
 ## Environment
 
@@ -68,10 +70,14 @@ Copy `.env.example` → `.env`:
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `API_HOST` | Server bind host | `0.0.0.0` |
-| `API_PORT` | Server port | `8003` (overrides example's 8001) |
+| `API_PORT` | Server port | `8003` (code default; check your local `.env` — it may override this) |
 | `USE_API` | Backend mode | `true` |
 | `DB_HOST/PORT/NAME/USER/PASSWORD` | MySQL connection | — |
 | `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | Connection pool | 5 / 10 |
+| `ALLOWED_ORIGINS` | CORS allowlist (comma-separated) | localhost dev + prod ports |
+| `MAX_UPLOAD_BYTES` | Max screenshot upload size | 10 MB |
+| `MAX_README_BYTES` | Max README snapshot size | 1 MB |
+| `SLOW_REQUEST_MS` | Threshold for slow-request WARN logs | 200 |
 
 ## Code Style
 
@@ -89,7 +95,7 @@ Copy `.env.example` → `.env`:
 
 ## Gotchas
 
-- The `.env` overrides `API_PORT` to `8003`; `.env.example` shows `8001` — trust `.env`
+- `.env` is gitignored and per-developer — its `API_PORT` may not match `.env.example` or the code default (`8003`); always check the actual local `.env` rather than assuming
 - `scripts/build_frontend.sh` must be run before the API server can serve the SPA in production
 - `web/` (Jinja2) runs on :8081 separately from the API — it's not built, just served by its own process
-- Shell scripts (`test_db_abstraction.sh`, `test_system.sh`) are integration tests; `tests/` also has pytest unit tests — run both suites
+- `RequestTimingMiddleware` logs every request at INFO and escalates to WARNING past `SLOW_REQUEST_MS` (default 200ms) — expect WARNING-level noise in logs under load, it's not necessarily an error
