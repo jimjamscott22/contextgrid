@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Python App Run Modes — ContextGrid</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0e0a;
+      --bg-panel: #0d140d;
+      --fg: #b8e0b8;
+      --fg-dim: #5a8a5a;
+      --fg-muted: #3d6b3d;
+      --accent: #33ff66;
+      --accent-dim: #1a9940;
+      --amber: #e8c547;
+      --amber-dim: #8a7328;
+      --cyan: #5eead4;
+      --red: #ff6b6b;
+      --border: #1e3a1e;
+      --glow: 0 0 12px rgba(51, 255, 102, 0.35);
+      --font-body: "IBM Plex Mono", ui-monospace, monospace;
+      --font-display: "Share Tech Mono", "IBM Plex Mono", monospace;
+      --scanline: rgba(0, 0, 0, 0.12);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    /* CRT / phosphor atmosphere */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1000;
+      background:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          var(--scanline) 2px,
+          var(--scanline) 4px
+        );
+      opacity: 0.4;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      background: radial-gradient(
+        ellipse at center,
+        transparent 50%,
+        rgba(0, 0, 0, 0.55) 100%
+      );
+    }
+
+    .boot {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      color: var(--accent);
+      font-size: 1.1rem;
+      letter-spacing: 0.08em;
+      transition: opacity 0.6s ease, visibility 0.6s;
+    }
+
+    .boot.done {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .boot .cursor {
+      display: inline-block;
+      width: 0.55em;
+      height: 1.1em;
+      background: var(--accent);
+      margin-left: 4px;
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+      box-shadow: var(--glow);
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { text-shadow: 0 0 6px rgba(51, 255, 102, 0.4); }
+      50% { text-shadow: 0 0 14px rgba(51, 255, 102, 0.7); }
+    }
+
+    .shell {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 4rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Title bar */
+    .titlebar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.9rem;
+      background: #121a12;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      font-size: 0.75rem;
+      color: var(--fg-dim);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .dot.r { background: #ff5f56; }
+    .dot.y { background: #ffbd2e; }
+    .dot.g { background: #27c93f; }
+
+    .titlebar .path {
+      margin-left: 0.75rem;
+      color: var(--accent-dim);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .terminal {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 0 0 8px 8px;
+      padding: 1.5rem 1.35rem 2rem;
+      box-shadow:
+        0 0 0 1px rgba(51, 255, 102, 0.04),
+        0 24px 60px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(51, 255, 102, 0.06);
+      animation: fadeUp 0.7s ease 0.15s both;
+    }
+
+    .prompt-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 1.75rem;
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+    }
+
+    .prompt-user { color: var(--accent); font-weight: 600; }
+    .prompt-at { color: var(--fg-muted); }
+    .prompt-host { color: var(--cyan); }
+    .prompt-colon { color: var(--fg-muted); }
+    .prompt-path { color: var(--amber); }
+    .prompt-dollar { color: var(--accent); margin-right: 0.35rem; }
+    .prompt-cmd {
+      color: var(--fg);
+      animation: glowPulse 3s ease-in-out infinite;
+    }
+
+    header.hero {
+      margin-bottom: 2.25rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .ascii {
+      font-family: var(--font-display);
+      font-size: clamp(0.7rem, 2vw, 0.9rem);
+      line-height: 1.35;
+      color: var(--accent);
+      white-space: pre;
+      overflow-x: auto;
+      margin: 0 0 1rem;
+      text-shadow: 0 0 8px rgba(51, 255, 102, 0.45);
+      letter-spacing: 0.02em;
+    }
+
+    .meta {
+      color: var(--fg-dim);
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .meta span { color: var(--amber-dim); }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.35rem, 3.5vw, 1.85rem);
+      font-weight: 400;
+      color: var(--accent);
+      margin: 0 0 0.75rem;
+      letter-spacing: 0.04em;
+      text-shadow: 0 0 10px rgba(51, 255, 102, 0.35);
+    }
+
+    h1::before {
+      content: "# ";
+      color: var(--fg-muted);
+      text-shadow: none;
+    }
+
+    .lede {
+      color: var(--fg);
+      max-width: 62ch;
+      margin: 0;
+    }
+
+    .lede + .lede { margin-top: 0.85rem; }
+
+    /* TOC */
+    nav.toc {
+      margin: 0 0 2.5rem;
+      padding: 1rem 1.1rem;
+      border: 1px solid var(--border);
+      background: rgba(0, 20, 0, 0.35);
+    }
+
+    nav.toc .toc-label {
+      color: var(--amber);
+      font-size: 0.8rem;
+      margin-bottom: 0.65rem;
+      letter-spacing: 0.06em;
+    }
+
+    nav.toc .toc-label::before { content: "> "; color: var(--accent); }
+
+    nav.toc ol {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: toc;
+    }
+
+    nav.toc li {
+      counter-increment: toc;
+      margin: 0.25rem 0;
+    }
+
+    nav.toc a {
+      color: var(--fg);
+      text-decoration: none;
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.2rem 0;
+      transition: color 0.15s, text-shadow 0.15s;
+    }
+
+    nav.toc a::before {
+      content: counter(toc, decimal-leading-zero);
+      color: var(--fg-muted);
+      font-size: 0.8rem;
+      min-width: 1.6em;
+    }
+
+    nav.toc a:hover {
+      color: var(--accent);
+      text-shadow: var(--glow);
+    }
+
+    nav.toc a:focus-visible {
+      outline: 1px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    section {
+      margin-bottom: 2.75rem;
+      scroll-margin-top: 1.5rem;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    section:nth-of-type(1) { animation-delay: 0.05s; }
+    section:nth-of-type(2) { animation-delay: 0.1s; }
+    section:nth-of-type(3) { animation-delay: 0.15s; }
+
+    h2 {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 400;
+      color: var(--amber);
+      margin: 0 0 1rem;
+      letter-spacing: 0.03em;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h2::before {
+      content: "## ";
+      color: var(--fg-muted);
+    }
+
+    h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--cyan);
+      margin: 1.35rem 0 0.5rem;
+    }
+
+    h3::before {
+      content: "### ";
+      color: var(--fg-muted);
+      font-weight: 400;
+    }
+
+    p { margin: 0 0 0.9rem; max-width: 68ch; }
+
+    ul, ol {
+      margin: 0 0 1rem;
+      padding-left: 0;
+      list-style: none;
+      max-width: 68ch;
+    }
+
+    ul li, ol li {
+      position: relative;
+      padding-left: 1.4rem;
+      margin-bottom: 0.4rem;
+    }
+
+    ul li::before {
+      content: "▸";
+      position: absolute;
+      left: 0;
+      color: var(--accent-dim);
+    }
+
+    ol.questions {
+      counter-reset: q;
+    }
+
+    ol.questions li {
+      counter-increment: q;
+      padding-left: 2rem;
+    }
+
+    ol.questions li::before {
+      content: "[" counter(q) "]";
+      position: absolute;
+      left: 0;
+      color: var(--amber-dim);
+      font-size: 0.85rem;
+    }
+
+    /* Comparison table */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 1rem 0 1.25rem;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      min-width: 640px;
+    }
+
+    thead th {
+      background: rgba(51, 255, 102, 0.08);
+      color: var(--accent);
+      text-align: left;
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--accent-dim);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      color: var(--fg);
+    }
+
+    tbody tr:hover td {
+      background: rgba(51, 255, 102, 0.04);
+    }
+
+    tbody td:first-child {
+      color: var(--amber);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* ASCII diagrams / code */
+    .diagram,
+    pre.code {
+      margin: 1rem 0 1.25rem;
+      padding: 1rem 1.1rem;
+      background: #050805;
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-dim);
+      overflow-x: auto;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      line-height: 1.4;
+      color: var(--fg-dim);
+      position: relative;
+    }
+
+    .diagram::before,
+    pre.code::before {
+      content: attr(data-label);
+      display: block;
+      color: var(--fg-muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.65rem;
+    }
+
+    .diagram {
+      color: var(--accent);
+      text-shadow: 0 0 4px rgba(51, 255, 102, 0.2);
+      white-space: pre;
+    }
+
+    pre.code {
+      color: var(--cyan);
+      white-space: pre;
+      margin: 0;
+    }
+
+    pre.code .prompt {
+      color: var(--accent-dim);
+      user-select: none;
+    }
+
+    .callout {
+      margin: 1.25rem 0;
+      padding: 0.85rem 1rem;
+      border: 1px dashed var(--amber-dim);
+      background: rgba(232, 197, 71, 0.05);
+      color: var(--fg);
+      font-size: 0.9rem;
+      max-width: 68ch;
+    }
+
+    .callout::before {
+      content: "[note] ";
+      color: var(--amber);
+      font-weight: 600;
+    }
+
+    .ctx-badge {
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.15rem 0.5rem;
+      border: 1px solid var(--accent-dim);
+      color: var(--accent);
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+    }
+
+    hr.sep {
+      border: none;
+      border-top: 1px dashed var(--border);
+      margin: 2rem 0;
+    }
+
+    footer.term-footer {
+      margin-top: 2rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      color: var(--fg-muted);
+      font-size: 0.8rem;
+    }
+
+    footer.term-footer .prompt-line {
+      margin-bottom: 0.5rem;
+    }
+
+    .choosing p {
+      border-left: 2px solid var(--border);
+      padding-left: 0.9rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .choosing p strong {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    @media (max-width: 600px) {
+      .shell { padding: 0.75rem 0.5rem 3rem; }
+      .terminal { padding: 1.1rem 0.85rem 1.5rem; }
+      body { font-size: 14px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="boot" id="boot" aria-hidden="true">
+    <span>booting docs<span class="cursor"></span></span>
+  </div>
+
+  <div class="shell">
+    <div class="titlebar" aria-hidden="true">
+      <span class="dot r"></span>
+      <span class="dot y"></span>
+      <span class="dot g"></span>
+      <span class="path">contextgrid — docs/PYTHON_APP_RUN_MODES.md</span>
+    </div>
+
+    <main class="terminal">
+      <div class="prompt-line" aria-hidden="true">
+        <span class="prompt-user">user</span><span class="prompt-at">@</span><span class="prompt-host">contextgrid</span><span class="prompt-colon">:</span><span class="prompt-path">~/docs</span>
+        <span class="prompt-dollar">$</span>
+        <span class="prompt-cmd">cat PYTHON_APP_RUN_MODES.md</span>
+      </div>
+
+      <header class="hero">
+        <pre class="ascii" aria-hidden="true">╔══════════════════════════════════════════════════╗
+║  PYTHON APP RUN MODES                            ║
+║  ──────────────────────────────────────────────  ║
+║  architecture map  ·  cli / web / desktop / api  ║
+╚══════════════════════════════════════════════════╝</pre>
+        <p class="meta"><span>FILE</span> PYTHON_APP_RUN_MODES.md &nbsp;·&nbsp; <span>TYPE</span> guide &nbsp;·&nbsp; <span>SCOPE</span> architecture patterns</p>
+        <h1>Python App Run Modes</h1>
+        <p class="lede">
+          This guide explains common ways to run Python applications, especially when
+          they include a user interface. It is meant as a practical map for recognizing
+          what kind of app you are looking at when an AI tool creates a project for you.
+        </p>
+        <p class="lede">
+          Python can be the whole app, the backend of a larger app, or just one part of
+          a multi-language system. The right structure depends on how interactive the UI
+          needs to be, where the app will run, and how many clients need to talk to the
+          same data.
+        </p>
+      </header>
+
+      <nav class="toc" aria-label="Table of contents">
+        <div class="toc-label">ls sections/</div>
+        <ol>
+          <li><a href="#comparison">Quick Comparison</a></li>
+          <li><a href="#cli">Option 1: CLI-Only Python App</a></li>
+          <li><a href="#ssr">Option 2: Server-Rendered HTML</a></li>
+          <li><a href="#api-react">Option 3: API Plus React Frontend</a></li>
+          <li><a href="#desktop">Option 4: Python Desktop App</a></li>
+          <li><a href="#shell">Option 5: Backend Plus Desktop Shell</a></li>
+          <li><a href="#contextgrid">How ContextGrid Fits In</a></li>
+          <li><a href="#choosing">Choosing A Structure</a></li>
+          <li><a href="#questions">Questions To Ask</a></li>
+        </ol>
+      </nav>
+
+      <section id="comparison">
+        <h2>Quick Comparison</h2>
+        <div class="table-wrap" role="region" aria-label="Architecture comparison table" tabindex="0">
+          <table>
+            <thead>
+              <tr>
+                <th>Shape</th>
+                <th>Main UI</th>
+                <th>Backend</th>
+                <th>Best For</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>CLI-only Python app</td>
+                <td>Terminal</td>
+                <td>Python</td>
+                <td>Scripts, tools, automation, local workflows</td>
+              </tr>
+              <tr>
+                <td>Python web app (SSR HTML)</td>
+                <td>Browser</td>
+                <td>Python</td>
+                <td>Dashboards, admin tools, read-heavy apps, simple forms</td>
+              </tr>
+              <tr>
+                <td>Python API + React</td>
+                <td>Browser</td>
+                <td>Python + JS/TS</td>
+                <td>Highly interactive apps, rich client state, polished web products</td>
+              </tr>
+              <tr>
+                <td>Python desktop app</td>
+                <td>Native window</td>
+                <td>Python</td>
+                <td>Local tools, offline workflows, file utilities</td>
+              </tr>
+              <tr>
+                <td>Python backend + desktop shell</td>
+                <td>Desktop + web UI</td>
+                <td>Python + web frontend</td>
+                <td>Desktop apps that want modern web-style UI</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <hr class="sep" />
+
+      <section id="cli">
+        <h2>Option 1: CLI-Only Python App</h2>
+        <div class="diagram" data-label="flow">User
+  |
+  v
+Terminal command
+  |
+  v
+Python code
+  |
+  v
+Files / database / APIs</div>
+        <p>
+          A CLI-only app is controlled through terminal commands. There is no browser UI
+          or desktop window.
+        </p>
+        <p>
+          This is often the simplest structure because Python can directly handle the
+          command, run business logic, and read or write data.
+        </p>
+        <h3>Good fit when</h3>
+        <ul>
+          <li>The app is mainly for one person or a technical user.</li>
+          <li>The workflow is command-driven, repeatable, or scriptable.</li>
+          <li>You want minimal moving parts.</li>
+          <li>The app works well as part of shell scripts or automation.</li>
+        </ul>
+        <h3>Common tools</h3>
+        <ul>
+          <li><code>argparse</code>, <code>click</code>, or <code>typer</code> for command parsing.</li>
+          <li>SQLite, JSON, CSV, or local files for storage.</li>
+          <li><code>uv</code> for dependency and script management.</li>
+        </ul>
+        <h3>Example shape</h3>
+        <pre class="code" data-label="shell"><span class="prompt">$</span> python src/main.py list
+<span class="prompt">$</span> python src/main.py add "New project"</pre>
+        <p class="ctx-badge">CONTEXTGRID</p>
+        <p>ContextGrid has this mode through its CLI in <code>src/main.py</code> and <code>src/cli.py</code>.</p>
+      </section>
+
+      <hr class="sep" />
+
+      <section id="ssr">
+        <h2>Option 2: Python Web App With Server-Rendered HTML</h2>
+        <div class="diagram" data-label="flow">Browser
+  |
+  v
+Python web server
+  |
+  v
+HTML templates
+  |
+  v
+Database / files / APIs</div>
+        <p>
+          In this structure, Python serves complete HTML pages to the browser. The
+          frontend is usually built with templates rather than a separate React app.
+        </p>
+        <p>
+          This is the structure used by many Flask, Django, and FastAPI + Jinja apps.
+          The browser receives HTML, CSS, and maybe a small amount of JavaScript.
+        </p>
+        <h3>Good fit when</h3>
+        <ul>
+          <li>The UI is mostly pages, lists, forms, dashboards, or reports.</li>
+          <li>You want a browser interface without maintaining a separate frontend app.</li>
+          <li>The app does not need complex client-side state.</li>
+          <li>You want the backend and frontend logic to stay close together.</li>
+        </ul>
+        <h3>Common tools</h3>
+        <ul>
+          <li>FastAPI, Flask, or Django for the web server.</li>
+          <li>Jinja2 or Django templates for HTML rendering.</li>
+          <li>Static CSS and JavaScript for styling and light interaction.</li>
+          <li>Uvicorn or Gunicorn for serving the app.</li>
+        </ul>
+        <h3>Example shape</h3>
+        <pre class="code" data-label="shell"><span class="prompt">$</span> uv run uvicorn web.app:app --host 0.0.0.0 --port 8081</pre>
+        <p class="ctx-badge">CONTEXTGRID</p>
+        <p>
+          ContextGrid uses this pattern for its web UI. The browser talks to
+          <code>web/app.py</code>, and <code>web/app.py</code> renders templates from <code>web/templates</code>.
+        </p>
+        <div class="callout">
+          This does not mean the app has no frontend. It means the frontend is rendered
+          by Python on the server instead of compiled from a JavaScript framework.
+        </div>
+      </section>
+
+      <hr class="sep" />
+
+      <section id="api-react">
+        <h2>Option 3: Python API Plus React Frontend</h2>
+        <div class="diagram" data-label="flow">Browser
+  |
+  v
+React app
+  |
+  v
+HTTP requests
+  |
+  v
+Python API
+  |
+  v
+Database / files / external services</div>
+        <p>
+          This is a split frontend/backend architecture. Python exposes an API, and
+          React controls the browser experience.
+        </p>
+        <p>
+          The Python side usually returns JSON instead of full HTML pages. The React
+          side handles screens, navigation, form state, loading states, client-side
+          interactions, and visual components.
+        </p>
+        <h3>Good fit when</h3>
+        <ul>
+          <li>The frontend is highly interactive.</li>
+          <li>You want a polished single-page app experience.</li>
+          <li>The app has complex UI state, drag-and-drop, realtime updates, charts, maps, editors, or rich controls.</li>
+          <li>You want to share the same API with a mobile app, desktop app, or other clients later.</li>
+          <li>The project benefits from the JavaScript and TypeScript ecosystem.</li>
+        </ul>
+        <h3>Common tools</h3>
+        <ul>
+          <li>FastAPI or Django REST Framework for the Python API.</li>
+          <li>React, Next.js, Vite, or Remix for the frontend.</li>
+          <li><code>fetch</code>, Axios, TanStack Query, or similar libraries for API calls.</li>
+          <li>OpenAPI schemas to document the API contract.</li>
+        </ul>
+        <h3>Example development shape</h3>
+        <pre class="code" data-label="shell"><span class="prompt">$</span> uv run uvicorn api.server:app --port 8000
+<span class="prompt">$</span> npm run dev</pre>
+        <p>In this setup, there are usually two development servers:</p>
+        <ul>
+          <li>The Python API server.</li>
+          <li>The JavaScript frontend dev server.</li>
+        </ul>
+        <p>This adds complexity, but it can make the UI much more capable.</p>
+      </section>
+
+      <hr class="sep" />
+
+      <section id="desktop">
+        <h2>Option 4: Python Desktop App</h2>
+        <div class="diagram" data-label="flow">User
+  |
+  v
+Desktop window
+  |
+  v
+Python UI framework
+  |
+  v
+Python logic
+  |
+  v
+Files / database / APIs</div>
+        <p>
+          A desktop app runs as a native application on the user's machine. Instead of
+          opening a browser tab, the user opens an app window.
+        </p>
+        <h3>Good fit when</h3>
+        <ul>
+          <li>The app is local-first or offline-first.</li>
+          <li>The app works heavily with local files.</li>
+          <li>You want a familiar desktop-window experience.</li>
+          <li>You do not need the app to be accessed from many devices at once.</li>
+        </ul>
+        <h3>Common tools</h3>
+        <ul>
+          <li>Tkinter for simple built-in desktop interfaces.</li>
+          <li>PySide or PyQt for fuller native desktop apps.</li>
+          <li>Kivy for touch-oriented or cross-platform UI.</li>
+          <li>Toga or BeeWare for native cross-platform packaging.</li>
+        </ul>
+        <h3>Example shape</h3>
+        <pre class="code" data-label="shell"><span class="prompt">$</span> uv run python app.py</pre>
+        <p>
+          Desktop apps can feel simpler for local tools, but packaging can become its own
+          project. Creating installers for Windows, macOS, and Linux often takes more
+          care than running a web app locally.
+        </p>
+      </section>
+
+      <hr class="sep" />
+
+      <section id="shell">
+        <h2>Option 5: Python Backend Plus Desktop Shell</h2>
+        <div class="diagram" data-label="flow">Desktop app shell
+  |
+  v
+Web-based UI
+  |
+  v
+Python backend
+  |
+  v
+Files / database / APIs</div>
+        <p>
+          Some desktop apps are really web apps packaged inside a desktop shell. The UI
+          is built with web technology, while Python handles local logic or data.
+        </p>
+        <h3>Good fit when</h3>
+        <ul>
+          <li>You want a modern web-style UI in a desktop app.</li>
+          <li>The app needs local filesystem access.</li>
+          <li>You want to reuse a React or HTML frontend.</li>
+          <li>You want the app to feel installable rather than browser-based.</li>
+        </ul>
+        <h3>Common tools</h3>
+        <ul>
+          <li>Electron or Tauri for the desktop shell.</li>
+          <li>React, Vue, Svelte, or plain HTML/CSS for the UI.</li>
+          <li>FastAPI, Flask, or a local Python process for backend logic.</li>
+        </ul>
+        <p>
+          This can be powerful, but it has more moving parts than a pure Python desktop
+          app or a pure Python web app.
+        </p>
+      </section>
+
+      <hr class="sep" />
+
+      <section id="contextgrid">
+        <h2>How ContextGrid Fits In</h2>
+        <p>ContextGrid is a Python-first app with multiple access paths:</p>
+        <div class="diagram" data-label="cli path">CLI
+  |
+  v
+Python models
+  |
+  v
+API or direct database access</div>
+        <div class="diagram" data-label="browser path">Browser
+  |
+  v
+FastAPI web UI
+  |
+  v
+FastAPI API server
+  |
+  v
+Database</div>
+        <p>
+          The important idea is that ContextGrid is not using React because the web UI is
+          not the main source of complexity. The app is centered around project data,
+          CLI workflows, local-first usage, and a simple browser dashboard.
+        </p>
+        <p>That makes server-rendered FastAPI a reasonable choice:</p>
+        <ul>
+          <li>One main language: Python.</li>
+          <li>Fewer build tools.</li>
+          <li>Easy access to existing Python models and API clients.</li>
+          <li>A simple web UI that does not need a full frontend framework.</li>
+        </ul>
+        <p>
+          If ContextGrid later needed heavy browser interaction, a React frontend could
+          be added without throwing away the Python API. The API would become the stable
+          contract, and React would become another client.
+        </p>
+      </section>
+
+      <hr class="sep" />
+
+      <section id="choosing" class="choosing">
+        <h2>Choosing A Structure</h2>
+        <p><strong>CLI</strong> — when the app is mostly a tool.</p>
+        <p><strong>Server-rendered Python HTML</strong> — when the app needs a practical browser UI but does not need lots of client-side interaction.</p>
+        <p><strong>Python plus React</strong> — when the browser experience is the product and the UI needs to feel dynamic, fast, and component-driven.</p>
+        <p><strong>Desktop UI</strong> — when the app is mainly local, offline, or file-centered.</p>
+        <p><strong>Desktop shell + web frontend</strong> — when you want installable desktop behavior with a modern web UI.</p>
+      </section>
+
+      <hr class="sep" />
+
+      <section id="questions">
+        <h2>Questions To Ask When Looking At An App</h2>
+        <ol class="questions">
+          <li>Where does the user interface live: terminal, browser, or desktop window?</li>
+          <li>Does the backend return HTML pages or JSON data?</li>
+          <li>Is there one server process or separate frontend and backend servers?</li>
+          <li>Is the database accessed directly by Python or through an API?</li>
+          <li>Is the frontend mostly static pages, simple forms, or rich interactive state?</li>
+          <li>Can more than one kind of client use the same backend?</li>
+        </ol>
+        <p>Those questions usually reveal the real structure quickly.</p>
+      </section>
+
+      <footer class="term-footer">
+        <div class="prompt-line" aria-hidden="true">
+          <span class="prompt-user">user</span><span class="prompt-at">@</span><span class="prompt-host">contextgrid</span><span class="prompt-colon">:</span><span class="prompt-path">~/docs</span>
+          <span class="prompt-dollar">$</span>
+          <span class="cursor" style="display:inline-block;width:0.55em;height:1em;background:var(--accent);vertical-align:text-bottom;animation:blink 1s step-end infinite;box-shadow:var(--glow);"></span>
+        </div>
+        <p>EOF — ContextGrid docs · open locally or serve as a static file</p>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      var boot = document.getElementById("boot");
+      if (!boot) return;
+      var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.setTimeout(function () {
+        boot.classList.add("done");
+      }, reduce ? 0 : 900);
+    })();
+  </script>
+</body>
+</html>
