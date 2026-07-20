@@ -87,6 +87,8 @@ export interface Project {
   created_at: string;
   last_worked_at: string | null;
   is_archived: number;
+  /** Incomplete checklist tasks for this project (badge count). */
+  open_task_count?: number;
 }
 
 export interface ProjectInput {

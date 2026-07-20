@@ -155,6 +155,8 @@ export default function Projects() {
 }
 
 function ProjectCard({ project }: { project: Project }) {
+  const openTasks = project.open_task_count ?? 0;
+
   return (
     <Link
       to={`/projects/${project.id}`}
@@ -164,7 +166,18 @@ function ProjectCard({ project }: { project: Project }) {
         <ProjectThumbnail project={project} />
         <CardContent className="flex-1 space-y-3">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-lg font-semibold leading-tight">{project.name}</h3>
+            <h3 className="flex items-center gap-2 text-lg font-semibold leading-tight">
+              <span>{project.name}</span>
+              {openTasks > 0 && (
+                <span
+                  className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-semibold leading-none text-white"
+                  aria-label={`${openTasks} open task${openTasks === 1 ? "" : "s"}`}
+                  title={`${openTasks} open task${openTasks === 1 ? "" : "s"}`}
+                >
+                  {openTasks > 99 ? "99+" : openTasks}
+                </span>
+              )}
+            </h3>
             <StatusBadge status={project.status} />
           </div>
           {project.description && (

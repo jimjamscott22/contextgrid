@@ -20,18 +20,23 @@ export function TasksPanel({ projectId }: { projectId: number }) {
     mutationFn: () => api.createProjectTask(projectId, title),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.projectTasks(projectId) });
+      qc.invalidateQueries({ queryKey: ["projects"] });
       setTitle("");
     },
   });
   const toggleMut = useMutation({
     mutationFn: (id: number) => api.toggleProjectTask(id),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: qk.projectTasks(projectId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.projectTasks(projectId) });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+    },
   });
   const deleteMut = useMutation({
     mutationFn: (id: number) => api.deleteProjectTask(id),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: qk.projectTasks(projectId) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.projectTasks(projectId) });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+    },
   });
 
   return (

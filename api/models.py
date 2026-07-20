@@ -72,7 +72,8 @@ class ProjectResponse(ProjectBase):
     created_at: str
     last_worked_at: Optional[str] = None
     is_archived: int = 0
-    
+    open_task_count: int = 0
+
     class Config:
         from_attributes = True
 

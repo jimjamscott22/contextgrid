@@ -184,7 +184,10 @@ def list_projects(
 ) -> List[Dict[str, Any]]:
     """
     List projects with optional filtering and pagination.
-    
+
+    Each project includes ``open_task_count``: incomplete checklist tasks
+    (``project_tasks.is_completed = 0``).
+
     Returns:
         List of project dictionaries
     """
@@ -192,16 +195,23 @@ def list_projects(
     valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
     if sort_by not in valid_sort_fields:
         sort_by = "last_worked_at"
-    
+
     sort_order = sort_order.upper()
     if sort_order not in ["ASC", "DESC"]:
         sort_order = "DESC"
-    
+
+    # Correlated count of incomplete checklist tasks for badge notifications
+    open_task_expr = """(
+                SELECT COUNT(*)
+                FROM project_tasks task
+                WHERE task.project_id = p.id AND task.is_completed = 0
+            ) AS open_task_count"""
+
     with get_db_cursor() as cursor:
         if tag:
             # Query with tag filter
-            query = """
-                SELECT DISTINCT p.*
+            query = f"""
+                SELECT DISTINCT p.*, {open_task_expr}
                 FROM projects p
                 JOIN project_tags pt ON p.id = pt.project_id
                 JOIN tags t ON pt.tag_id = t.id
@@ -210,42 +220,51 @@ def list_projects(
             params = [tag]
         else:
             # Query without tag filter
-            query = "SELECT * FROM projects WHERE is_archived = 0"
+            query = f"""
+                SELECT p.*, {open_task_expr}
+                FROM projects p
+                WHERE p.is_archived = 0
+            """
             params = []
-        
+
         if status:
-            query += " AND status = %s" if tag else " AND status = %s"
+            query += " AND p.status = %s" if tag else " AND p.status = %s"
             params.append(status)
-        
-        # Add ORDER BY clause
+
+        # Add ORDER BY clause (qualify columns for JOIN queries)
         if sort_by == "last_worked_at":
-            query += f" ORDER BY CASE WHEN last_worked_at IS NULL THEN 0 ELSE 1 END {sort_order}, last_worked_at {sort_order}"
+            query += (
+                f" ORDER BY CASE WHEN p.last_worked_at IS NULL THEN 0 ELSE 1 END"
+                f" {sort_order}, p.last_worked_at {sort_order}"
+            )
         else:
-            query += f" ORDER BY {sort_by} {sort_order}"
-        
+            query += f" ORDER BY p.{sort_by} {sort_order}"
+
         # Add secondary sort
         if sort_by != "created_at":
-            query += ", created_at DESC"
-        
+            query += ", p.created_at DESC"
+
         # Add pagination
         if limit is not None:
             query += " LIMIT %s"
             params.append(limit)
-            
+
             if offset is not None:
                 query += " OFFSET %s"
                 params.append(offset)
-        
+
         cursor.execute(query, params)
         rows = cursor.fetchall()
-        
+
         # Convert datetime objects to ISO format strings
         for row in rows:
             if row['created_at']:
                 row['created_at'] = row['created_at'].isoformat()
             if row['last_worked_at']:
                 row['last_worked_at'] = row['last_worked_at'].isoformat()
-        
+            # MySQL may return Decimal for COUNT; normalize to int
+            row['open_task_count'] = int(row.get('open_task_count') or 0)
+
         return rows
 
 
