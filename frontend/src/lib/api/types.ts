@@ -5,16 +5,33 @@ export const PROJECT_STATUSES: readonly ProjectStatus[] = [
   "archived",
 ];
 
-export const PROJECT_TYPES: readonly ProjectType[] = [
-  "web",
+export const PROJECT_TYPES = [
+  "web-app",
   "cli",
-  "library",
-  "school",
-  "homelab",
-  "desktop",
+  "documentation",
+  "college",
+  "desktop-app",
+  "pwa",
   "llm-integrated",
-  "other",
-];
+  "website",
+] as const;
+
+export type ProjectType = (typeof PROJECT_TYPES)[number];
+
+export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
+  "web-app": "Web App",
+  cli: "CLI",
+  documentation: "Documentation",
+  college: "College",
+  "desktop-app": "Desktop",
+  pwa: "PWA",
+  "llm-integrated": "LLM-based/integrated",
+  website: "Website",
+};
+
+export function projectTypeLabel(value: string): string {
+  return PROJECT_TYPE_LABELS[value as ProjectType] ?? value;
+}
 
 export const SCOPE_SIZES: readonly ScopeSize[] = ["tiny", "medium", "long-haul"];
 
@@ -48,16 +65,6 @@ export const RELATIONSHIP_TYPES: readonly RelationshipType[] = [
 ];
 
 export type ProjectStatus = "idea" | "active" | "paused" | "archived";
-
-export type ProjectType =
-  | "web"
-  | "cli"
-  | "library"
-  | "school"
-  | "homelab"
-  | "desktop"
-  | "llm-integrated"
-  | "other";
 
 export type ScopeSize = "tiny" | "medium" | "long-haul";
 

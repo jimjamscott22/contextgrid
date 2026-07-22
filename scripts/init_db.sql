@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS projects (
     description TEXT,
 
     status TEXT NOT NULL,                -- idea, active, paused, archived
-    project_type TEXT,                   -- web, cli, library, homelab, research
+    project_type TEXT,                   -- web-app, cli, documentation, college, desktop-app, pwa, llm-integrated, website
 
     primary_language TEXT,               -- Python, Java, JS, etc
     stack TEXT,                          -- FastAPI + SQLite, React, etc
@@ -107,3 +107,18 @@ CREATE INDEX IF NOT EXISTS idx_project_readme_snapshots_project_id ON project_re
 CREATE INDEX IF NOT EXISTS idx_project_notes_created_at ON project_notes(created_at);
 CREATE INDEX IF NOT EXISTS idx_project_notes_task_status ON project_notes(task_status);
 CREATE INDEX IF NOT EXISTS idx_project_notes_project_created ON project_notes(project_id, created_at);
+
+-- =========================
+-- Project Type Migration (idempotent)
+-- =========================
+UPDATE projects
+SET project_type = CASE project_type
+    WHEN 'web' THEN 'web-app'
+    WHEN 'library' THEN 'documentation'
+    WHEN 'school' THEN 'college'
+    WHEN 'homelab' THEN 'desktop-app'
+    WHEN 'desktop' THEN 'pwa'
+    WHEN 'other' THEN 'website'
+    ELSE project_type
+END
+WHERE project_type IN ('web', 'library', 'school', 'homelab', 'desktop', 'other');

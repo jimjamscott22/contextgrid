@@ -98,7 +98,7 @@
             <span class="meta-item">💻 {{ project.primary_language }}</span>
             {% endif %}
             {% if project.project_type %}
-            <span class="meta-item">📁 {{ project.project_type }}</span>
+            <span class="meta-item">📁 {{ project_type_label(project.project_type) }}</span>
             {% endif %}
             {% if project.scope_size %}
             <span class="meta-item">📏 {{ project.scope_size }}</span>

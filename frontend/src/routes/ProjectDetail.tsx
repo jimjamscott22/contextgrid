@@ -29,7 +29,7 @@ import { ScreenshotsPanel } from "@/components/project/ScreenshotsPanel";
 import { ReadmePanel } from "@/components/project/ReadmePanel";
 import { useToast } from "@/components/Toast";
 import { formatDate, relativeTime } from "@/lib/format";
-import type { ProjectInput } from "@/lib/api/types";
+import { projectTypeLabel, type ProjectInput } from "@/lib/api/types";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -127,7 +127,10 @@ export default function ProjectDetail() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-4">
-            <Meta label="Type" value={project.project_type ?? "—"} />
+            <Meta
+              label="Type"
+              value={project.project_type ? projectTypeLabel(project.project_type) : "—"}
+            />
             <Meta label="Language" value={project.primary_language ?? "—"} />
             <Meta label="Scope" value={project.scope_size ?? "—"} />
             <Meta label="Progress" value={`${project.progress}%`} />

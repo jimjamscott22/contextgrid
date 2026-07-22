@@ -39,8 +39,13 @@ def init_database():
         print(f"Executing {len(statements)} SQL statements...")
         
         for i, stmt in enumerate(statements, 1):
-            cursor.execute(stmt)
-            print(f"  {i}/{len(statements)} - OK")
+            try:
+                cursor.execute(stmt)
+                print(f"  {i}/{len(statements)} - OK")
+            except pymysql.err.OperationalError as exc:
+                if exc.args[0] not in (1060, 1061):
+                    raise
+                print(f"  {i}/{len(statements)} - already applied")
         
         conn.commit()
         print("\n✓ Database schema initialized successfully!")

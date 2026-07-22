@@ -5,6 +5,7 @@ import {
   PROJECT_STATUSES,
   PROJECT_TYPES,
   SCOPE_SIZES,
+  projectTypeLabel,
   type ProjectInput,
 } from "@/lib/api/types";
 import { Input, Select, Textarea } from "@/components/ui/Input";
@@ -14,19 +15,7 @@ const projectSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   description: z.string().optional().nullable(),
   status: z.enum(["idea", "active", "paused", "archived"]),
-  project_type: z
-    .enum([
-      "web",
-      "cli",
-      "library",
-      "school",
-      "homelab",
-      "desktop",
-      "llm-integrated",
-      "other",
-    ])
-    .nullable()
-    .optional(),
+  project_type: z.enum(PROJECT_TYPES).nullable().optional(),
   primary_language: z.string().nullable().optional(),
   stack: z.string().nullable().optional(),
   repo_url: z.string().nullable().optional(),
@@ -111,7 +100,7 @@ export function ProjectForm({
             <option value="">—</option>
             {PROJECT_TYPES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {projectTypeLabel(s)}
               </option>
             ))}
           </Select>

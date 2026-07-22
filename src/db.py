@@ -575,7 +575,11 @@ class MySQLBackend(DatabaseBackend):
         
         with self._get_cursor() as cursor:
             for statement in statements:
-                cursor.execute(statement)
+                try:
+                    cursor.execute(statement)
+                except pymysql.err.OperationalError as exc:
+                    if exc.args[0] not in (1060, 1061):
+                        raise
     
     def test_connection(self) -> Tuple[bool, Optional[str]]:
         """Test the database connection."""

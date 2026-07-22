@@ -21,6 +21,11 @@ src_path = Path(__file__).resolve().parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 from src.utils.paths import get_base_dir
+from src.project_types import (
+    PROJECT_TYPE_LABELS,
+    PROJECT_TYPE_VALUES,
+    project_type_label,
+)
 
 BASE_DIR = get_base_dir()
 ENV_FILE = BASE_DIR / ".env"
@@ -44,6 +49,11 @@ TEMPLATE_DIR = get_base_dir() / "web" / "templates"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 templates.env.globals["api_base_url"] = os.getenv("API_ENDPOINT", "http://localhost:8003").rstrip("/")
+templates.env.globals["project_type_label"] = project_type_label
+templates.env.globals["project_type_labels"] = PROJECT_TYPE_LABELS
+templates.env.globals["project_type_options"] = tuple(
+    (value, PROJECT_TYPE_LABELS[value]) for value in PROJECT_TYPE_VALUES
+)
 
 API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8003").rstrip("/")
 

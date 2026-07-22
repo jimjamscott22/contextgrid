@@ -55,7 +55,7 @@
                 {% if project.project_type %}
                 <tr>
                     <td class="label">Type</td>
-                    <td>{{ project.project_type }}</td>
+                    <td>{{ project_type_label(project.project_type) }}</td>
                 </tr>
                 {% endif %}
                 {% if project.primary_language %}

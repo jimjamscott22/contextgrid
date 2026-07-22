@@ -19,6 +19,7 @@ import { qk } from "@/lib/api/keys";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { LoadingState, ErrorState } from "@/components/ui/Empty";
 import { useTheme } from "@/components/ThemeProvider";
+import { projectTypeLabel } from "@/lib/api/types";
 
 const PALETTE = ["#60A5FA", "#A78BFA", "#34D399", "#FBBF24", "#F87171", "#22D3EE", "#FB7185", "#A3E635"];
 
@@ -86,7 +87,12 @@ export default function Analytics() {
 
         <ChartCard title="By type">
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={data.by_type}>
+            <BarChart
+              data={data.by_type.map((item) => ({
+                ...item,
+                label: projectTypeLabel(item.label),
+              }))}
+            >
               <CartesianGrid stroke={grid} strokeDasharray="3 3" />
               <XAxis dataKey="label" stroke={axis} />
               <YAxis stroke={axis} allowDecimals={false} />

@@ -115,6 +115,7 @@
 
     function renderGraph(data) {
         const themeColors = getThemeColors();
+        const projectTypeLabels = {{ project_type_labels | tojson }};
 
         // Transform nodes for vis.js
         const nodes = new vis.DataSet(data.nodes.map(node => ({
@@ -140,7 +141,7 @@
             title: `<strong>${node.label}</strong><br>` +
                    `Status: ${node.status}<br>` +
                    (node.primary_language ? `Language: ${node.primary_language}<br>` : '') +
-                   (node.project_type ? `Type: ${node.project_type}` : '')
+                   (node.project_type ? `Type: ${projectTypeLabels[node.project_type] || node.project_type}` : '')
         })));
 
         // Transform edges for vis.js

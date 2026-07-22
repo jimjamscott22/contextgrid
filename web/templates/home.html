@@ -110,7 +110,7 @@
                 <span class="meta-item">💻 {{ project.primary_language }}</span>
                 {% endif %}
                 {% if project.project_type %}
-                <span class="meta-item">📁 {{ project.project_type }}</span>
+                <span class="meta-item">📁 {{ project_type_label(project.project_type) }}</span>
                 {% endif %}
             </div>
             {% if project.progress is defined and project.progress %}

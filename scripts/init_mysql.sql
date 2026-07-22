@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS projects (
     description TEXT,
     
     status VARCHAR(50) NOT NULL DEFAULT 'idea',  -- idea, active, paused, archived
-    project_type VARCHAR(50),                     -- web, cli, library, homelab, research
+    project_type VARCHAR(50),                     -- web-app, cli, documentation, college, desktop-app, pwa, llm-integrated, website
     
     primary_language VARCHAR(100),                -- Python, Java, JS, etc
     stack TEXT,                                    -- FastAPI + SQLite, React, etc
@@ -203,6 +203,30 @@ CREATE TABLE IF NOT EXISTS project_tasks (
 ALTER TABLE project_notes ADD COLUMN task_status VARCHAR(20) NOT NULL DEFAULT 'active';
 ALTER TABLE projects ADD COLUMN folder_structure TEXT;
 ALTER TABLE projects ADD COLUMN folder_structure_img_url VARCHAR(2000);
+
+UPDATE projects
+SET project_type = CASE project_type
+    WHEN 'web' THEN 'web-app'
+    WHEN 'library' THEN 'documentation'
+    WHEN 'school' THEN 'college'
+    WHEN 'homelab' THEN 'desktop-app'
+    WHEN 'desktop' THEN 'pwa'
+    WHEN 'other' THEN 'website'
+    ELSE project_type
+END
+WHERE project_type IN ('web', 'library', 'school', 'homelab', 'desktop', 'other');
+
+UPDATE project_templates
+SET default_project_type = CASE default_project_type
+    WHEN 'web' THEN 'web-app'
+    WHEN 'library' THEN 'documentation'
+    WHEN 'school' THEN 'college'
+    WHEN 'homelab' THEN 'desktop-app'
+    WHEN 'desktop' THEN 'pwa'
+    WHEN 'other' THEN 'website'
+    ELSE default_project_type
+END
+WHERE default_project_type IN ('web', 'library', 'school', 'homelab', 'desktop', 'other');
 
 -- Performance indexes for notes / activity / tasks (idempotent via 1061 ignore)
 CREATE INDEX idx_project_notes_created_at ON project_notes (created_at);

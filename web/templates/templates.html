@@ -41,7 +41,7 @@
                     <tr><td class="label">Status</td><td><span class="badge badge-{{ tpl.default_status }}">{{ tpl.default_status }}</span></td></tr>
                     {% endif %}
                     {% if tpl.default_project_type %}
-                    <tr><td class="label">Type</td><td>{{ tpl.default_project_type }}</td></tr>
+                    <tr><td class="label">Type</td><td>{{ project_type_label(tpl.default_project_type) }}</td></tr>
                     {% endif %}
                     {% if tpl.default_primary_language %}
                     <tr><td class="label">Language</td><td>{{ tpl.default_primary_language }}</td></tr>
@@ -106,14 +106,9 @@
                     <label for="t-type">Project Type</label>
                     <select id="t-type" name="default_project_type" class="form-control">
                         <option value="">— Select —</option>
-                        <option value="web">Web</option>
-                        <option value="cli">CLI</option>
-                        <option value="library">Library</option>
-                        <option value="school">School</option>
-                        <option value="homelab">Homelab</option>
-                        <option value="desktop">Desktop App</option>
-                        <option value="llm-integrated">LLM-integrated</option>
-                        <option value="other">Other</option>
+                        {% for value, label in project_type_options %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
                     </select>
                 </div>
 

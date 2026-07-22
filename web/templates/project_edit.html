@@ -62,13 +62,9 @@
                 <label for="project_type">Project Type</label>
                 <select id="project_type" name="project_type" class="form-control">
                     <option value="">Select type...</option>
-                    <option value="web" {% if form_data.project_type == 'web' %}selected{% endif %}>Web</option>
-                    <option value="cli" {% if form_data.project_type == 'cli' %}selected{% endif %}>CLI</option>
-                    <option value="school" {% if form_data.project_type == 'school' %}selected{% endif %}>School</option>
-                    <option value="homelab" {% if form_data.project_type == 'homelab' %}selected{% endif %}>Homelab</option>
-                    <option value="desktop" {% if form_data.project_type == 'desktop' %}selected{% endif %}>Desktop App</option>
-                    <option value="llm-integrated" {% if form_data.project_type == 'llm-integrated' %}selected{% endif %}>LLM-integrated</option>
-                    <option value="other" {% if form_data.project_type == 'other' %}selected{% endif %}>Other</option>
+                    {% for value, label in project_type_options %}
+                    <option value="{{ value }}" {% if form_data.project_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>

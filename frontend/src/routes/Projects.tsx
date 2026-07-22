@@ -6,6 +6,7 @@ import { api } from "@/lib/api/endpoints";
 import { qk } from "@/lib/api/keys";
 import {
   PROJECT_STATUSES,
+  projectTypeLabel,
   type Project,
   type ProjectInput,
   type ProjectStatus,
@@ -199,7 +200,7 @@ function ProjectCard({ project }: { project: Project }) {
 
           <div className="flex flex-wrap gap-1.5">
             {project.project_type && (
-              <span className="cg-badge">{project.project_type}</span>
+              <span className="cg-badge">{projectTypeLabel(project.project_type)}</span>
             )}
             {project.primary_language && (
               <span className="cg-badge">{project.primary_language}</span>

@@ -8,6 +8,8 @@ from typing import Optional
 from datetime import datetime
 from urllib.parse import urlparse
 
+from src.project_types import PROJECT_TYPE_PATTERN
+
 
 def _validate_http_scheme(v: Optional[str]) -> Optional[str]:
     """Reject URLs with non-http(s) schemes (blocks javascript:, data:, file:, etc.)."""
@@ -27,7 +29,7 @@ class ProjectBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     status: str = Field(default="idea", pattern="^(idea|active|paused|archived)$")
-    project_type: Optional[str] = Field(None, pattern="^(web|cli|library|school|homelab|desktop|llm-integrated|other)?$")
+    project_type: Optional[str] = Field(None, pattern=PROJECT_TYPE_PATTERN)
     primary_language: Optional[str] = None
     stack: Optional[str] = None
     repo_url: Optional[str] = None
@@ -54,7 +56,7 @@ class ProjectUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     status: Optional[str] = Field(None, pattern="^(idea|active|paused|archived)$")
-    project_type: Optional[str] = Field(None, pattern="^(web|cli|library|school|homelab|desktop|llm-integrated|other)?$")
+    project_type: Optional[str] = Field(None, pattern=PROJECT_TYPE_PATTERN)
     primary_language: Optional[str] = None
     stack: Optional[str] = None
     repo_url: Optional[str] = None
@@ -388,7 +390,7 @@ class TemplateBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     default_status: str = Field(default="idea", pattern="^(idea|active|paused|archived)$")
-    default_project_type: Optional[str] = Field(None, pattern="^(web|cli|library|school|homelab|desktop|llm-integrated|other)?$")
+    default_project_type: Optional[str] = Field(None, pattern=PROJECT_TYPE_PATTERN)
     default_primary_language: Optional[str] = None
     default_stack: Optional[str] = None
     default_scope_size: Optional[str] = Field(None, pattern="^(tiny|medium|long-haul)?$")
@@ -406,7 +408,7 @@ class TemplateUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     default_status: Optional[str] = Field(None, pattern="^(idea|active|paused|archived)$")
-    default_project_type: Optional[str] = Field(None, pattern="^(web|cli|library|school|homelab|desktop|llm-integrated|other)?$")
+    default_project_type: Optional[str] = Field(None, pattern=PROJECT_TYPE_PATTERN)
     default_primary_language: Optional[str] = None
     default_stack: Optional[str] = None
     default_scope_size: Optional[str] = Field(None, pattern="^(tiny|medium|long-haul)?$")

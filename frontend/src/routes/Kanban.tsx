@@ -16,6 +16,7 @@ import { api } from "@/lib/api/endpoints";
 import { qk } from "@/lib/api/keys";
 import {
   PROJECT_STATUSES,
+  projectTypeLabel,
   type Project,
   type ProjectStatus,
 } from "@/lib/api/types";
@@ -215,7 +216,9 @@ function ProjectCardMini({
           <span className="cg-badge text-[10px]">{project.primary_language}</span>
         )}
         {project.project_type && (
-          <span className="cg-badge text-[10px]">{project.project_type}</span>
+          <span className="cg-badge text-[10px]">
+            {projectTypeLabel(project.project_type)}
+          </span>
         )}
       </div>
       <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-alt">

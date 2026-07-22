@@ -16,6 +16,7 @@ src_path = Path(__file__).resolve().parent.parent / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 from src.utils.paths import get_base_dir
+from src.project_types import project_type_label
 
 from api.config import config
 
@@ -997,6 +998,8 @@ def get_analytics() -> Dict[str, Any]:
             """
         )
         by_type = list(cursor.fetchall())
+        for item in by_type:
+            item['label'] = project_type_label(item['label'])
 
         # Activity over time (last 90 days, grouped by week)
         cursor.execute(
@@ -1500,4 +1503,3 @@ def delete_readme_snapshot(project_id: int) -> bool:
             (project_id,)
         )
         return cursor.rowcount > 0
-

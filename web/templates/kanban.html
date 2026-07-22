@@ -27,7 +27,7 @@
                     <div class="kanban-card-header">
                         <span class="kanban-card-name">{{ project.name }}</span>
                         {% if project.project_type %}
-                        <span class="badge badge-type">{{ project.project_type }}</span>
+                        <span class="badge badge-type">{{ project_type_label(project.project_type) }}</span>
                         {% endif %}
                     </div>
                     {% if project.primary_language %}

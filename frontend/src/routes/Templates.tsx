@@ -7,6 +7,7 @@ import {
   PROJECT_STATUSES,
   PROJECT_TYPES,
   SCOPE_SIZES,
+  projectTypeLabel,
   type Template,
 } from "@/lib/api/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -83,7 +84,9 @@ export default function Templates() {
               <div className="flex flex-wrap gap-1.5">
                 <span className="cg-badge">{t.default_status}</span>
                 {t.default_project_type && (
-                  <span className="cg-badge">{t.default_project_type}</span>
+                  <span className="cg-badge">
+                    {projectTypeLabel(t.default_project_type)}
+                  </span>
                 )}
                 {t.default_primary_language && (
                   <span className="cg-badge">{t.default_primary_language}</span>
@@ -200,7 +203,7 @@ function CreateTemplateDialog({
               <option value="">—</option>
               {PROJECT_TYPES.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {projectTypeLabel(s)}
                 </option>
               ))}
             </Select>

@@ -79,7 +79,7 @@ GET /api/projects?status=active&limit=10&sort_by=name&sort_order=asc
       "name": "ContextGrid",
       "description": "Personal project tracker",
       "status": "active",
-      "project_type": "web",
+      "project_type": "web-app",
       "primary_language": "Python",
       "stack": "FastAPI + MySQL",
       "repo_url": "https://github.com/user/contextgrid",
@@ -136,7 +136,7 @@ Create a new project.
   "name": "New Project",
   "description": "Project description",
   "status": "idea",
-  "project_type": "web",
+  "project_type": "web-app",
   "primary_language": "Python",
   "stack": "FastAPI",
   "repo_url": "https://github.com/user/project",
@@ -152,7 +152,7 @@ Create a new project.
 **Optional Fields:**
 - `description` (string): Project description
 - `status` (string): One of `idea`, `active`, `paused`, `archived`. Default: `idea`
-- `project_type` (string): One of `web`, `cli`, `school`, `homelab`, `desktop`
+- `project_type` (string): One of `web-app`, `cli`, `documentation`, `college`, `desktop-app`, `pwa`, `llm-integrated`, `website`
 - `primary_language` (string): Programming language
 - `stack` (string): Technology stack
 - `repo_url` (string): Repository URL
@@ -495,11 +495,14 @@ Currently, there is no rate limiting implemented. This may change in future vers
 - `archived`: Completed or abandoned
 
 ### Project Type Values
-- `web`: Web application
+- `web-app`: Web App
 - `cli`: Command-line tool
-- `school`: School project
-- `homelab`: Home lab infrastructure
-- `desktop`: Desktop application
+- `documentation`: Documentation
+- `college`: College
+- `desktop-app`: Desktop
+- `pwa`: Progressive Web App
+- `llm-integrated`: LLM-based/integrated
+- `website`: Website
 
 ### Scope Size Values
 - `tiny`: Quick, small project
