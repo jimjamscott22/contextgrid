@@ -99,7 +99,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### [ ] 4. Markdown Support in Notes
+### [x] 4. Markdown Support in Notes
 **Description:** Rich formatting for notes using Markdown
 
 **Features:**

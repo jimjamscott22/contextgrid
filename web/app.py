@@ -188,11 +188,17 @@ def _sanitize_html(content: str) -> str:
 
 def _render_markdown(content: str) -> str:
     """Render a Markdown string to safe HTML."""
+    if not content:
+        return ""
     rendered = md_lib.markdown(
         content,
         extensions=["fenced_code", "tables", "toc"],
     )
     return _sanitize_html(rendered)
+
+
+templates.env.filters["render_markdown"] = _render_markdown
+
 
 
 async def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:

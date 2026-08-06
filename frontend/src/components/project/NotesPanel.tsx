@@ -11,10 +11,12 @@ import { Markdown } from "@/components/Markdown";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/Empty";
 import { useToast } from "@/components/Toast";
 import { relativeTime } from "@/lib/format";
+import { cn } from "@/lib/cn";
 
 export function NotesPanel({ projectId }: { projectId: number }) {
   const [content, setContent] = useState("");
   const [noteType, setNoteType] = useState<NoteType>("log");
+  const [mode, setMode] = useState<"write" | "preview">("write");
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -29,6 +31,7 @@ export function NotesPanel({ projectId }: { projectId: number }) {
       qc.invalidateQueries({ queryKey: qk.notes(projectId) });
       qc.invalidateQueries({ queryKey: ["tasks"] });
       setContent("");
+      setMode("write");
     },
     onError: (e) => toast(`Add note failed: ${(e as Error).message}`, "error"),
   });
@@ -63,13 +66,54 @@ export function NotesPanel({ projectId }: { projectId: number }) {
           }}
           className="space-y-2"
         >
-          <Textarea
-            placeholder="Add a note... (markdown supported)"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={3}
-          />
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between border-b border-border pb-1.5 mb-2">
+            <div className="flex items-center gap-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setMode("write")}
+                className={cn(
+                  "rounded px-2.5 py-1 font-medium transition-colors",
+                  mode === "write"
+                    ? "bg-surface-alt text-fg font-semibold"
+                    : "text-fg-soft hover:text-fg"
+                )}
+              >
+                Write
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("preview")}
+                className={cn(
+                  "rounded px-2.5 py-1 font-medium transition-colors",
+                  mode === "preview"
+                    ? "bg-surface-alt text-fg font-semibold"
+                    : "text-fg-soft hover:text-fg"
+                )}
+              >
+                Preview
+              </button>
+            </div>
+            <span className="text-xs text-fg-soft">Markdown supported</span>
+          </div>
+
+          {mode === "write" ? (
+            <Textarea
+              placeholder="Add a note... (markdown supported)"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              rows={3}
+            />
+          ) : (
+            <div className="min-h-[5.5rem] rounded-md border border-border bg-surface p-3 text-sm">
+              {content.trim() ? (
+                <Markdown source={content} />
+              ) : (
+                <span className="text-fg-soft italic">Nothing to preview</span>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between gap-2 pt-1">
             <Select
               value={noteType}
               onChange={(e) => setNoteType(e.target.value as NoteType)}

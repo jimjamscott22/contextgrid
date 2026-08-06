@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/Badge";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui/Empty";
+import { Markdown } from "@/components/Markdown";
 import { useToast } from "@/components/Toast";
 import { relativeTime } from "@/lib/format";
 
@@ -105,7 +106,9 @@ export default function Tasks() {
                       {relativeTime(t.created_at)}
                     </span>
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-sm">{t.content}</p>
+                  <div className="mt-1">
+                    <Markdown source={t.content} />
+                  </div>
                 </div>
                 {t.task_status !== "archived" && (
                   <Button

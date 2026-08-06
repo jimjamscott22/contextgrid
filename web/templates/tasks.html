@@ -90,7 +90,7 @@
 
         {# Content #}
         <div class="task-body">
-            <p class="task-content">{{ task.content }}</p>
+            <div class="task-content">{{ task.content | render_markdown | safe }}</div>
             <div class="task-meta">
                 <span class="badge badge-note-{{ cls }}">{{ icon }} {{ type_label }}</span>
                 <a href="/projects/{{ task.project_id }}" class="task-project-link">{{ task.project_name }}</a>

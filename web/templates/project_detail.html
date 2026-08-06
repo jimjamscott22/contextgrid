@@ -212,7 +212,7 @@
                         </span>
                         <span class="note-date">{{ note.created_at[:19] }}</span>
                     </div>
-                    <div class="note-content">{{ note.content }}</div>
+                    <div class="note-content">{{ note.content | render_markdown | safe }}</div>
                 </div>
                 {% endfor %}
             </div>
