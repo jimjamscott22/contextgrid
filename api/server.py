@@ -134,7 +134,8 @@ async def list_projects(
     limit: Optional[int] = Query(None, ge=1),
     offset: Optional[int] = Query(None, ge=0),
     sort_by: str = Query("last_worked_at", pattern="^(name|created_at|last_worked_at|status)$"),
-    sort_order: str = Query("desc", pattern="^(asc|desc)$")
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
+    include_archived: bool = Query(False)
 ):
     """
     List all projects with optional filtering and pagination.
@@ -146,6 +147,7 @@ async def list_projects(
     - offset: Number of results to skip
     - sort_by: Field to sort by
     - sort_order: Sort order (asc or desc)
+    - include_archived: Whether to include archived projects (default: false)
     """
     try:
         if limit is not None:
@@ -157,7 +159,8 @@ async def list_projects(
             limit=limit,
             offset=offset,
             sort_by=sort_by,
-            sort_order=sort_order
+            sort_order=sort_order,
+            include_archived=include_archived
         )
         
         return ProjectListResponse(

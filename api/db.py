@@ -181,7 +181,8 @@ def list_projects(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
     sort_by: str = "last_worked_at",
-    sort_order: str = "desc"
+    sort_order: str = "desc",
+    include_archived: bool = False
 ) -> List[Dict[str, Any]]:
     """
     List projects with optional filtering and pagination.
@@ -216,7 +217,7 @@ def list_projects(
                 FROM projects p
                 JOIN project_tags pt ON p.id = pt.project_id
                 JOIN tags t ON pt.tag_id = t.id
-                WHERE p.is_archived = 0 AND t.name = %s
+                WHERE t.name = %s
             """
             params = [tag]
         else:
@@ -224,12 +225,15 @@ def list_projects(
             query = f"""
                 SELECT p.*, {open_task_expr}
                 FROM projects p
-                WHERE p.is_archived = 0
+                WHERE 1=1
             """
             params = []
 
+        if not include_archived and status != "archived":
+            query += " AND p.is_archived = 0 AND p.status != 'archived'"
+
         if status:
-            query += " AND p.status = %s" if tag else " AND p.status = %s"
+            query += " AND p.status = %s"
             params.append(status)
 
         # Add ORDER BY clause (qualify columns for JOIN queries)

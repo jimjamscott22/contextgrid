@@ -78,6 +78,7 @@ class AsyncAPIClient:
         offset: Optional[int] = None,
         sort_by: str = "last_worked_at",
         sort_order: str = "desc",
+        include_archived: bool = False,
     ) -> List[Dict[str, Any]]:
         params = {"sort_by": sort_by, "sort_order": sort_order}
         if status:
@@ -88,6 +89,8 @@ class AsyncAPIClient:
             params["limit"] = limit
         if offset is not None:
             params["offset"] = offset
+        if include_archived:
+            params["include_archived"] = "true"
 
         data = await self._request("GET", "/api/projects", params=params)
         return data["projects"]

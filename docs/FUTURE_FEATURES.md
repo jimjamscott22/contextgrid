@@ -560,12 +560,13 @@ CREATE TABLE project_milestones (
 The React SPA passes a few `listProjects` query params the FastAPI server doesn't understand:
 
 - `search` — used by [frontend/src/routes/Projects.tsx](../frontend/src/routes/Projects.tsx) for the search box. Currently dropped by the API client and ignored by the server, so the input does nothing.
-- `include_archived` — used by [frontend/src/components/layout/Sidebar.tsx](../frontend/src/components/layout/Sidebar.tsx), [frontend/src/routes/Kanban.tsx](../frontend/src/routes/Kanban.tsx), and [frontend/src/components/project/RelationshipsPanel.tsx](../frontend/src/components/project/RelationshipsPanel.tsx). The server returns all projects regardless, so today this happens to render correctly only because nothing filters archived rows out server-side.
+- `search` — used by [frontend/src/routes/Projects.tsx](../frontend/src/routes/Projects.tsx) for the search box. Currently dropped by the API client and ignored by the server, so the input does nothing.
+- [x] `include_archived` — supported on `GET /api/projects` in [api/server.py](../api/server.py), filtering out archived projects (`is_archived = 0 AND status != 'archived'`) unless `include_archived=true` or `status='archived'` is specified.
 - `sort: "recent"` — mapped client-side in [frontend/src/lib/api/endpoints.ts](../frontend/src/lib/api/endpoints.ts) to `sort_by=last_worked_at`. Works, but the mapping is fragile if more sort modes are added.
 
 To fix properly:
 - Add a `search` query param to `GET /api/projects` in [api/server.py](../api/server.py) (LIKE match on `name` / `description`).
-- Add an `include_archived: bool = False` query param and have `db.list_projects` filter on `is_archived` accordingly.
+- [x] Add an `include_archived: bool = False` query param and have `db.list_projects` filter on `is_archived` accordingly (Completed: 2026-08-06).
 - Either accept the frontend sort tokens directly, or document the mapping in [docs/API.md](API.md).
 
 ---

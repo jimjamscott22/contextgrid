@@ -79,7 +79,8 @@ class DatabaseBackend(ABC):
     @abstractmethod
     def list_projects(self, status: Optional[str] = None, tag: Optional[str] = None,
                      limit: Optional[int] = None, offset: Optional[int] = None,
-                     sort_by: str = "last_worked_at", sort_order: str = "desc") -> List[Dict[str, Any]]:
+                     sort_by: str = "last_worked_at", sort_order: str = "desc",
+                     include_archived: bool = False) -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
         pass
     
@@ -251,7 +252,8 @@ class SQLiteBackend(DatabaseBackend):
     
     def list_projects(self, status: Optional[str] = None, tag: Optional[str] = None,
                      limit: Optional[int] = None, offset: Optional[int] = None,
-                     sort_by: str = "last_worked_at", sort_order: str = "desc") -> List[Dict[str, Any]]:
+                     sort_by: str = "last_worked_at", sort_order: str = "desc",
+                     include_archived: bool = False) -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
         # Validate and sanitize sort parameters to prevent SQL injection
         valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
@@ -269,13 +271,16 @@ class SQLiteBackend(DatabaseBackend):
                     FROM projects p
                     JOIN project_tags pt ON p.id = pt.project_id
                     JOIN tags t ON pt.tag_id = t.id
-                    WHERE p.is_archived = 0 AND t.name = ?
+                    WHERE t.name = ?
                 """
                 params = [tag]
             else:
-                query = "SELECT * FROM projects WHERE is_archived = 0"
+                query = "SELECT * FROM projects WHERE 1=1"
                 params = []
             
+            if not include_archived and status != "archived":
+                query += " AND is_archived = 0 AND status != 'archived'"
+
             if status:
                 query += " AND status = ?"
                 params.append(status)
@@ -631,7 +636,8 @@ class MySQLBackend(DatabaseBackend):
     
     def list_projects(self, status: Optional[str] = None, tag: Optional[str] = None,
                      limit: Optional[int] = None, offset: Optional[int] = None,
-                     sort_by: str = "last_worked_at", sort_order: str = "desc") -> List[Dict[str, Any]]:
+                     sort_by: str = "last_worked_at", sort_order: str = "desc",
+                     include_archived: bool = False) -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
         # Validate and sanitize sort parameters to prevent SQL injection
         valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
@@ -649,13 +655,16 @@ class MySQLBackend(DatabaseBackend):
                     FROM projects p
                     JOIN project_tags pt ON p.id = pt.project_id
                     JOIN tags t ON pt.tag_id = t.id
-                    WHERE p.is_archived = 0 AND t.name = %s
+                    WHERE t.name = %s
                 """
                 params = [tag]
             else:
-                query = "SELECT * FROM projects WHERE is_archived = 0"
+                query = "SELECT * FROM projects WHERE 1=1"
                 params = []
             
+            if not include_archived and status != "archived":
+                query += " AND p.is_archived = 0 AND p.status != 'archived'"
+
             if status:
                 query += " AND status = %s"
                 params.append(status)

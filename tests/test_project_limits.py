@@ -26,8 +26,10 @@ def test_project_list_caps_oversized_limit(monkeypatch) -> None:
         offset: Optional[int] = None,
         sort_by: str = "last_worked_at",
         sort_order: str = "desc",
+        include_archived: bool = False,
     ) -> List[Dict[str, Any]]:
         captured["limit"] = limit
+        captured["include_archived"] = include_archived
         return []
 
     monkeypatch.setattr(db, "list_projects", fake_list_projects)
@@ -37,6 +39,38 @@ def test_project_list_caps_oversized_limit(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert captured["limit"] == 50
+    assert captured["include_archived"] is True
+
+
+def test_project_list_passes_include_archived(monkeypatch) -> None:
+    """include_archived query param should be passed down to db.list_projects."""
+    captured: Dict[str, Any] = {}
+
+    def fake_list_projects(
+        status: Optional[str] = None,
+        tag: Optional[str] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        sort_by: str = "last_worked_at",
+        sort_order: str = "desc",
+        include_archived: bool = False,
+    ) -> List[Dict[str, Any]]:
+        captured["include_archived"] = include_archived
+        return []
+
+    monkeypatch.setattr(db, "list_projects", fake_list_projects)
+
+    client = TestClient(app)
+
+    # Default should be False
+    res1 = client.get("/api/projects")
+    assert res1.status_code == 200
+    assert captured["include_archived"] is False
+
+    # Setting to true should pass True
+    res2 = client.get("/api/projects?include_archived=true")
+    assert res2.status_code == 200
+    assert captured["include_archived"] is True
 
 
 def test_project_list_includes_open_task_count(monkeypatch) -> None:
@@ -49,6 +83,7 @@ def test_project_list_includes_open_task_count(monkeypatch) -> None:
         offset: Optional[int] = None,
         sort_by: str = "last_worked_at",
         sort_order: str = "desc",
+        include_archived: bool = False,
     ) -> List[Dict[str, Any]]:
         return [
             {

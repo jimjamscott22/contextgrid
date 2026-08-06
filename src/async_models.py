@@ -62,6 +62,7 @@ async def list_projects(
     offset: Optional[int] = None,
     sort_by: str = "last_worked_at",
     sort_order: str = "desc",
+    include_archived: bool = False,
 ) -> List[Dict[str, Any]]:
     try:
         return await _client.list_projects(
@@ -70,6 +71,7 @@ async def list_projects(
             offset=offset,
             sort_by=sort_by,
             sort_order=sort_order,
+            include_archived=include_archived,
         )
     except APIError as e:
         _handle_api_error(e)

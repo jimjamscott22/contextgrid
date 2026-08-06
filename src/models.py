@@ -109,7 +109,8 @@ def list_projects(
     limit: Optional[int] = None,
     offset: Optional[int] = None,
     sort_by: str = "last_worked_at",
-    sort_order: str = "desc"
+    sort_order: str = "desc",
+    include_archived: bool = False
 ) -> List[Dict[str, Any]]:
     """
     List all projects, optionally filtered by status.
@@ -121,7 +122,8 @@ def list_projects(
                 limit=limit,
                 offset=offset,
                 sort_by=sort_by,
-                sort_order=sort_order
+                sort_order=sort_order,
+                include_archived=include_archived
             )
         else:
             return _db_backend.list_projects(
@@ -129,7 +131,8 @@ def list_projects(
                 limit=limit,
                 offset=offset,
                 sort_by=sort_by,
-                sort_order=sort_order
+                sort_order=sort_order,
+                include_archived=include_archived
             )
     except Exception as e:
         _handle_error(e)

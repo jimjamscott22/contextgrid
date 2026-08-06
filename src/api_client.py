@@ -84,7 +84,8 @@ class APIClient:
         limit: Optional[int] = None,
         offset: Optional[int] = None,
         sort_by: str = "last_worked_at",
-        sort_order: str = "desc"
+        sort_order: str = "desc",
+        include_archived: bool = False
     ) -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
         params = {
@@ -100,6 +101,8 @@ class APIClient:
             params['limit'] = limit
         if offset:
             params['offset'] = offset
+        if include_archived:
+            params['include_archived'] = 'true'
         
         data = self._request('GET', '/api/projects', params=params)
         return data['projects']

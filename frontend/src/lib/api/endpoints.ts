@@ -57,13 +57,14 @@ function projectLimit(limit?: number): number | undefined {
   return Math.min(limit, PROJECT_LIST_LIMIT);
 }
 
-function mapProjectQuery(p: ListProjectsParams = {}): Record<string, string | number | undefined> {
+function mapProjectQuery(p: ListProjectsParams = {}): Record<string, string | number | boolean | undefined> {
   return {
     status: p.status || undefined,
     tag: p.tag || undefined,
     limit: projectLimit(p.limit),
     offset: p.offset,
     sort_by: p.sort ? SORT_MAP[p.sort] ?? p.sort : undefined,
+    include_archived: p.include_archived ? true : undefined,
   };
 }
 
