@@ -26,6 +26,22 @@ This document tracks planned features and enhancements for ContextGrid. Features
   - Full dark mode support via CSS variable detection
   - Responsive grid layout
 
+- [x] **Markdown Support in Notes** (Completed: 2026-08-06)
+  - Markdown rendering and live edit preview
+  - Code snippets with syntax highlighting
+  - Rich text formatting support (lists, headers, formatting) in notes
+
+- [x] **Project Templates** (Completed: 2026-08-06)
+  - `project_templates` database table
+  - REST API CRUD endpoints (`/api/templates`)
+  - Frontend template management UI (`/templates`) and creation dialog
+  - Template selection & bootstrapping for new projects
+
+- [x] **Theme Customization** (Completed: 2026-08-06)
+  - 16 theme presets (8 Editor themes, 8 Lifestyle themes)
+  - Theme selector in Navbar with `localStorage` persistence (`cg-theme`)
+  - CSS custom properties (`data-theme`) and system dark mode auto-detection
+
 ---
 
 ## High Priority (Quick Wins)
@@ -238,7 +254,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### [ ] 10. Project Templates
+### [x] 10. Project Templates
 **Description:** Quick-start templates for common project types
 
 **Features:**
@@ -335,7 +351,7 @@ This document tracks planned features and enhancements for ContextGrid. Features
 
 ---
 
-### [ ] 15. Theme Customization
+### [x] 15. Theme Customization
 **Description:** More theme options beyond light/dark
 
 **Features:**
@@ -563,4 +579,4 @@ To fix properly:
 
 ---
 
-Last reviewed against codebase: 2026-03-07
+Last reviewed against codebase: 2026-08-06
