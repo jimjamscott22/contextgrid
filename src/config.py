@@ -47,15 +47,7 @@ class Config:
     # Database Configuration
     # =========================
     
-    # DB_TYPE determines which database backend to use
-    # Options: "sqlite" or "mysql"
-    # Default: "sqlite"
-    DB_TYPE: str = os.getenv("DB_TYPE", "sqlite").lower()
-    
-    # SQLite Configuration
-    DB_PATH: str = os.getenv("DB_PATH", "data/projects.db")
-    
-    # MySQL Configuration
+    # MySQL/MariaDB Configuration
     MYSQL_HOST: str = os.getenv("MYSQL_HOST", "localhost")
     MYSQL_PORT: int = int(os.getenv("MYSQL_PORT", "3306"))
     MYSQL_USER: str = os.getenv("MYSQL_USER", "")
@@ -70,16 +62,10 @@ class Config:
         Returns:
             Tuple of (is_valid, error_message)
         """
-        # If using MySQL, ensure credentials are provided
-        if cls.DB_TYPE == "mysql":
-            if not cls.MYSQL_USER:
-                return False, "MySQL backend requires MYSQL_USER environment variable"
-            if not cls.MYSQL_PASSWORD:
-                return False, "MySQL backend requires MYSQL_PASSWORD environment variable"
-        
-        # Validate DB_TYPE
-        if cls.DB_TYPE not in ("sqlite", "mysql"):
-            return False, f"Invalid DB_TYPE: {cls.DB_TYPE}. Must be 'sqlite' or 'mysql'"
+        if not cls.MYSQL_USER:
+            return False, "MySQL/MariaDB backend requires MYSQL_USER environment variable"
+        if not cls.MYSQL_PASSWORD:
+            return False, "MySQL/MariaDB backend requires MYSQL_PASSWORD environment variable"
         
         return True, ""
     
@@ -89,10 +75,7 @@ class Config:
         if cls.USE_API:
             return f"API mode (connecting to {cls.API_URL})"
         else:
-            if cls.DB_TYPE == "mysql":
-                return f"Direct MySQL mode ({cls.MYSQL_USER}@{cls.MYSQL_HOST}:{cls.MYSQL_PORT}/{cls.MYSQL_DATABASE})"
-            else:
-                return f"Direct SQLite mode ({cls.DB_PATH})"
+            return f"Direct MySQL/MariaDB mode ({cls.MYSQL_USER}@{cls.MYSQL_HOST}:{cls.MYSQL_PORT}/{cls.MYSQL_DATABASE})"
 
 
 # Global config instance

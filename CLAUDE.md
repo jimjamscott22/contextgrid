@@ -47,8 +47,8 @@ cd frontend && npm run test         # Frontend unit tests (Vitest)
 ## Architecture
 
 **Dual-Mode Backend** — controlled by `USE_API` env var:
-- `USE_API=true` (default): CLI → HTTP → FastAPI → MySQL
-- `USE_API=false`: CLI → DB directly (SQLite for local dev)
+- `USE_API=true` (default): CLI → HTTP → FastAPI → MySQL/MariaDB
+- `USE_API=false`: CLI → DB directly (MySQL/MariaDB)
 
 **Dual Frontend** — both consume the same FastAPI:
 - `frontend/` — React SPA (Vite + TS + Tailwind + TanStack Query + dnd-kit). Full editing, Kanban drag-drop, optimistic mutations.
@@ -57,7 +57,7 @@ cd frontend && npm run test         # Frontend unit tests (Vitest)
 **Key entry points:**
 - `api/server.py` — FastAPI app (serves SPA in prod via catch-all to `index.html`)
 - `api/db.py` / `api/models.py` — API-layer DB and Pydantic models
-- `src/db.py` — `DatabaseBackend` ABC (SQLite + MySQL implementations)
+- `src/db.py` — `DatabaseBackend` ABC (MySQL/MariaDB implementation)
 - `src/models.py` — mode-switching models (API or Direct based on config)
 - `src/cli.py` — CLI handlers (`cmd_<name>(args) -> int`)
 - `frontend/src/App.tsx` — React router root
