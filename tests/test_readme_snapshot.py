@@ -3,17 +3,20 @@ Tests for README snapshot feature.
 
 Tests cover:
 - _parse_github_url helper
-- SQLite backend README snapshot CRUD (upsert, get, delete)
 - API model validation
 - CLI command parsing
+
+Note: CRUD-level coverage of the README snapshot operations against a live
+database lives with the MySQL/MariaDB-backed API layer (see api/db.py); the
+Direct-mode `src.db` backend requires a real MySQL/MariaDB server and is not
+exercised here since there is no lightweight, dependency-free way to spin one
+up for unit tests (SQLite support, which previously filled that role, was
+removed).
 """
 
-import os
 import sys
-import tempfile
 import pytest
 from pathlib import Path
-from typing import Optional
 
 # Ensure src is on the path
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -53,90 +56,6 @@ def test_parse_github_url(url, expected_owner, expected_repo):
     owner, repo = _parse_github_url(url)
     assert owner == expected_owner
     assert repo == expected_repo
-
-
-# =========================
-# SQLite Backend Tests
-# =========================
-
-def _get_sqlite_backend(db_path: str):
-    """Create a fresh SQLiteBackend for testing."""
-    from src.db import SQLiteBackend
-    backend = SQLiteBackend(db_path)
-    backend.initialize_database()
-    return backend
-
-
-def _create_test_project(backend, name: str = "Test Project") -> int:
-    """Helper: create a project in the test database and return its ID."""
-    return backend.create_project(
-        name=name,
-        status="active",
-        repo_url="https://github.com/owner/repo",
-    )
-
-
-class TestSQLiteReadmeSnapshot:
-    """Tests for SQLiteBackend README snapshot operations."""
-
-    def setup_method(self):
-        """Create a temp database for each test."""
-        self._tmpdir = tempfile.mkdtemp()
-        self.db_path = os.path.join(self._tmpdir, "test.db")
-        self.backend = _get_sqlite_backend(self.db_path)
-        self.project_id = _create_test_project(self.backend)
-
-    def test_get_readme_snapshot_returns_none_when_missing(self):
-        """get_readme_snapshot should return None for a project with no snapshot."""
-        result = self.backend.get_readme_snapshot(self.project_id)
-        assert result is None
-
-    def test_upsert_creates_snapshot(self):
-        """upsert_readme_snapshot should create a new snapshot."""
-        content = "# Hello\n\nThis is the README."
-        self.backend.upsert_readme_snapshot(self.project_id, content, "main")
-
-        snapshot = self.backend.get_readme_snapshot(self.project_id)
-        assert snapshot is not None
-        assert snapshot["project_id"] == self.project_id
-        assert snapshot["content"] == content
-        assert snapshot["source_ref"] == "main"
-        assert snapshot["fetched_at"] is not None
-
-    def test_upsert_updates_existing_snapshot(self):
-        """upsert_readme_snapshot should replace an existing snapshot."""
-        self.backend.upsert_readme_snapshot(self.project_id, "# Old", "main")
-        self.backend.upsert_readme_snapshot(self.project_id, "# New", "master")
-
-        snapshot = self.backend.get_readme_snapshot(self.project_id)
-        assert snapshot["content"] == "# New"
-        assert snapshot["source_ref"] == "master"
-
-    def test_delete_readme_snapshot(self):
-        """delete_readme_snapshot should remove the snapshot."""
-        self.backend.upsert_readme_snapshot(self.project_id, "# README", "main")
-        deleted = self.backend.delete_readme_snapshot(self.project_id)
-        assert deleted is True
-        assert self.backend.get_readme_snapshot(self.project_id) is None
-
-    def test_delete_readme_snapshot_returns_false_when_missing(self):
-        """delete_readme_snapshot should return False when nothing to delete."""
-        deleted = self.backend.delete_readme_snapshot(self.project_id)
-        assert deleted is False
-
-    def test_snapshot_deleted_when_project_is_deleted(self):
-        """Snapshot should be cascade-deleted when its project is deleted."""
-        self.backend.upsert_readme_snapshot(self.project_id, "# README", "main")
-        self.backend.delete_project(self.project_id)
-        snapshot = self.backend.get_readme_snapshot(self.project_id)
-        assert snapshot is None
-
-    def test_upsert_without_source_ref(self):
-        """upsert_readme_snapshot should work without a source_ref."""
-        self.backend.upsert_readme_snapshot(self.project_id, "# README", None)
-        snapshot = self.backend.get_readme_snapshot(self.project_id)
-        assert snapshot is not None
-        assert snapshot["source_ref"] is None
 
 
 # =========================

@@ -35,7 +35,7 @@ ContextGrid is designed for one user: me.
 - ✅ Timestamped notes and reflections
 - ✅ Tag-based organization and filtering
 - ✅ REST API for programmatic access
-- ✅ MySQL-backed, production-ready storage
+- ✅ MySQL/MariaDB-backed, production-ready storage
 - ✅ Command-line interface
 - ✅ Web-based interface (legacy Jinja SSR in `web/` and a new React SPA in `frontend/`)
 - ✅ Cross-device access via API
@@ -77,23 +77,18 @@ ContextGrid supports **flexible deployment modes** to fit your needs:
 ### Deployment Modes
 
 ```
-Mode 1: SQLite + Direct CLI (Local, No API Server)
+Mode 1: Direct CLI (Local, No API Server)
 ┌─────────────┐
-│     CLI     │────────▶  SQLite Database
-└─────────────┘           (data/projects.db)
+│     CLI     │────────▶  MySQL/MariaDB Database
+└─────────────┘
 
-Mode 2: SQLite + API + CLI (Local with API)
-┌─────────────┐         ┌─────────────┐
-│     CLI     │────────▶│  API Server │────────▶ SQLite Database
-└─────────────┘         └─────────────┘
-
-Mode 3: MySQL + API + CLI (Production/Multi-device)
+Mode 2: API + CLI (Production/Multi-device)
 ┌─────────────┐         ┌─────────────┐
 │     CLI     │────────▶│             │
-└─────────────┘         │  API Server │         ┌──────────┐
-                        │   (FastAPI) │────────▶│  MySQL   │
-┌─────────────┐         │             │         │ Database │
-│   Web UI    │────────▶│             │         └──────────┘
+└─────────────┘         │  API Server │         ┌──────────────┐
+                        │   (FastAPI) │────────▶│ MySQL/MariaDB│
+┌─────────────┐         │             │         │   Database   │
+│   Web UI    │────────▶│             │         └──────────────┘
 └─────────────┘         └─────────────┘
 ```
 
@@ -103,11 +98,10 @@ Mode 3: MySQL + API + CLI (Production/Multi-device)
   - **Direct mode**: Connects directly to database
 - **Web UI** (`web/app.py`): Web-based interface (requires API server)
 - **API Server** (`api/server.py`): FastAPI REST API handling all business logic
-- **Database**: SQLite or MySQL backend with unified interface
+- **Database**: MySQL/MariaDB backend behind a unified `DatabaseBackend` interface
 
 ### Benefits
 
-- **Flexibility**: Choose between local SQLite or production MySQL
 - **Simplicity**: Direct mode needs no API server for personal use
 - **Cross-device access**: API mode enables access from any machine
 - **Scalability**: API server can handle multiple clients simultaneously
@@ -122,19 +116,10 @@ ContextGrid uses environment variables for configuration. Create a `.env` file o
 
 ### Quick Configuration Examples
 
-**Example 1: SQLite + Direct CLI (Simplest - No API Server)**
+**Example 1: Direct CLI (No API Server)**
 ```bash
 # .env
 USE_API=false
-DB_TYPE=sqlite
-DB_PATH=data/projects.db
-```
-
-**Example 2: MySQL + Direct CLI (No API Server)**
-```bash
-# .env
-USE_API=false
-DB_TYPE=mysql
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_USER=contextgrid_user
@@ -142,18 +127,7 @@ MYSQL_PASSWORD=your_password
 MYSQL_DATABASE=contextgrid
 ```
 
-**Example 3: SQLite + API + CLI (Local with API)**
-```bash
-# .env
-USE_API=true
-API_URL=http://localhost:8003
-
-# API Server config (in separate terminal)
-DB_TYPE=sqlite
-DB_PATH=data/projects.db
-```
-
-**Example 4: MySQL + API + CLI (Production)**
+**Example 2: API + CLI (Production)**
 ```bash
 # .env
 USE_API=true
@@ -175,23 +149,17 @@ DB_PASSWORD=your_password
   - `false`: CLI connects directly to database
 - `API_URL`: API server URL (default: `http://localhost:8003`)
 
-**Database Backend:**
-- `DB_TYPE`: `sqlite` or `mysql` (default: `sqlite`)
-
-**SQLite Configuration:**
-- `DB_PATH`: Path to SQLite database file (default: `data/projects.db`)
-
-**MySQL Configuration:**
-- `MYSQL_HOST`: MySQL hostname (default: `localhost`)
-- `MYSQL_PORT`: MySQL port (default: `3306`)
-- `MYSQL_USER`: MySQL username (required for MySQL)
-- `MYSQL_PASSWORD`: MySQL password (required for MySQL)
-- `MYSQL_DATABASE`: MySQL database name (default: `contextgrid`)
+**MySQL/MariaDB Configuration (Direct mode):**
+- `MYSQL_HOST`: MySQL/MariaDB hostname (default: `localhost`)
+- `MYSQL_PORT`: MySQL/MariaDB port (default: `3306`)
+- `MYSQL_USER`: MySQL/MariaDB username (required)
+- `MYSQL_PASSWORD`: MySQL/MariaDB password (required)
+- `MYSQL_DATABASE`: MySQL/MariaDB database name (default: `contextgrid`)
 
 **API Server Configuration:**
 - `API_HOST`: API server bind address (default: `0.0.0.0`)
 - `API_PORT`: API server port (default: `8003`)
-- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`: MySQL settings for API server
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`: MySQL/MariaDB settings for API server
 
 See `.env.example` for a complete configuration template.
 
@@ -200,10 +168,10 @@ See `.env.example` for a complete configuration template.
 ## Tech Stack
 
 - **Language:** Python 3.8+
-- **Database:** SQLite 3 (built-in) or MySQL 8.0+
+- **Database:** MySQL 8.0+ or MariaDB (unified interface via `pymysql`)
 - **API Framework:** FastAPI
 - **Web Server:** Uvicorn
-- **Database Driver:** PyMySQL (for MySQL)
+- **Database Driver:** PyMySQL
 - **CLI:** Pure Python with argparse
 
 ---
@@ -229,15 +197,13 @@ contextgrid/
 │   ├── config.py                 # CLI configuration (dual mode support)
 │   ├── api_client.py             # HTTP client for API mode
 │   ├── models.py                 # Model wrappers (works in both modes)
-│   └── db.py                     # Database abstraction layer (SQLite + MySQL)
+│   └── db.py                     # Database abstraction layer (MySQL/MariaDB)
 ├── web/
 │   ├── app.py                    # Web UI
 │   ├── static/                   # CSS, JS, images
 │   └── templates/                # Jinja2 templates
 └── scripts/
-    ├── init_db.sql               # SQLite schema
-    ├── init_mysql.sql            # MySQL schema
-    └── migrate_sqlite_to_mysql.py # Migration tool
+    └── init_mysql.sql            # MySQL/MariaDB schema
 ```
 
 ---
@@ -252,38 +218,57 @@ uv sync
 
 Then choose your deployment mode based on your needs:
 
-### Option 1: SQLite + Direct CLI (Simplest - Recommended for Personal Use)
+### Option 1: Direct CLI (No API Server)
 
-No API server or MySQL required! Perfect for single-user, local-only usage.
+Connects straight to a MySQL/MariaDB database — no API server required.
 
 #### Prerequisites
 
-- **Python 3.8+** only
+1. **Python 3.8+**
+   ```bash
+   python3 --version  # should be 3.8 or higher
+   ```
+
+2. **MySQL 8.0+ or MariaDB**
+   ```bash
+   mysql --version
+   ```
 
 #### Setup
 
-1. **Clone and install:**
-   ```bash
-   git clone https://github.com/yourusername/contextgrid.git
-   cd contextgrid
-   pip install -r requirements.txt
+1. **Set Up the Database**
+
+   Create a database and user:
+
+   ```sql
+   CREATE DATABASE contextgrid;
+   CREATE USER 'contextgrid_user'@'localhost' IDENTIFIED BY 'your_secure_password';
+   GRANT ALL PRIVILEGES ON contextgrid.* TO 'contextgrid_user'@'localhost';
+   FLUSH PRIVILEGES;
    ```
 
-2. **Configure (optional):**
+2. **Configure Environment**
+
    ```bash
    cp .env.example .env
-   # Edit .env and set:
-   # USE_API=false
-   # DB_TYPE=sqlite
+   ```
+
+   Edit `.env` and set:
+
+   ```bash
+   USE_API=false
+   MYSQL_HOST=localhost
+   MYSQL_PORT=3306
+   MYSQL_USER=contextgrid_user
+   MYSQL_PASSWORD=your_secure_password
+   MYSQL_DATABASE=contextgrid
    ```
 
 3. **Start using immediately:**
    ```bash
-   python src/main.py add "My First Project"
-   python src/main.py list
+   uv run python src/main.py add "My First Project"
+   uv run python src/main.py list
    ```
-
-That's it! Your data is stored in `data/projects.db`.
 
 #### Running the CLI
 ```bash
@@ -292,7 +277,7 @@ uv run python src/main.py list
 uv run python src/main.py show 1
 ```
 
-### Option 1b: With Web UI (SQLite + API + Web)
+### Option 1b: With Web UI (Direct + API + Web)
 
 Same as Option 1, but with a browser interface.
 
@@ -313,13 +298,16 @@ Then open `http://localhost:8001` in your browser.
 USE_API=true
 API_URL=http://localhost:8003
 API_ENDPOINT=http://localhost:8003
-DB_TYPE=sqlite
-DB_PATH=data/projects.db
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=contextgrid
+DB_USER=contextgrid_user
+DB_PASSWORD=your_secure_password
 ```
 
-### Option 2: MySQL + API + CLI (Production/Multi-device Setup)
+### Option 2: MySQL/MariaDB + API + CLI (Production/Multi-device Setup)
 
-Use MySQL for persistent storage and API server for cross-device access.
+Use the API server for cross-device access.
 
 #### Prerequisites
 
@@ -328,7 +316,7 @@ Use MySQL for persistent storage and API server for cross-device access.
    python3 --version  # should be 3.8 or higher
    ```
 
-2. **MySQL 8.0+**
+2. **MySQL 8.0+ or MariaDB**
    ```bash
    mysql --version
    ```
@@ -350,9 +338,9 @@ Use MySQL for persistent storage and API server for cross-device access.
    pip install -r requirements.txt
    ```
 
-3. **Set Up MySQL Database**
+3. **Set Up the Database**
 
-   Create a MySQL database and user:
+   Create a database and user:
 
    ```sql
    CREATE DATABASE contextgrid;
@@ -401,34 +389,22 @@ Use MySQL for persistent storage and API server for cross-device access.
    mysql -u contextgrid_user -p contextgrid < scripts/init_mysql.sql
    ```
 
-6. **Migrate Existing Data (Optional)**
-
-   If you have existing SQLite data to migrate:
-
-   ```bash
-   python scripts/migrate_sqlite_to_mysql.py
-   ```
-
 ---
 
 ## Running ContextGrid
 
 ### Mode 1: Direct CLI (No API Server)
 
-For SQLite or MySQL direct access:
-
 ```bash
-# Using SQLite (default if USE_API=false and DB_TYPE=sqlite)
-USE_API=false DB_TYPE=sqlite python src/main.py list
-
-# Using MySQL direct connection
-USE_API=false DB_TYPE=mysql python src/main.py list
+USE_API=false python src/main.py list
 ```
 
 Or configure in `.env`:
 ```bash
 USE_API=false
-DB_TYPE=sqlite  # or mysql
+MYSQL_HOST=localhost
+MYSQL_USER=contextgrid_user
+MYSQL_PASSWORD=your_password
 ```
 
 Then use normally:
@@ -599,7 +575,7 @@ Description (optional): Web app to track my projects
 Status [idea]: active
 Type (optional): web
 Primary language (optional): Python
-Stack/tech (optional): FastAPI + SQLite
+Stack/tech (optional): FastAPI + MySQL
 ...
 
 [OK] Project created with ID: 1
@@ -780,10 +756,8 @@ To use the standalone CLI, add `contextgrid/dist/cg` to your `PATH` variable, an
 **Problem:** Not sure which mode to use
 
 **Solution:**
-- **SQLite + Direct**: Simplest, no API server needed, perfect for personal use
-- **MySQL + Direct**: Direct database access but with MySQL backend
-- **SQLite + API**: Testing API locally before MySQL setup
-- **MySQL + API**: Production setup with cross-device access
+- **Direct**: No API server needed, connects straight to MySQL/MariaDB
+- **API**: Production setup with cross-device access
 
 Check your current configuration:
 ```bash
@@ -815,23 +789,9 @@ python src/main.py --help  # Will show mode info
 **Problem:** Database errors when `USE_API=false`
 
 **Solution:**
-1. **For SQLite**: Ensure `data/` directory exists and is writable
-2. **For MySQL**: 
-   - Verify MySQL is running
-   - Check MYSQL_* credentials in `.env`
-   - Test connection: `mysql -u $MYSQL_USER -p $MYSQL_DATABASE`
-3. Check `DB_TYPE` is set correctly (`sqlite` or `mysql`)
-
-### Database Not Found
-
-**Problem:** SQLite database file not found
-
-**Solution:**
-```bash
-# Database is auto-created on first use
-mkdir -p data
-python src/main.py list  # Will initialize database
-```
+1. Verify MySQL/MariaDB is running
+2. Check `MYSQL_*` credentials in `.env`
+3. Test connection: `mysql -u $MYSQL_USER -p $MYSQL_DATABASE`
 
 ### MySQL Permission Errors
 
@@ -854,16 +814,6 @@ FLUSH PRIVILEGES;
 3. Ensure Web UI is configured to connect to the correct API endpoint
 4. Note: Web UI requires API server (doesn't support direct database access)
 
-### Migration Issues
-
-**Problem:** Migration script fails
-
-**Solution:**
-1. Ensure SQLite database exists at `data/projects.db`
-2. Verify MySQL database is empty or doesn't have conflicting data
-3. Check that user has sufficient permissions on MySQL database
-4. Run migration with verbose output for debugging
-
 ### Port Conflicts
 
 **Problem:** `Address already in use` error
@@ -883,7 +833,9 @@ FLUSH PRIVILEGES;
 ```bash
 # Edit .env
 USE_API=false
-DB_TYPE=sqlite  # or mysql
+MYSQL_HOST=localhost
+MYSQL_USER=contextgrid_user
+MYSQL_PASSWORD=your_password
 
 # Now CLI connects directly to database
 python src/main.py list
@@ -900,17 +852,6 @@ python api/server.py
 
 # Now CLI uses API
 python src/main.py list
-```
-
-**To switch database backend (Direct mode only):**
-```bash
-# Edit .env
-DB_TYPE=mysql  # or sqlite
-
-# Update MySQL credentials if needed
-MYSQL_HOST=localhost
-MYSQL_USER=contextgrid_user
-MYSQL_PASSWORD=your_password
 ```
 
 ---

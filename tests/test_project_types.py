@@ -1,7 +1,7 @@
 """Project type validation and migration tests."""
 
 import re
-import sqlite3
+from pathlib import Path
 from typing import Any, Dict, Type
 
 import pytest
@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 from pydantic import BaseModel, ValidationError
 
 from api.models import ProjectCreate, ProjectUpdate, TemplateCreate, TemplateUpdate
-from src.db import SQLiteBackend
 from src.project_types import LEGACY_PROJECT_TYPE_MAP, PROJECT_TYPE_LABELS
 from web.app import app as legacy_app, templates as legacy_templates
 
@@ -75,12 +74,8 @@ def test_project_models_reject_removed_types(
         model_class(**values)
 
 
-def test_sqlite_project_type_migration_is_complete_and_idempotent(tmp_path) -> None:
-    """SQLite initialization should migrate legacy types exactly once."""
-    db_path = tmp_path / "projects.db"
-    backend = SQLiteBackend(str(db_path))
-    backend.initialize_database()
-
+def test_legacy_project_type_map_matches_expected_mapping() -> None:
+    """LEGACY_PROJECT_TYPE_MAP should match the documented legacy->canonical mapping."""
     legacy_mapping = {
         "web": "web-app",
         "cli": "cli",
@@ -93,34 +88,30 @@ def test_sqlite_project_type_migration_is_complete_and_idempotent(tmp_path) -> N
     }
     assert LEGACY_PROJECT_TYPE_MAP == legacy_mapping
 
-    with sqlite3.connect(db_path) as connection:
-        connection.executemany(
-            """
-            INSERT INTO projects (name, status, project_type, created_at)
-            VALUES (?, 'idea', ?, '2026-01-01T00:00:00')
-            """,
-            [(legacy_type, legacy_type) for legacy_type in legacy_mapping],
+
+def test_mysql_schema_migration_covers_every_legacy_project_type() -> None:
+    """The idempotent MySQL/MariaDB migration in init_mysql.sql should stay in
+    sync with LEGACY_PROJECT_TYPE_MAP so a schema init never silently drops a
+    legacy->canonical mapping.
+
+    Note: this is a static consistency check against the SQL text rather than
+    a live-database migration test. Exercising initialize_database() against
+    a real server requires a live MySQL/MariaDB connection (SQLite, which
+    previously let this run against a disposable temp-file database, has been
+    removed) and is out of scope for unit tests.
+    """
+    schema_path = (
+        Path(__file__).resolve().parent.parent / "scripts" / "init_mysql.sql"
+    )
+    schema_sql = schema_path.read_text(encoding="utf-8")
+
+    for legacy_type, canonical_type in LEGACY_PROJECT_TYPE_MAP.items():
+        if legacy_type == canonical_type:
+            continue  # not actually a rename, nothing to migrate
+        assert f"WHEN '{legacy_type}' THEN '{canonical_type}'" in schema_sql, (
+            f"init_mysql.sql is missing a migration case for legacy type "
+            f"'{legacy_type}' -> '{canonical_type}'"
         )
-
-    backend.initialize_database()
-    with sqlite3.connect(db_path) as connection:
-        migrated = dict(
-            connection.execute(
-                "SELECT name, project_type FROM projects ORDER BY id"
-            ).fetchall()
-        )
-
-    assert migrated == legacy_mapping
-
-    backend.initialize_database()
-    with sqlite3.connect(db_path) as connection:
-        migrated_again = dict(
-            connection.execute(
-                "SELECT name, project_type FROM projects ORDER BY id"
-            ).fetchall()
-        )
-
-    assert migrated_again == legacy_mapping
 
 
 def test_legacy_new_project_form_uses_canonical_types() -> None:

@@ -1,5 +1,13 @@
 # Database Abstraction Layer Implementation Summary
 
+> **⚠️ Historical document.** This describes the state of the database layer
+> as originally implemented, including the SQLite backend and its 4
+> deployment modes. **SQLite support has since been removed** — `src/db.py`
+> now wraps a single MySQL/MariaDB implementation, and Direct mode always
+> talks to MySQL/MariaDB. See `README.md`, `CLAUDE.md`, and `AGENTS.md` for
+> the current architecture. The rest of this document is preserved as-is for
+> historical context.
+
 ## Overview
 
 Successfully implemented a comprehensive database abstraction layer for ContextGrid that enables flexible deployment with SQLite or MySQL databases, and supports both direct database access and API-based access modes.
