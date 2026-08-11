@@ -225,3 +225,6 @@ frontend/dist-ssr/
 *.tsbuildinfo
 .vite/
 .claude/settings.local.json
+
+# Graphify
+graphify/
