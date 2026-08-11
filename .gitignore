@@ -224,3 +224,4 @@ frontend/dist-ssr/
 
 # Graphify
 graphify/
+graphify-out/
