@@ -131,6 +131,7 @@ async def health_check():
 async def list_projects(
     status: Optional[str] = Query(None, pattern="^(idea|active|paused|archived)$"),
     tag: Optional[str] = Query(None),
+    search: Optional[str] = Query(None, max_length=200),
     limit: Optional[int] = Query(None, ge=1),
     offset: Optional[int] = Query(None, ge=0),
     sort_by: str = Query("last_worked_at", pattern="^(name|created_at|last_worked_at|status)$"),
@@ -143,6 +144,7 @@ async def list_projects(
     Query Parameters:
     - status: Filter by status (idea, active, paused, archived)
     - tag: Filter by tag name
+    - search: Case-insensitive substring match on name or description
     - limit: Maximum number of results
     - offset: Number of results to skip
     - sort_by: Field to sort by
@@ -153,6 +155,8 @@ async def list_projects(
         if limit is not None:
             limit = min(limit, MAX_PROJECT_LIST_LIMIT)
 
+        search_term = search.strip() if search and search.strip() else None
+
         projects = db.list_projects(
             status=status,
             tag=tag,
@@ -160,12 +164,19 @@ async def list_projects(
             offset=offset,
             sort_by=sort_by,
             sort_order=sort_order,
-            include_archived=include_archived
+            include_archived=include_archived,
+            search=search_term,
         )
-        
+        total = db.count_projects(
+            status=status,
+            tag=tag,
+            include_archived=include_archived,
+            search=search_term,
+        )
+
         return ProjectListResponse(
             projects=projects,
-            total=len(projects)
+            total=total
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

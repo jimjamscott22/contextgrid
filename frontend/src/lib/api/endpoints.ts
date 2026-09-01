@@ -59,6 +59,7 @@ function projectLimit(limit?: number): number | undefined {
 
 function mapProjectQuery(p: ListProjectsParams = {}): Record<string, string | number | boolean | undefined> {
   return {
+    search: p.search || undefined,
     status: p.status || undefined,
     tag: p.tag || undefined,
     limit: projectLimit(p.limit),
@@ -67,6 +68,8 @@ function mapProjectQuery(p: ListProjectsParams = {}): Record<string, string | nu
     include_archived: p.include_archived ? true : undefined,
   };
 }
+
+export { mapProjectQuery };
 
 export const api = {
   listProjects: (params?: ListProjectsParams) =>

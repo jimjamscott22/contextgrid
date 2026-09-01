@@ -358,10 +358,8 @@ def search_projects(
     sort_order: str = "desc"
 ) -> List[Dict[str, Any]]:
     """
-    Search for projects across multiple text fields.
-    Note: This is not fully implemented yet, so we'll just list all projects.
+    Search projects by name or description.
     """
-    # TODO: Implement full-text search
     try:
         if config.USE_API:
             return _client.list_projects(
@@ -369,7 +367,8 @@ def search_projects(
                 limit=limit,
                 offset=offset,
                 sort_by=sort_by,
-                sort_order=sort_order
+                sort_order=sort_order,
+                search=query,
             )
         else:
             return _db_backend.list_projects(
@@ -377,7 +376,8 @@ def search_projects(
                 limit=limit,
                 offset=offset,
                 sort_by=sort_by,
-                sort_order=sort_order
+                sort_order=sort_order,
+                search=query,
             )
     except Exception as e:
         _handle_error(e)
@@ -389,10 +389,10 @@ def get_projects_count(status: Optional[str] = None, tag: Optional[str] = None, 
     """
     try:
         if config.USE_API:
-            projects = _client.list_projects(status=status, tag=tag)
+            projects = _client.list_projects(status=status, tag=tag, search=search)
             return len(projects)
         else:
-            projects = _db_backend.list_projects(status=status, tag=tag)
+            projects = _db_backend.list_projects(status=status, tag=tag, search=search)
             return len(projects)
     except Exception as e:
         _handle_error(e)

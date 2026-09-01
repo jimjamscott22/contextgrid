@@ -27,7 +27,7 @@ class Config:
     """Configuration class for API server and database connection."""
     
     # API Server Configuration
-    API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
+    API_HOST: str = os.getenv("API_HOST", "127.0.0.1")
     API_PORT: int = int(os.getenv("API_PORT", "8003"))
     
     # Database Configuration

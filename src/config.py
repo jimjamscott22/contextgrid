@@ -23,6 +23,19 @@ if ENV_FILE.exists():
     load_dotenv(ENV_FILE)
 
 
+def first_env(*names: str, default: str = "") -> str:
+    """Return the first non-empty environment variable among ``names``.
+
+    Used so CLI Direct mode accepts the same ``DB_*`` variables as the API,
+    while still honoring the older ``MYSQL_*`` names.
+    """
+    for name in names:
+        value = os.getenv(name)
+        if value:
+            return value
+    return default
+
+
 class Config:
     """Configuration class for CLI and database connection."""
     
@@ -47,12 +60,12 @@ class Config:
     # Database Configuration
     # =========================
     
-    # MySQL/MariaDB Configuration
-    MYSQL_HOST: str = os.getenv("MYSQL_HOST", "localhost")
-    MYSQL_PORT: int = int(os.getenv("MYSQL_PORT", "3306"))
-    MYSQL_USER: str = os.getenv("MYSQL_USER", "")
-    MYSQL_PASSWORD: str = os.getenv("MYSQL_PASSWORD", "")
-    MYSQL_DATABASE: str = os.getenv("MYSQL_DATABASE", "contextgrid")
+    # MySQL/MariaDB Configuration (DB_* preferred; MYSQL_* kept as aliases)
+    MYSQL_HOST: str = first_env("DB_HOST", "MYSQL_HOST", default="localhost")
+    MYSQL_PORT: int = int(first_env("DB_PORT", "MYSQL_PORT", default="3306"))
+    MYSQL_USER: str = first_env("DB_USER", "MYSQL_USER", default="")
+    MYSQL_PASSWORD: str = first_env("DB_PASSWORD", "MYSQL_PASSWORD", default="")
+    MYSQL_DATABASE: str = first_env("DB_NAME", "MYSQL_DATABASE", default="contextgrid")
     
     @classmethod
     def validate(cls) -> Tuple[bool, str]:
@@ -63,9 +76,9 @@ class Config:
             Tuple of (is_valid, error_message)
         """
         if not cls.MYSQL_USER:
-            return False, "MySQL/MariaDB backend requires MYSQL_USER environment variable"
+            return False, "MySQL/MariaDB backend requires DB_USER or MYSQL_USER"
         if not cls.MYSQL_PASSWORD:
-            return False, "MySQL/MariaDB backend requires MYSQL_PASSWORD environment variable"
+            return False, "MySQL/MariaDB backend requires DB_PASSWORD or MYSQL_PASSWORD"
         
         return True, ""
     

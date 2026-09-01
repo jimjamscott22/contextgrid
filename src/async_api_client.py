@@ -79,12 +79,15 @@ class AsyncAPIClient:
         sort_by: str = "last_worked_at",
         sort_order: str = "desc",
         include_archived: bool = False,
+        search: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         params = {"sort_by": sort_by, "sort_order": sort_order}
         if status:
             params["status"] = status
         if tag:
             params["tag"] = tag
+        if search:
+            params["search"] = search
         if limit is not None:
             params["limit"] = limit
         if offset is not None:

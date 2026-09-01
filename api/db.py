@@ -6,7 +6,7 @@ Handles all database operations using PyMySQL.
 import pymysql
 from pymysql.cursors import DictCursor
 from contextlib import contextmanager
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from datetime import datetime, timedelta
 from pathlib import Path
 import sys
@@ -182,7 +182,8 @@ def list_projects(
     offset: Optional[int] = None,
     sort_by: str = "last_worked_at",
     sort_order: str = "desc",
-    include_archived: bool = False
+    include_archived: bool = False,
+    search: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     List projects with optional filtering and pagination.
@@ -202,6 +203,13 @@ def list_projects(
     if sort_order not in ["ASC", "DESC"]:
         sort_order = "DESC"
 
+    from_where, params = _projects_from_where(
+        status=status,
+        tag=tag,
+        include_archived=include_archived,
+        search=search,
+    )
+
     # Correlated count of incomplete checklist tasks for badge notifications
     open_task_expr = """(
                 SELECT COUNT(*)
@@ -209,68 +217,101 @@ def list_projects(
                 WHERE task.project_id = p.id AND task.is_completed = 0
             ) AS open_task_count"""
 
+    distinct = "DISTINCT " if tag else ""
+    query = f"SELECT {distinct}p.*, {open_task_expr} {from_where}"
+
+    if sort_by == "last_worked_at":
+        query += (
+            f" ORDER BY CASE WHEN p.last_worked_at IS NULL THEN 0 ELSE 1 END"
+            f" {sort_order}, p.last_worked_at {sort_order}"
+        )
+    else:
+        query += f" ORDER BY p.{sort_by} {sort_order}"
+
+    if sort_by != "created_at":
+        query += ", p.created_at DESC"
+
+    if limit is not None:
+        query += " LIMIT %s"
+        params.append(limit)
+
+        if offset is not None:
+            query += " OFFSET %s"
+            params.append(offset)
+
     with get_db_cursor() as cursor:
-        if tag:
-            # Query with tag filter
-            query = f"""
-                SELECT DISTINCT p.*, {open_task_expr}
-                FROM projects p
-                JOIN project_tags pt ON p.id = pt.project_id
-                JOIN tags t ON pt.tag_id = t.id
-                WHERE t.name = %s
-            """
-            params = [tag]
-        else:
-            # Query without tag filter
-            query = f"""
-                SELECT p.*, {open_task_expr}
-                FROM projects p
-                WHERE 1=1
-            """
-            params = []
-
-        if not include_archived and status != "archived":
-            query += " AND p.is_archived = 0 AND p.status != 'archived'"
-
-        if status:
-            query += " AND p.status = %s"
-            params.append(status)
-
-        # Add ORDER BY clause (qualify columns for JOIN queries)
-        if sort_by == "last_worked_at":
-            query += (
-                f" ORDER BY CASE WHEN p.last_worked_at IS NULL THEN 0 ELSE 1 END"
-                f" {sort_order}, p.last_worked_at {sort_order}"
-            )
-        else:
-            query += f" ORDER BY p.{sort_by} {sort_order}"
-
-        # Add secondary sort
-        if sort_by != "created_at":
-            query += ", p.created_at DESC"
-
-        # Add pagination
-        if limit is not None:
-            query += " LIMIT %s"
-            params.append(limit)
-
-            if offset is not None:
-                query += " OFFSET %s"
-                params.append(offset)
-
         cursor.execute(query, params)
         rows = cursor.fetchall()
 
-        # Convert datetime objects to ISO format strings
         for row in rows:
             if row['created_at']:
                 row['created_at'] = row['created_at'].isoformat()
             if row['last_worked_at']:
                 row['last_worked_at'] = row['last_worked_at'].isoformat()
-            # MySQL may return Decimal for COUNT; normalize to int
             row['open_task_count'] = int(row.get('open_task_count') or 0)
 
         return rows
+
+
+def count_projects(
+    status: Optional[str] = None,
+    tag: Optional[str] = None,
+    include_archived: bool = False,
+    search: Optional[str] = None,
+) -> int:
+    """
+    Count projects matching the same filters as ``list_projects``, ignoring
+    limit/offset so ``total`` is the unpaginated match count.
+    """
+    from_where, params = _projects_from_where(
+        status=status,
+        tag=tag,
+        include_archived=include_archived,
+        search=search,
+    )
+    query = f"SELECT COUNT(DISTINCT p.id) AS total {from_where}"
+    with get_db_cursor() as cursor:
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+        return int((row or {}).get("total") or 0)
+
+
+def _projects_from_where(
+    status: Optional[str],
+    tag: Optional[str],
+    include_archived: bool,
+    search: Optional[str],
+) -> Tuple[str, List[Any]]:
+    """Build the FROM/WHERE clause shared by list and count queries."""
+    if tag:
+        from_where = """
+            FROM projects p
+            JOIN project_tags pt ON p.id = pt.project_id
+            JOIN tags t ON pt.tag_id = t.id
+            WHERE t.name = %s
+        """
+        params: List[Any] = [tag]
+    else:
+        from_where = "FROM projects p WHERE 1=1"
+        params = []
+
+    if not include_archived and status != "archived":
+        from_where += " AND p.is_archived = 0 AND p.status != 'archived'"
+
+    if status:
+        from_where += " AND p.status = %s"
+        params.append(status)
+
+    if search:
+        term = "%{0}%".format(search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_"))
+        from_where += (
+            " AND (p.name LIKE %s ESCAPE '\\\\'"
+            " OR IFNULL(p.description, '') LIKE %s ESCAPE '\\\\')"
+        )
+        params.extend([term, term])
+
+    return from_where, params
+
 
 
 def update_project(project_id: int, **kwargs) -> bool:

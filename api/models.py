@@ -40,9 +40,9 @@ class ProjectBase(BaseModel):
     folder_structure: Optional[str] = Field(None, max_length=65535)
     folder_structure_img_url: Optional[str] = Field(None, max_length=2000)
 
-    @field_validator("repo_url")
+    @field_validator("repo_url", "folder_structure_img_url")
     @classmethod
-    def validate_repo_url(cls, v: Optional[str]) -> Optional[str]:
+    def validate_http_urls(cls, v: Optional[str]) -> Optional[str]:
         return _validate_http_scheme(v)
 
 
@@ -66,6 +66,11 @@ class ProjectUpdate(BaseModel):
     progress: Optional[int] = Field(None, ge=0, le=100)
     folder_structure: Optional[str] = Field(None, max_length=65535)
     folder_structure_img_url: Optional[str] = Field(None, max_length=2000)
+
+    @field_validator("repo_url", "folder_structure_img_url")
+    @classmethod
+    def validate_http_urls(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_http_scheme(v)
 
 
 class ProjectResponse(ProjectBase):
