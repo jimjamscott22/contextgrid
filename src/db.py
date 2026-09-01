@@ -288,14 +288,14 @@ class MySQLBackend(DatabaseBackend):
                 """
                 params = [tag]
             else:
-                query = "SELECT * FROM projects WHERE 1=1"
+                query = "SELECT p.* FROM projects p WHERE 1=1"
                 params = []
             
             if not include_archived and status != "archived":
                 query += " AND p.is_archived = 0 AND p.status != 'archived'"
 
             if status:
-                query += " AND status = %s"
+                query += " AND p.status = %s"
                 params.append(status)
 
             if search:
@@ -303,8 +303,8 @@ class MySQLBackend(DatabaseBackend):
                     search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
                 )
                 query += (
-                    " AND (name LIKE %s ESCAPE '\\\\'"
-                    " OR IFNULL(description, '') LIKE %s ESCAPE '\\\\')"
+                    " AND (p.name LIKE %s ESCAPE '\\\\'"
+                    " OR IFNULL(p.description, '') LIKE %s ESCAPE '\\\\')"
                 )
                 params.extend([term, term])
             
