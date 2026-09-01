@@ -85,7 +85,8 @@ class APIClient:
         offset: Optional[int] = None,
         sort_by: str = "last_worked_at",
         sort_order: str = "desc",
-        include_archived: bool = False
+        include_archived: bool = False,
+        search: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
         params = {
@@ -97,6 +98,8 @@ class APIClient:
             params['status'] = status
         if tag:
             params['tag'] = tag
+        if search:
+            params['search'] = search
         if limit:
             params['limit'] = limit
         if offset:

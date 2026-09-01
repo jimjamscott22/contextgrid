@@ -187,3 +187,39 @@ def test_link_url_accepts_https():
     from api.models import LinkCreate
     link = LinkCreate(title="GitHub", url="https://github.com", link_type="repo")
     assert link.url == "https://github.com"
+
+
+def test_project_update_rejects_javascript_repo_url():
+    from api.models import ProjectUpdate
+    with pytest.raises(ValidationError):
+        ProjectUpdate(repo_url="javascript:alert(1)")
+
+
+def test_project_update_rejects_data_repo_url():
+    from api.models import ProjectUpdate
+    with pytest.raises(ValidationError):
+        ProjectUpdate(repo_url="data:text/html,<h1>XSS</h1>")
+
+
+def test_folder_structure_img_url_rejects_javascript_on_create():
+    from api.models import ProjectBase
+    with pytest.raises(ValidationError):
+        ProjectBase(name="Test", folder_structure_img_url="javascript:alert(1)")
+
+
+def test_folder_structure_img_url_rejects_javascript_on_update():
+    from api.models import ProjectUpdate
+    with pytest.raises(ValidationError):
+        ProjectUpdate(folder_structure_img_url="javascript:alert(1)")
+
+
+def test_folder_structure_img_url_accepts_https():
+    from api.models import ProjectBase, ProjectUpdate
+    created = ProjectBase(
+        name="Test",
+        folder_structure_img_url="https://example.com/diagram.png",
+    )
+    updated = ProjectUpdate(folder_structure_img_url="https://example.com/diagram.png")
+    assert created.folder_structure_img_url == "https://example.com/diagram.png"
+    assert updated.folder_structure_img_url == "https://example.com/diagram.png"
+

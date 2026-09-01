@@ -3,7 +3,6 @@ Database abstraction layer for ContextGrid.
 Backed by a single MySQL/MariaDB-compatible database implementation.
 """
 
-import os
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from datetime import datetime
@@ -71,7 +70,8 @@ class DatabaseBackend(ABC):
     def list_projects(self, status: Optional[str] = None, tag: Optional[str] = None,
                      limit: Optional[int] = None, offset: Optional[int] = None,
                      sort_by: str = "last_worked_at", sort_order: str = "desc",
-                     include_archived: bool = False) -> List[Dict[str, Any]]:
+                     include_archived: bool = False,
+                     search: Optional[str] = None) -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
         pass
     
@@ -265,7 +265,8 @@ class MySQLBackend(DatabaseBackend):
     def list_projects(self, status: Optional[str] = None, tag: Optional[str] = None,
                      limit: Optional[int] = None, offset: Optional[int] = None,
                      sort_by: str = "last_worked_at", sort_order: str = "desc",
-                     include_archived: bool = False) -> List[Dict[str, Any]]:
+                     include_archived: bool = False,
+                     search: Optional[str] = None) -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
         # Validate and sanitize sort parameters to prevent SQL injection
         valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
@@ -296,6 +297,16 @@ class MySQLBackend(DatabaseBackend):
             if status:
                 query += " AND status = %s"
                 params.append(status)
+
+            if search:
+                term = "%{0}%".format(
+                    search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                )
+                query += (
+                    " AND (name LIKE %s ESCAPE '\\\\'"
+                    " OR IFNULL(description, '') LIKE %s ESCAPE '\\\\')"
+                )
+                params.extend([term, term])
             
             # Build ORDER BY clause using validated sort parameters
             # Note: sort_by and sort_order are validated above, safe to use in f-string
@@ -570,25 +581,28 @@ def get_database_backend() -> DatabaseBackend:
     """
     Factory function to create the configured MySQL/MariaDB database backend.
 
-    Configuration via environment variables:
-    - MYSQL_HOST: MySQL/MariaDB hostname (default: "localhost")
-    - MYSQL_PORT: MySQL/MariaDB port (default: 3306)
-    - MYSQL_USER: MySQL/MariaDB username
-    - MYSQL_PASSWORD: MySQL/MariaDB password
-    - MYSQL_DATABASE: MySQL/MariaDB database name (default: "contextgrid")
+    Configuration via environment variables (DB_* preferred, MYSQL_* aliases):
+    - DB_HOST / MYSQL_HOST
+    - DB_PORT / MYSQL_PORT
+    - DB_USER / MYSQL_USER
+    - DB_PASSWORD / MYSQL_PASSWORD
+    - DB_NAME / MYSQL_DATABASE
 
     Returns:
         DatabaseBackend: Configured database backend instance
     """
-    host = os.getenv("MYSQL_HOST", "localhost")
-    port = int(os.getenv("MYSQL_PORT", "3306"))
-    user = os.getenv("MYSQL_USER", "")
-    password = os.getenv("MYSQL_PASSWORD", "")
-    database = os.getenv("MYSQL_DATABASE", "contextgrid")
+    from src.config import config
 
-    if not user or not password:
+    if not config.MYSQL_USER or not config.MYSQL_PASSWORD:
         raise ValueError(
-            "MySQL backend requires MYSQL_USER and MYSQL_PASSWORD environment variables"
+            "MySQL backend requires DB_USER and DB_PASSWORD "
+            "(MYSQL_USER / MYSQL_PASSWORD are accepted as aliases)"
         )
 
-    return MySQLBackend(host, port, user, password, database)
+    return MySQLBackend(
+        config.MYSQL_HOST,
+        config.MYSQL_PORT,
+        config.MYSQL_USER,
+        config.MYSQL_PASSWORD,
+        config.MYSQL_DATABASE,
+    )

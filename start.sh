@@ -2,7 +2,9 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-API_URL="http://127.0.0.1:8003/api/health"
+API_HOST="${API_HOST:-127.0.0.1}"
+API_PORT="${API_PORT:-8003}"
+API_URL="http://127.0.0.1:${API_PORT}/api/health"
 FRONTEND_URL="http://127.0.0.1:5173"
 STARTUP_TIMEOUT_SECONDS=30
 
@@ -74,7 +76,7 @@ wait_for_services() {
 }
 
 echo "Starting ContextGrid API..."
-(cd "$PROJECT_ROOT" && exec uv run uvicorn api.server:app --host 0.0.0.0 --port 8003) &
+(cd "$PROJECT_ROOT" && exec uv run uvicorn api.server:app --host "$API_HOST" --port "$API_PORT") &
 api_pid=$!
 
 echo "Starting ContextGrid frontend..."

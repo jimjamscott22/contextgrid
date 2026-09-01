@@ -1,60 +1,65 @@
 #!/usr/bin/env python3
-"""Test MySQL connection to Raspberry Pi."""
+"""Test MySQL/MariaDB connection using DB_* environment variables."""
+
+import sys
+from pathlib import Path
 
 import pymysql
-import sys
 
-def test_connection():
-    """Test connection to MySQL server."""
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from api.config import config
+
+
+def run_connection_check():
+    """Test connection to the configured MySQL/MariaDB server."""
+    is_valid, error = config.validate()
+    if not is_valid:
+        print(f"Configuration error: {error}", file=sys.stderr)
+        return False
+
     try:
-        print("Attempting to connect to MySQL server at 192.168.1.25:3306...")
+        print(f"Attempting to connect to MySQL server at {config.DB_HOST}:{config.DB_PORT}...")
         conn = pymysql.connect(
-            host='192.168.1.25',
-            port=3306,
-            user='contextgrid_user',
-            password='Yar22',
-            database='contextgrid',
-            charset='utf8mb4',
-            connect_timeout=10
+            host=config.DB_HOST,
+            port=config.DB_PORT,
+            user=config.DB_USER,
+            password=config.DB_PASSWORD,
+            database=config.DB_NAME,
+            charset="utf8mb4",
+            connect_timeout=10,
         )
-        print("✓ Connection successful!")
-        
-        # Test basic query
+        print("Connection successful!")
+
         cursor = conn.cursor()
         cursor.execute("SELECT VERSION()")
         version = cursor.fetchone()
-        print(f"✓ MySQL version: {version[0]}")
-        
-        # List existing tables
+        print(f"MySQL version: {version[0]}")
+
         cursor.execute("SHOW TABLES")
         tables = cursor.fetchall()
         if tables:
-            print(f"✓ Existing tables: {[t[0] for t in tables]}")
+            print(f"Existing tables: {[t[0] for t in tables]}")
         else:
             print("  No tables found (database is empty)")
-        
+
         conn.close()
         return True
-        
+
     except pymysql.err.OperationalError as e:
-        print(f"✗ Connection failed: {e}")
-        print("\nTroubleshooting steps:")
-        print("1. Check if MySQL is running on the Raspberry Pi:")
-        print("   sudo systemctl status mysql")
-        print("\n2. Verify MySQL is listening on all interfaces:")
-        print("   Check /etc/mysql/mysql.conf.d/mysqld.cnf")
-        print("   Ensure: bind-address = 0.0.0.0")
-        print("\n3. Check firewall allows port 3306:")
-        print("   sudo ufw allow 3306/tcp")
-        print("\n4. Verify user has remote access:")
-        print("   mysql -u root -p")
-        print("   SELECT host, user FROM mysql.user WHERE user='contextgrid_user';")
-        print("   -- Should show: 192.168.1.% or % for host")
+        print(f"Connection failed: {e}", file=sys.stderr)
+        print("\nTroubleshooting steps:", file=sys.stderr)
+        print("1. Confirm MySQL/MariaDB is running and reachable at DB_HOST:DB_PORT", file=sys.stderr)
+        print("2. Confirm DB_USER / DB_PASSWORD / DB_NAME in .env", file=sys.stderr)
+        print("3. Confirm the user is allowed to connect from this host", file=sys.stderr)
         return False
     except Exception as e:
-        print(f"✗ Unexpected error: {e}")
+        print(f"Unexpected error: {e}", file=sys.stderr)
         return False
 
+
 if __name__ == "__main__":
-    success = test_connection()
+    success = run_connection_check()
     sys.exit(0 if success else 1)

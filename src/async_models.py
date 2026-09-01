@@ -220,7 +220,6 @@ async def search_projects(
     sort_by: str = "last_worked_at",
     sort_order: str = "desc",
 ) -> List[Dict[str, Any]]:
-    # TODO: Implement server-side search; currently fallback to list_projects
     try:
         return await _client.list_projects(
             status=status,
@@ -228,6 +227,7 @@ async def search_projects(
             offset=offset,
             sort_by=sort_by,
             sort_order=sort_order,
+            search=query,
         )
     except APIError as e:
         _handle_api_error(e)
@@ -239,8 +239,7 @@ async def get_projects_count(
     search: Optional[str] = None,
 ) -> int:
     try:
-        projects = await _client.list_projects(status=status, tag=tag)
-        # search is ignored until API supports it explicitly
+        projects = await _client.list_projects(status=status, tag=tag, search=search)
         return len(projects)
     except APIError as e:
         _handle_api_error(e)
