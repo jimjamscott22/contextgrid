@@ -1,7 +1,23 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  rectSortingStrategy,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Plus, RotateCcw, Search } from "lucide-react";
 import { api } from "@/lib/api/endpoints";
 import { qk } from "@/lib/api/keys";
 import {
@@ -22,6 +38,8 @@ import { ProjectThumbnail } from "@/components/project/ProjectThumbnail";
 import { useToast } from "@/components/Toast";
 import { relativeTime } from "@/lib/format";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useProjectOrder } from "@/hooks/useProjectOrder";
+import { cn } from "@/lib/cn";
 
 export default function Projects() {
   const [search, setSearch] = useState("");
@@ -29,6 +47,10 @@ export default function Projects() {
   const [status, setStatus] = useState<ProjectStatus | "">("");
   const [tag, setTag] = useState<string>("");
   const [createOpen, setCreateOpen] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -58,6 +80,13 @@ export default function Projects() {
   });
 
   const projects = useMemo(() => projectsQ.data?.projects ?? [], [projectsQ.data]);
+  const { orderedProjects, hasCustomOrder, storageError, moveProject, resetOrder } =
+    useProjectOrder(projects);
+  const reorderDisabled = projectsQ.isPlaceholderData || search !== debouncedSearch;
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!reorderDisabled && over) moveProject(Number(active.id), Number(over.id));
+  };
 
   return (
     <div className="space-y-6">
@@ -130,11 +159,31 @@ export default function Projects() {
         />
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {projects.map((p) => (
-          <ProjectCard key={p.id} project={p} />
-        ))}
-      </div>
+      {(projects.length > 0 || hasCustomOrder) && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-fg-soft">
+            Drag the handles to rearrange projects. Order is saved in this browser.
+          </p>
+          <Button variant="ghost" size="sm" onClick={resetOrder} disabled={!hasCustomOrder}>
+            <RotateCcw size={14} /> Reset order
+          </Button>
+        </div>
+      )}
+      {storageError && (
+        <p role="status" className="text-sm text-danger">
+          Browser storage is unavailable. Changes to your order may be lost after refreshing.
+        </p>
+      )}
+
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={orderedProjects.map((p) => p.id)} strategy={rectSortingStrategy}>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {orderedProjects.map((p) => (
+              <SortableProjectCard key={p.id} project={p} disabled={reorderDisabled} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       <Dialog
         open={createOpen}
@@ -155,15 +204,51 @@ export default function Projects() {
   );
 }
 
-function ProjectCard({ project }: { project: Project }) {
+function SortableProjectCard({ project, disabled }: { project: Project; disabled: boolean }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: project.id, disabled });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn("relative min-w-0", isDragging && "z-10 opacity-80")}
+    >
+      <Button
+        ref={setActivatorNodeRef}
+        variant="secondary"
+        size="icon"
+        className="absolute right-2 top-2 z-10 h-11 w-11 touch-none cursor-grab shadow-sm active:cursor-grabbing"
+        disabled={disabled}
+        {...attributes}
+        {...listeners}
+        aria-label={`Rearrange ${project.name}`}
+        title="Drag to rearrange, or press Space then use the arrow keys"
+      >
+        <GripVertical size={20} aria-hidden="true" />
+      </Button>
+      <ProjectCard project={project} dragging={isDragging} />
+    </div>
+  );
+}
+
+function ProjectCard({ project, dragging }: { project: Project; dragging: boolean }) {
   const openTasks = project.open_task_count ?? 0;
 
   return (
     <Link
       to={`/projects/${project.id}`}
-      className="group block text-fg no-underline hover:no-underline"
+      draggable={false}
+      className="group block h-full text-fg no-underline hover:no-underline"
     >
-      <Card className="flex h-full flex-col overflow-hidden cg-card-hover">
+      <Card className={cn("flex h-full flex-col overflow-hidden", !dragging && "cg-card-hover")}>
         <ProjectThumbnail project={project} />
         <CardContent className="flex-1 space-y-3">
           <div className="flex items-start justify-between gap-2">
