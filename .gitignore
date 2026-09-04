@@ -225,3 +225,12 @@ frontend/dist-ssr/
 # Graphify
 graphify/
 graphify-out/
+.graphify/cache/
+.graphify/memory/
+.graphify/.graphify_labels.json
+.graphify/.graphify_node
+.graphify/.graphify_runtime_script
+.graphify/branch.json
+.graphify/worktree.json
+.graphify/needs_update
+.graphify/store-state.json
