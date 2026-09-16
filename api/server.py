@@ -107,7 +107,7 @@ app.add_middleware(
 # =========================
 
 @app.get("/api/health", response_model=HealthResponse)
-async def health_check():
+def health_check():
     """Health check endpoint."""
     success, error = db.test_connection()
     
@@ -128,7 +128,7 @@ async def health_check():
 # =========================
 
 @app.get("/api/projects", response_model=ProjectListResponse)
-async def list_projects(
+def list_projects(
     status: Optional[str] = Query(None, pattern="^(idea|active|paused|archived)$"),
     tag: Optional[str] = Query(None),
     search: Optional[str] = Query(None, max_length=200),
@@ -183,7 +183,7 @@ async def list_projects(
 
 
 @app.get("/api/projects/{project_id}", response_model=ProjectResponse)
-async def get_project(project_id: int):
+def get_project(project_id: int):
     """Get a single project by ID."""
     try:
         project = db.get_project(project_id)
@@ -199,7 +199,7 @@ async def get_project(project_id: int):
 
 
 @app.post("/api/projects", response_model=ProjectResponse, status_code=201)
-async def create_project(project: ProjectCreate):
+def create_project(project: ProjectCreate):
     """Create a new project."""
     try:
         project_id = db.create_project(
@@ -226,7 +226,7 @@ async def create_project(project: ProjectCreate):
 
 
 @app.put("/api/projects/{project_id}", response_model=ProjectResponse)
-async def update_project(project_id: int, project: ProjectUpdate):
+def update_project(project_id: int, project: ProjectUpdate):
     """Update a project."""
     try:
         # Check if project exists
@@ -253,7 +253,7 @@ async def update_project(project_id: int, project: ProjectUpdate):
 
 
 @app.delete("/api/projects/{project_id}", response_model=MessageResponse)
-async def delete_project(project_id: int):
+def delete_project(project_id: int):
     """Delete a project."""
     try:
         success = db.delete_project(project_id)
@@ -270,7 +270,7 @@ async def delete_project(project_id: int):
 
 
 @app.post("/api/projects/{project_id}/touch", response_model=TouchResponse)
-async def touch_project(project_id: int):
+def touch_project(project_id: int):
     """Update the last_worked_at timestamp for a project."""
     try:
         success, timestamp = db.update_last_worked(project_id)
@@ -294,7 +294,7 @@ async def touch_project(project_id: int):
 # =========================
 
 @app.get("/api/tags", response_model=TagListResponse)
-async def list_tags():
+def list_tags():
     """List all tags with project counts."""
     try:
         tags = db.list_all_tags()
@@ -304,7 +304,7 @@ async def list_tags():
 
 
 @app.get("/api/projects/{project_id}/tags", response_model=list[TagSimple])
-async def get_project_tags(project_id: int):
+def get_project_tags(project_id: int):
     """Get all tags for a specific project."""
     try:
         # Check if project exists
@@ -322,7 +322,7 @@ async def get_project_tags(project_id: int):
 
 
 @app.post("/api/projects/{project_id}/tags", response_model=MessageResponse, status_code=201)
-async def add_tag_to_project(project_id: int, tag: TagCreate):
+def add_tag_to_project(project_id: int, tag: TagCreate):
     """Add a tag to a project."""
     try:
         # Check if project exists
@@ -347,7 +347,7 @@ async def add_tag_to_project(project_id: int, tag: TagCreate):
 
 
 @app.delete("/api/projects/{project_id}/tags/{tag_name}", response_model=MessageResponse)
-async def remove_tag_from_project(project_id: int, tag_name: str):
+def remove_tag_from_project(project_id: int, tag_name: str):
     """Remove a tag from a project."""
     try:
         # Normalize tag name
@@ -374,7 +374,7 @@ async def remove_tag_from_project(project_id: int, tag_name: str):
 # =========================
 
 @app.get("/api/projects/{project_id}/notes", response_model=NoteListResponse)
-async def get_project_notes(project_id: int):
+def get_project_notes(project_id: int):
     """Get all notes for a project."""
     try:
         # Check if project exists
@@ -392,7 +392,7 @@ async def get_project_notes(project_id: int):
 
 
 @app.post("/api/projects/{project_id}/notes", response_model=NoteResponse, status_code=201)
-async def create_note(project_id: int, note: NoteCreate):
+def create_note(project_id: int, note: NoteCreate):
     """Create a new note for a project."""
     try:
         # Check if project exists
@@ -417,7 +417,7 @@ async def create_note(project_id: int, note: NoteCreate):
 
 
 @app.get("/api/notes/{note_id}", response_model=NoteResponse)
-async def get_note(note_id: int):
+def get_note(note_id: int):
     """Get a single note by ID."""
     try:
         note = db.get_note(note_id)
@@ -433,7 +433,7 @@ async def get_note(note_id: int):
 
 
 @app.put("/api/notes/{note_id}", response_model=NoteResponse)
-async def update_note(note_id: int, note: NoteCreate):
+def update_note(note_id: int, note: NoteCreate):
     """Update a note by ID."""
     try:
         # Check if note exists
@@ -458,7 +458,7 @@ async def update_note(note_id: int, note: NoteCreate):
 
 
 @app.get("/api/tasks", response_model=TaskListResponse)
-async def get_all_tasks(
+def get_all_tasks(
     note_type: Optional[str] = None,
     project_id: Optional[int] = None,
     task_status: Optional[str] = None,
@@ -478,7 +478,7 @@ async def get_all_tasks(
 
 
 @app.patch("/api/notes/{note_id}/status", response_model=NoteResponse)
-async def update_note_status(note_id: int, body: NoteStatusUpdate):
+def update_note_status(note_id: int, body: NoteStatusUpdate):
     """Update the task_status of a note (active / completed / archived)."""
     try:
         existing = db.get_note(note_id)
@@ -497,7 +497,7 @@ async def update_note_status(note_id: int, body: NoteStatusUpdate):
 
 
 @app.delete("/api/notes/{note_id}", response_model=MessageResponse)
-async def delete_note(note_id: int):
+def delete_note(note_id: int):
     """Delete a note by ID."""
     try:
         success = db.delete_note(note_id)
@@ -518,7 +518,7 @@ async def delete_note(note_id: int):
 # =========================
 
 @app.get("/api/projects/{project_id}/relationships", response_model=RelationshipListResponse)
-async def get_project_relationships(project_id: int):
+def get_project_relationships(project_id: int):
     """Get all relationships for a specific project (both outgoing and incoming)."""
     try:
         # Check if project exists
@@ -536,7 +536,7 @@ async def get_project_relationships(project_id: int):
 
 
 @app.post("/api/projects/{project_id}/relationships", response_model=RelationshipResponse, status_code=201)
-async def create_relationship(project_id: int, relationship: RelationshipCreate):
+def create_relationship(project_id: int, relationship: RelationshipCreate):
     """Create a new relationship from this project to another."""
     try:
         # Check if source project exists
@@ -575,7 +575,7 @@ async def create_relationship(project_id: int, relationship: RelationshipCreate)
 
 
 @app.delete("/api/relationships/{relationship_id}", response_model=MessageResponse)
-async def delete_relationship(relationship_id: int):
+def delete_relationship(relationship_id: int):
     """Delete a relationship by ID."""
     try:
         success = db.delete_relationship(relationship_id)
@@ -596,7 +596,7 @@ async def delete_relationship(relationship_id: int):
 # =========================
 
 @app.get("/api/activity/heatmap", response_model=ActivityHeatmapResponse)
-async def get_activity_heatmap(
+def get_activity_heatmap(
     days: int = Query(365, ge=30, le=730)
 ):
     """
@@ -622,7 +622,7 @@ async def get_activity_heatmap(
 # =========================
 
 @app.get("/api/graph", response_model=GraphDataResponse)
-async def get_full_graph(include_inferred: bool = Query(True)):
+def get_full_graph(include_inferred: bool = Query(True)):
     """
     Get full graph data for visualization.
 
@@ -667,7 +667,7 @@ async def get_full_graph(include_inferred: bool = Query(True)):
 
 
 @app.get("/api/projects/{project_id}/graph", response_model=GraphDataResponse)
-async def get_project_graph(project_id: int, include_inferred: bool = Query(True)):
+def get_project_graph(project_id: int, include_inferred: bool = Query(True)):
     """
     Get graph data for a specific project and its related projects.
 
@@ -753,7 +753,7 @@ async def get_project_graph(project_id: int, include_inferred: bool = Query(True
 # =========================
 
 @app.get("/api/projects/{project_id}/links", response_model=LinkListResponse)
-async def get_project_links(project_id: int):
+def get_project_links(project_id: int):
     """Get all resource links for a specific project."""
     try:
         project = db.get_project(project_id)
@@ -770,7 +770,7 @@ async def get_project_links(project_id: int):
 
 
 @app.post("/api/projects/{project_id}/links", response_model=LinkResponse, status_code=201)
-async def create_project_link(project_id: int, link: LinkCreate):
+def create_project_link(project_id: int, link: LinkCreate):
     """Add a resource link to a project."""
     try:
         project = db.get_project(project_id)
@@ -794,7 +794,7 @@ async def create_project_link(project_id: int, link: LinkCreate):
 
 
 @app.delete("/api/links/{link_id}", response_model=MessageResponse)
-async def delete_link(link_id: int):
+def delete_link(link_id: int):
     """Delete a project link by ID."""
     try:
         success = db.delete_link(link_id)
@@ -813,7 +813,7 @@ async def delete_link(link_id: int):
 # =========================
 
 @app.get("/api/projects/{project_id}/commands", response_model=CommandListResponse)
-async def get_project_commands(project_id: int):
+def get_project_commands(project_id: int):
     """Get all commands for a specific project."""
     try:
         project = db.get_project(project_id)
@@ -830,7 +830,7 @@ async def get_project_commands(project_id: int):
 
 
 @app.post("/api/projects/{project_id}/commands", response_model=CommandResponse, status_code=201)
-async def create_project_command(project_id: int, command: CommandCreate):
+def create_project_command(project_id: int, command: CommandCreate):
     """Add a command to a project."""
     try:
         project = db.get_project(project_id)
@@ -853,7 +853,7 @@ async def create_project_command(project_id: int, command: CommandCreate):
 
 
 @app.delete("/api/commands/{command_id}", response_model=MessageResponse)
-async def delete_command(command_id: int):
+def delete_command(command_id: int):
     """Delete a project command by ID."""
     try:
         success = db.delete_command(command_id)
@@ -872,7 +872,7 @@ async def delete_command(command_id: int):
 # =========================
 
 @app.get("/api/projects/{project_id}/tasks", response_model=ProjectTaskListResponse)
-async def get_project_tasks(project_id: int):
+def get_project_tasks(project_id: int):
     """Get all tasks for a specific project."""
     try:
         project = db.get_project(project_id)
@@ -889,7 +889,7 @@ async def get_project_tasks(project_id: int):
 
 
 @app.post("/api/projects/{project_id}/tasks", response_model=ProjectTaskResponse, status_code=201)
-async def create_project_task(project_id: int, task: ProjectTaskCreate):
+def create_project_task(project_id: int, task: ProjectTaskCreate):
     """Add a task to a project."""
     try:
         project = db.get_project(project_id)
@@ -907,7 +907,7 @@ async def create_project_task(project_id: int, task: ProjectTaskCreate):
 
 
 @app.patch("/api/project-tasks/{task_id}/toggle", response_model=ProjectTaskResponse)
-async def toggle_project_task(task_id: int):
+def toggle_project_task(task_id: int):
     """Toggle a task's completion status."""
     try:
         updated = db.toggle_task(task_id)
@@ -922,7 +922,7 @@ async def toggle_project_task(task_id: int):
 
 
 @app.delete("/api/project-tasks/{task_id}", response_model=MessageResponse)
-async def delete_project_task(task_id: int):
+def delete_project_task(task_id: int):
     """Delete a project task by ID."""
     try:
         success = db.delete_task(task_id)
@@ -941,7 +941,7 @@ async def delete_project_task(task_id: int):
 # =========================
 
 @app.get("/api/templates", response_model=TemplateListResponse)
-async def list_templates():
+def list_templates():
     """List all project templates."""
     try:
         templates = db.list_templates()
@@ -951,7 +951,7 @@ async def list_templates():
 
 
 @app.get("/api/templates/{template_id}", response_model=TemplateResponse)
-async def get_template(template_id: int):
+def get_template(template_id: int):
     """Get a single project template by ID."""
     try:
         template = db.get_template(template_id)
@@ -965,7 +965,7 @@ async def get_template(template_id: int):
 
 
 @app.post("/api/templates", response_model=TemplateResponse, status_code=201)
-async def create_template(template: TemplateCreate):
+def create_template(template: TemplateCreate):
     """Create a new project template."""
     try:
         template_id = db.create_template(
@@ -986,7 +986,7 @@ async def create_template(template: TemplateCreate):
 
 
 @app.put("/api/templates/{template_id}", response_model=TemplateResponse)
-async def update_template(template_id: int, template: TemplateUpdate):
+def update_template(template_id: int, template: TemplateUpdate):
     """Update a project template."""
     try:
         existing = db.get_template(template_id)
@@ -1006,7 +1006,7 @@ async def update_template(template_id: int, template: TemplateUpdate):
 
 
 @app.delete("/api/templates/{template_id}", response_model=MessageResponse)
-async def delete_template(template_id: int):
+def delete_template(template_id: int):
     """Delete a project template by ID."""
     try:
         success = db.delete_template(template_id)
@@ -1024,7 +1024,7 @@ async def delete_template(template_id: int):
 # =========================
 
 @app.get("/api/analytics", response_model=AnalyticsResponse)
-async def get_analytics():
+def get_analytics():
     """Get analytics data for charts and dashboards."""
     try:
         data = db.get_analytics()
@@ -1112,7 +1112,7 @@ def _clear_cover(project_dir: Path) -> None:
 
 
 @app.get("/api/projects/{project_id}/screenshots", response_model=ScreenshotListResponse)
-async def list_screenshots(project_id: int):
+def list_screenshots(project_id: int):
     """List screenshots for a project, with the chosen cover sorted first."""
     project_dir = config.UPLOADS_DIR / str(project_id)
     if not project_dir.is_dir():
@@ -1138,7 +1138,7 @@ async def list_screenshots(project_id: int):
 
 
 @app.put("/api/projects/{project_id}/screenshots/cover", response_model=MessageResponse)
-async def set_cover(project_id: int, payload: CoverRequest):
+def set_cover(project_id: int, payload: CoverRequest):
     """Choose which screenshot is used as the project's card cover."""
     project_dir = config.UPLOADS_DIR / str(project_id)
     filename = Path(payload.filename).name
@@ -1154,7 +1154,7 @@ async def set_cover(project_id: int, payload: CoverRequest):
 
 
 @app.delete("/api/projects/{project_id}/screenshots/cover", response_model=MessageResponse)
-async def clear_cover(project_id: int):
+def clear_cover(project_id: int):
     """Clear the project's chosen cover, reverting to the default first screenshot."""
     project_dir = config.UPLOADS_DIR / str(project_id)
     if project_dir.is_dir():
@@ -1163,7 +1163,7 @@ async def clear_cover(project_id: int):
 
 
 @app.post("/api/projects/{project_id}/screenshots", response_model=MessageResponse)
-async def upload_screenshot(project_id: int, file: UploadFile = File(...)):
+def upload_screenshot(project_id: int, file: UploadFile = File(...)):
     """Upload a screenshot for a project."""
     content_type = file.content_type or ""
     if not content_type.startswith("image/") or content_type == "image/svg+xml":
@@ -1185,7 +1185,7 @@ async def upload_screenshot(project_id: int, file: UploadFile = File(...)):
     try:
         with open(file_path, "wb") as buffer:
             while True:
-                chunk = await file.read(_CHUNK)
+                chunk = file.file.read(_CHUNK)
                 if not chunk:
                     break
                 written += len(chunk)
@@ -1203,7 +1203,7 @@ async def upload_screenshot(project_id: int, file: UploadFile = File(...)):
 
 
 @app.delete("/api/projects/{project_id}/screenshots/{filename}", response_model=MessageResponse)
-async def delete_screenshot(project_id: int, filename: str):
+def delete_screenshot(project_id: int, filename: str):
     """Delete a screenshot for a project."""
     project_dir = config.UPLOADS_DIR / str(project_id)
     file_path = project_dir / filename
@@ -1236,7 +1236,7 @@ def _sanitize_mermaid_label(text: str, max_length: int = 40) -> str:
 
 
 @app.get("/api/projects/{project_id}/mermaid", response_model=MermaidResponse)
-async def get_project_mermaid(project_id: int):
+def get_project_mermaid(project_id: int):
     """
     Return a Mermaid state diagram for a single project showing its lifecycle,
     current status, notes, and tags.
@@ -1291,7 +1291,7 @@ async def get_project_mermaid(project_id: int):
 
 
 @app.get("/api/mermaid/overview", response_model=MermaidResponse)
-async def get_overview_mermaid():
+def get_overview_mermaid():
     """
     Return a Mermaid mindmap diagram of all projects grouped by status.
     """
@@ -1359,7 +1359,7 @@ def _parse_github_url(url: str) -> Tuple[Optional[str], Optional[str]]:
 _GITHUB_README_FETCH_TIMEOUT = 15.0
 
 
-async def _fetch_github_readme(
+def _fetch_github_readme(
     owner: str, repo: str
 ) -> Tuple[Optional[str], Optional[str]]:
     """
@@ -1369,11 +1369,11 @@ async def _fetch_github_readme(
     Returns:
         (content, ref) if found, or (None, None) if not found
     """
-    async with httpx.AsyncClient(timeout=_GITHUB_README_FETCH_TIMEOUT) as client:
+    with httpx.Client(timeout=_GITHUB_README_FETCH_TIMEOUT) as client:
         for ref in ("main", "master"):
             url = f"https://raw.githubusercontent.com/{owner}/{repo}/{ref}/README.md"
             try:
-                response = await client.get(url)
+                response = client.get(url)
                 if response.status_code == 200:
                     return response.text, ref
             except httpx.RequestError:
@@ -1386,7 +1386,7 @@ async def _fetch_github_readme(
 # =========================
 
 @app.get("/api/projects/{project_id}/readme", response_model=ReadmeSnapshotResponse)
-async def get_readme_snapshot(project_id: int):
+def get_readme_snapshot(project_id: int):
     """Get the stored README snapshot for a project."""
     try:
         project = db.get_project(project_id)
@@ -1412,7 +1412,7 @@ async def get_readme_snapshot(project_id: int):
 
 
 @app.post("/api/projects/{project_id}/readme/attach", response_model=ReadmeAttachResponse)
-async def attach_readme(project_id: int):
+def attach_readme(project_id: int):
     """
     Fetch README.md from the project's GitHub repository and store a snapshot.
     Requires the project to have a valid GitHub repo_url set.
@@ -1436,7 +1436,7 @@ async def attach_readme(project_id: int):
                 detail=f"Could not parse a GitHub URL from: {repo_url}"
             )
 
-        content, ref = await _fetch_github_readme(owner, repo)
+        content, ref = _fetch_github_readme(owner, repo)
         if content is None:
             raise HTTPException(
                 status_code=404,
@@ -1465,7 +1465,7 @@ async def attach_readme(project_id: int):
 
 
 @app.delete("/api/projects/{project_id}/readme", response_model=MessageResponse)
-async def delete_readme_snapshot(project_id: int):
+def delete_readme_snapshot(project_id: int):
     """Delete the stored README snapshot for a project."""
     try:
         project = db.get_project(project_id)
@@ -1502,14 +1502,14 @@ if _SPA_INDEX.exists():
     )
 
     @app.get("/favicon.svg", include_in_schema=False)
-    async def spa_favicon():
+    def spa_favicon():
         path = _SPA_DIST / "favicon.svg"
         if path.exists():
             return FileResponse(str(path))
         raise HTTPException(status_code=404)
 
     @app.get("/{full_path:path}", include_in_schema=False)
-    async def spa_fallback(full_path: str, request: Request):
+    def spa_fallback(full_path: str, request: Request):
         # API and reserved mounts should never hit this route.
         if (
             full_path.startswith("api/")
