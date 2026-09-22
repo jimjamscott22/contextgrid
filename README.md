@@ -861,9 +861,20 @@ python src/main.py list
 ### Running Tests
 
 ```bash
-# TODO: Add tests
-pytest
+# Run the full pytest suite (no database required — all DB calls are mocked)
+uv run pytest
+
+# Run a specific test file
+uv run pytest tests/test_cli_parser.py
+
+# Verbose output with individual test names
+uv run pytest -v
 ```
+
+The test suite covers CLI argument parsing, Pydantic model validation,
+API endpoint behaviour (CORS, upload limits, pagination), request-timing
+middleware, project-type consistency, README snapshot logic, and security
+(URL scheme validation, SVG rejection, file-size caps).
 
 ### Code Style
 

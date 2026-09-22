@@ -20,9 +20,8 @@
 ## Build and Test
 - **Dependencies**: Use **`uv`** (not pip/poetry). Run scripts via `uv run`. 
   - Install: `uv sync`, Add: `uv add <package>`
-- **Test**: Shell-script based (not pytest, despite pyproject). 
-  - DB layer: `bash tests/test_db_abstraction.sh`
-  - Integration: `bash test_system.sh`
+- **Test**: `uv run pytest` (all DB calls are mocked; no live database required).
+  - Tests live in `tests/` and cover CLI parsing, Pydantic model validation, API endpoints, middleware, security, and project-type consistency.
 
 ## Conventions
 - **Database**: 
