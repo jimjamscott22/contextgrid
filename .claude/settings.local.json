@@ -13,7 +13,9 @@
       "Bash(git checkout *)",
       "Bash(git add *)",
       "Bash(git commit -q -m 'docs: design for Activity card enrichment *)",
-      "Bash(git commit -q -m 'docs: lock Vitest decision in Activity card spec *)"
+      "Bash(git commit -q -m 'docs: lock Vitest decision in Activity card spec *)",
+      "Bash(ip route *)",
+      "Bash(ssh jimjamscozz22@192.168.1.25 ' *)"
     ]
   }
 }
