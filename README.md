@@ -1,7 +1,7 @@
 # ContextGrid
 
 <p align="center">
-  <img src="context-grid.png" alt="ContextGrid Preview" width="720">
+  <img src="docs/img/context-grid.png" alt="ContextGrid Preview" width="720">
 </p>
 
 ContextGrid is a personal, local-first application for tracking coding projects across time, tools, and mental states.
