@@ -11,13 +11,12 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api/endpoints";
 import { qk } from "@/lib/api/keys";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Dialog } from "@/components/ui/Dialog";
 import { LoadingState, ErrorState } from "@/components/ui/Empty";
-import { Markdown } from "@/components/Markdown";
 import { ProjectForm } from "@/components/forms/ProjectForm";
 import { ProjectTagsPanel } from "@/components/project/TagsPanel";
 import { NotesPanel } from "@/components/project/NotesPanel";
@@ -27,6 +26,7 @@ import { CommandsPanel } from "@/components/project/CommandsPanel";
 import { RelationshipsPanel } from "@/components/project/RelationshipsPanel";
 import { ScreenshotsPanel } from "@/components/project/ScreenshotsPanel";
 import { ReadmePanel } from "@/components/project/ReadmePanel";
+import { FolderStructurePanel } from "@/components/project/FolderStructurePanel";
 import { useToast } from "@/components/Toast";
 import { formatDate, relativeTime } from "@/lib/format";
 import { projectTypeLabel, type ProjectInput } from "@/lib/api/types";
@@ -73,6 +73,17 @@ export default function ProjectDetail() {
       setEditOpen(false);
     },
     onError: (e) => toast(`Update failed: ${(e as Error).message}`, "error"),
+  });
+
+  const structureMut = useMutation({
+    mutationFn: (folderStructure: string) =>
+      api.updateProject(projectId, { folder_structure: folderStructure }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.project(projectId) });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast("Folder structure saved", "success");
+    },
+    onError: (e) => toast(`Save failed: ${(e as Error).message}`, "error"),
   });
 
   if (isLoading) return <LoadingState />;
@@ -208,27 +219,12 @@ export default function ProjectDetail() {
           <ReadmePanel projectId={projectId} />
         </TabsContent>
         <TabsContent value="structure">
-          <Card>
-            <CardHeader>
-              <CardTitle>Folder structure</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {project.folder_structure ? (
-                <Markdown source={"```\n" + project.folder_structure + "\n```"} />
-              ) : (
-                <p className="text-sm text-fg-soft">
-                  No folder structure captured. Edit the project to add one.
-                </p>
-              )}
-              {project.folder_structure_img_url && (
-                <img
-                  src={project.folder_structure_img_url}
-                  alt="Folder structure"
-                  className="mt-4 max-w-full rounded-md border border-border"
-                />
-              )}
-            </CardContent>
-          </Card>
+          <FolderStructurePanel
+            saved={project.folder_structure}
+            imageUrl={project.folder_structure_img_url}
+            saving={structureMut.isPending}
+            onSave={(value) => structureMut.mutateAsync(value)}
+          />
         </TabsContent>
       </Tabs>
 
