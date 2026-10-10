@@ -4,7 +4,8 @@ Handles environment variables and provides sensible defaults.
 """
 
 import os
-from typing import Optional, List
+import ipaddress
+from typing import Optional, List, Tuple
 from pathlib import Path
 from dotenv import load_dotenv
 import sys
@@ -54,7 +55,27 @@ class Config:
     ]
     MAX_UPLOAD_BYTES: int = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))   # 10 MB
     MAX_README_BYTES: int = int(os.getenv("MAX_README_BYTES", str(1 * 1024 * 1024)))    # 1 MB
-    
+
+    # Optional shared secret for API and upload routes (unset = no auth, local default).
+    API_TOKEN: Optional[str] = os.getenv("API_TOKEN") or None
+
+    @classmethod
+    def is_loopback_bind_host(cls, host: str) -> bool:
+        """
+        Return True when the API bind host is restricted to loopback-only addresses.
+
+        ``0.0.0.0`` and bare interface IPs are treated as non-loopback because they
+        accept connections from other machines on the network.
+        """
+        normalized = host.strip().lower()
+        if normalized in ("localhost", "127.0.0.1", "::1"):
+            return True
+        try:
+            parsed = ipaddress.ip_address(normalized)
+        except ValueError:
+            return False
+        return bool(parsed.is_loopback)
+
     @classmethod
     def get_database_url(cls) -> str:
         """
@@ -66,7 +87,7 @@ class Config:
         return f"mysql+pymysql://{cls.DB_USER}:{cls.DB_PASSWORD}@{cls.DB_HOST}:{cls.DB_PORT}/{cls.DB_NAME}"
     
     @classmethod
-    def validate(cls) -> tuple[bool, Optional[str]]:
+    def validate(cls) -> Tuple[bool, Optional[str]]:
         """
         Validate configuration settings.
         
@@ -78,6 +99,13 @@ class Config:
         
         if not cls.DB_USER:
             return False, "DB_USER is required but not set"
+
+        if not cls.is_loopback_bind_host(cls.API_HOST) and not cls.API_TOKEN:
+            return (
+                False,
+                "API_TOKEN is required when API_HOST binds to a non-loopback address "
+                f"({cls.API_HOST}). Set API_TOKEN in .env or bind to 127.0.0.1.",
+            )
         
         return True, None
 

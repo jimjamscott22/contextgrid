@@ -10,6 +10,7 @@ import httpx
 
 # API endpoint configuration
 API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8003")
+API_TOKEN = os.getenv("API_TOKEN", "").strip()
 
 
 class APIError(Exception):
@@ -24,6 +25,12 @@ class AsyncAPIClient:
         self.base_url = (base_url or API_ENDPOINT).rstrip("/")
         self._client = httpx.AsyncClient(base_url=self.base_url, timeout=10.0)
 
+    def _auth_headers(self) -> Dict[str, str]:
+        """Return Authorization headers when API_TOKEN is configured."""
+        if not API_TOKEN:
+            return {}
+        return {"Authorization": f"Bearer {API_TOKEN}"}
+
     async def _request(
         self,
         method: str,
@@ -33,6 +40,10 @@ class AsyncAPIClient:
         **kwargs,
     ) -> Any:
         url = endpoint
+        headers = dict(kwargs.pop("headers", {}) or {})
+        headers.update(self._auth_headers())
+        if headers:
+            kwargs["headers"] = headers
         try:
             response = await self._client.request(method, url, **kwargs)
             response.raise_for_status()

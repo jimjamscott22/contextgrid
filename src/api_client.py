@@ -26,6 +26,13 @@ class APIClient:
         """
         self.base_url = base_url or config.API_URL
         self.base_url = self.base_url.rstrip('/')
+
+    def _auth_headers(self) -> Dict[str, str]:
+        """Return Authorization headers when API_TOKEN is configured."""
+        token = config.API_TOKEN.strip()
+        if not token:
+            return {}
+        return {"Authorization": f"Bearer {token}"}
     
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
         """
@@ -43,6 +50,10 @@ class APIClient:
             APIError: If request fails
         """
         url = f"{self.base_url}{endpoint}"
+        headers = dict(kwargs.pop("headers", {}) or {})
+        headers.update(self._auth_headers())
+        if headers:
+            kwargs["headers"] = headers
         
         try:
             response = requests.request(method, url, **kwargs)

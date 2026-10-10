@@ -38,7 +38,7 @@ def test_cors_credentials_not_sent(api_client):
 
 
 import io
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, Mock
 
 
 # ── SVG rejection ─────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ def test_readme_over_cap_returns_413(api_client):
     with (
         patch(
             "api.server._fetch_github_readme",
-            new_callable=AsyncMock,
+            new_callable=Mock,
             return_value=(big_content, "main"),
         ),
         patch(
@@ -125,7 +125,7 @@ def test_readme_under_cap_stores_snapshot(api_client):
     with (
         patch(
             "api.server._fetch_github_readme",
-            new_callable=AsyncMock,
+            new_callable=Mock,
             return_value=(content, "main"),
         ),
         patch(

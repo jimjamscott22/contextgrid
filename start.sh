@@ -2,6 +2,14 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -f "$PROJECT_ROOT/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$PROJECT_ROOT/.env"
+    set +a
+fi
+
 API_HOST="${API_HOST:-127.0.0.1}"
 API_PORT="${API_PORT:-8003}"
 API_URL="http://127.0.0.1:${API_PORT}/api/health"
@@ -28,6 +36,19 @@ require_command() {
 for required_command in uv npm curl xdg-open; do
     require_command "$required_command"
 done
+
+is_loopback_host() {
+    case "${1,,}" in
+        127.0.0.1 | localhost | ::1) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+if ! is_loopback_host "$API_HOST" && [[ -z "${API_TOKEN:-}" ]]; then
+    echo "API_TOKEN is required when API_HOST=$API_HOST (non-loopback bind)." >&2
+    echo "Set API_TOKEN in .env or bind the API to 127.0.0.1." >&2
+    exit 1
+fi
 
 api_pid=""
 frontend_pid=""
@@ -63,7 +84,12 @@ wait_for_services() {
             return 1
         fi
 
-        if curl --fail --silent --output /dev/null "$API_URL" \
+        api_curl=(curl --fail --silent --output /dev/null)
+        if [[ -n "${API_TOKEN:-}" ]]; then
+            api_curl+=(-H "Authorization: Bearer ${API_TOKEN}")
+        fi
+
+        if "${api_curl[@]}" "$API_URL" \
             && curl --fail --silent --output /dev/null "$FRONTEND_URL"; then
             return 0
         fi

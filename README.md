@@ -63,6 +63,28 @@ API mode (USE_API=true, default)
 
 Direct mode needs no API server; API mode enables cross-device access and the web frontends.
 
+### API authentication (optional)
+
+On loopback (`API_HOST=127.0.0.1`, the default), the API runs **without** authentication so local development stays unchanged.
+
+If you bind the API to a LAN or public address (for example `API_HOST=0.0.0.0`), set a shared secret:
+
+```bash
+# .env
+API_HOST=0.0.0.0
+API_TOKEN=your-long-random-secret
+```
+
+All `/api/*` requests must send `Authorization: Bearer your-long-random-secret`. Protected `/uploads/*` URLs accept the same bearer header or a `?token=` query parameter (used by screenshot thumbnails in the web UIs).
+
+Configure clients to match:
+
+- **CLI** (API mode): `API_TOKEN` in `.env`
+- **React SPA**: `VITE_API_TOKEN` with the same value (see `frontend/.env` or your shell when running `npm run dev`)
+- **Jinja UI**: `API_TOKEN` in `.env` (server-side calls and upload URLs)
+
+The server **refuses to start** when `API_HOST` is non-loopback and `API_TOKEN` is missing.
+
 ---
 
 ## Quick Start
@@ -154,6 +176,8 @@ All configuration is via environment variables, typically in `.env`. See `.env.e
 | `DB_NAME` | Database name | `contextgrid` |
 | `DB_USER` / `DB_PASSWORD` | Database credentials | — (required) |
 | `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` | Connection pool | `5` / `10` |
+| `API_TOKEN` | Optional bearer token for `/api/*` and `/uploads` (required when binding to a non-loopback `API_HOST`) | unset (no auth) |
+| `VITE_API_TOKEN` | Same value as `API_TOKEN` for the React SPA dev/build | unset |
 | `ALLOWED_ORIGINS` | CORS allowlist (comma-separated) | localhost dev + prod ports |
 | `MAX_UPLOAD_BYTES` | Max screenshot upload size | 10 MB |
 | `MAX_README_BYTES` | Max README snapshot size | 1 MB |

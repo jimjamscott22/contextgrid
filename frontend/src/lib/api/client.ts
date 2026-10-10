@@ -1,3 +1,5 @@
+import { getApiToken } from "./token";
+
 export class ApiError extends Error {
   status: number;
   detail: unknown;
@@ -41,6 +43,11 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
   } else if (opts.body !== undefined) {
     headers["Content-Type"] = "application/json";
     body = JSON.stringify(opts.body);
+  }
+
+  const token = getApiToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const res = await fetch(url, {
