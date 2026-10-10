@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { LoadingState, EmptyState } from "@/components/ui/Empty";
 import { useToast } from "@/components/Toast";
+import { AuthenticatedImage } from "@/components/project/AuthenticatedImage";
 
 export function ScreenshotsPanel({ projectId }: { projectId: number }) {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -83,7 +84,7 @@ export function ScreenshotsPanel({ projectId }: { projectId: number }) {
                 s.is_cover ? "border-primary ring-1 ring-primary/40" : "border-border"
               }`}
             >
-              <img src={s.url} alt={s.label} className="block w-full" />
+              <AuthenticatedImage src={s.url} alt={s.label} className="block w-full" />
 
               {s.is_cover && (
                 <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-medium text-primary-fg shadow-sm">

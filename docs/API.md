@@ -8,7 +8,7 @@ The ContextGrid API is a RESTful API built with FastAPI that provides access to 
 
 ## Authentication
 
-Currently, the API does not require authentication. This may change in future versions.
+Authentication is optional. When `API_TOKEN` is set in the server environment, all `/api/*` routes require `Authorization: Bearer <API_TOKEN>`. `/uploads/*` accepts the same bearer header or `?token=<API_TOKEN>` for browser `<img>` tags. When `API_HOST` binds to a non-loopback address, `API_TOKEN` is required or the server will not start.
 
 ## Response Formats
 

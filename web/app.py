@@ -57,6 +57,24 @@ templates.env.globals["project_type_options"] = tuple(
 
 API_ENDPOINT = os.getenv("API_ENDPOINT", "http://localhost:8003").rstrip("/")
 
+
+def _api_auth_headers() -> Dict[str, str]:
+    """Authorization headers for server-side API calls when API_TOKEN is set."""
+    token = os.getenv("API_TOKEN", "").strip()
+    if not token:
+        return {}
+    return {"Authorization": f"Bearer {token}"}
+
+
+def _public_upload_url(relative_url: str) -> str:
+    """Build a browser-reachable upload URL, including token query when required."""
+    absolute = f"{API_ENDPOINT}{relative_url}"
+    token = os.getenv("API_TOKEN", "").strip()
+    if not token:
+        return absolute
+    separator = "&" if "?" in absolute else "?"
+    return f"{absolute}{separator}token={token}"
+
 ALLOWED_MARKDOWN_TAGS = {
     "a", "abbr", "blockquote", "br", "code", "dd", "del", "details",
     "div", "dl", "dt", "em", "h1", "h2", "h3", "h4", "h5", "h6",
@@ -205,13 +223,16 @@ async def get_project_screenshots(project_id: int) -> List[Dict[str, str]]:
     """Fetch screenshots for a project from the API server."""
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(f"{API_ENDPOINT}/api/projects/{project_id}/screenshots")
+            response = await client.get(
+                f"{API_ENDPOINT}/api/projects/{project_id}/screenshots",
+                headers=_api_auth_headers(),
+            )
             response.raise_for_status()
             data = response.json()
             # Rewrite relative URLs to absolute API URLs so the browser can reach them
             screenshots = []
             for s in data.get("screenshots", []):
-                s["url"] = f"{API_ENDPOINT}{s['url']}"
+                s["url"] = _public_upload_url(s["url"])
                 screenshots.append(s)
             return screenshots
     except Exception:
@@ -785,6 +806,7 @@ async def project_upload_screenshot(
             response = await client.post(
                 f"{API_ENDPOINT}/api/projects/{project_id}/screenshots",
                 files={"file": (file.filename, contents, file.content_type)},
+                headers=_api_auth_headers(),
             )
             response.raise_for_status()
         return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
@@ -809,7 +831,8 @@ async def project_delete_screenshot(
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.delete(
-                f"{API_ENDPOINT}/api/projects/{project_id}/screenshots/{filename}"
+                f"{API_ENDPOINT}/api/projects/{project_id}/screenshots/{filename}",
+                headers=_api_auth_headers(),
             )
             response.raise_for_status()
         return RedirectResponse(url=f"/projects/{project_id}", status_code=303)

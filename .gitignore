@@ -205,6 +205,9 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Local SQLite data (legacy; app uses MySQL)
+data/*.db
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

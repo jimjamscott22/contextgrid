@@ -51,6 +51,9 @@ class Config:
     
     # API_URL is the base URL for the API server (used when USE_API=true)
     API_URL: str = os.getenv("API_URL", "http://localhost:8003")
+
+    # Optional bearer token (must match API server API_TOKEN when set)
+    API_TOKEN: str = os.getenv("API_TOKEN", "")
     
     # Legacy API_ENDPOINT for backward compatibility
     if not API_URL and os.getenv("API_ENDPOINT"):

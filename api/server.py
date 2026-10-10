@@ -40,6 +40,7 @@ from api.models import (
 )
 from api.config import config
 from api.middleware import RequestTimingMiddleware
+from api.auth_middleware import BearerTokenAuthMiddleware
 from api import db
 from src.utils.paths import get_base_dir
 
@@ -91,6 +92,8 @@ app.mount("/uploads", StaticFiles(directory=str(config.UPLOADS_DIR)), name="uplo
 
 # Innermost relative to CORS: records full handler + DB time
 app.add_middleware(RequestTimingMiddleware)
+
+app.add_middleware(BearerTokenAuthMiddleware)
 
 # Add CORS middleware for web UI
 app.add_middleware(

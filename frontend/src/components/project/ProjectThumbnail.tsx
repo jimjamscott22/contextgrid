@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/endpoints";
 import { qk } from "@/lib/api/keys";
 import { cn } from "@/lib/cn";
+import { useAuthenticatedImageSrc } from "@/hooks/useAuthenticatedImageSrc";
 import type { Project } from "@/lib/api/types";
 
 /**
@@ -30,7 +31,8 @@ export function ProjectThumbnail({
   });
 
   const cover = data?.screenshots[0];
-  const hasImage = !!cover && !failed;
+  const coverSrc = useAuthenticatedImageSrc(cover?.url);
+  const hasImage = !!cover && !!coverSrc && !failed;
   const { hue, monogram } = derive(project.name);
 
   return (
@@ -46,7 +48,7 @@ export function ProjectThumbnail({
 
       {hasImage && (
         <img
-          src={cover.url}
+          src={coverSrc}
           alt={cover.label || `${project.name} cover`}
           loading="lazy"
           onLoad={() => setLoaded(true)}
