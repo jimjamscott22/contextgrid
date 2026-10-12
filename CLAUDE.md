@@ -2,6 +2,13 @@
 
 Local-first personal project tracker. FastAPI backend + dual frontend (React SPA + legacy Jinja2 SSR).
 
+## Conventions
+**File search**
+- For any file search or grep in the current git-indexed directory, use 'fff' tools. 
+**Database**: 
+  - Always use parameterized queries, NO f-strings for user data.
+  - Use context managers for DB connection management.
+
 ## Commands
 
 ### API Server

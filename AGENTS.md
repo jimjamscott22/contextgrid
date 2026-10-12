@@ -24,7 +24,9 @@
   - Tests live in `tests/` and cover CLI parsing, Pydantic model validation, API endpoints, middleware, security, and project-type consistency.
 
 ## Conventions
-- **Database**: 
+**File search**
+- For any file search or grep in the current git-indexed directory, use 'fff' tools. 
+**Database**: 
   - Always use parameterized queries, NO f-strings for user data.
   - Use context managers for DB connection management.
 - **Git workflow**: 
