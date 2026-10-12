@@ -49,3 +49,46 @@ def test_search_without_tag_still_uses_projects_alias(monkeypatch) -> None:
 
     assert "FROM projects p" in cursor.query or "FROM projects p " in cursor.query
     assert "p.name LIKE" in cursor.query
+
+
+def test_sort_columns_are_resolved_from_allowlist(monkeypatch) -> None:
+    backend, cursor = _backend_with_captured_cursor(monkeypatch)
+
+    backend.list_projects(sort_by="name", sort_order="asc")
+
+    assert cursor.query.endswith(" ORDER BY p.name ASC, p.created_at DESC")
+
+
+def test_created_at_sort_skips_secondary_tiebreak(monkeypatch) -> None:
+    backend, cursor = _backend_with_captured_cursor(monkeypatch)
+
+    backend.list_projects(sort_by="created_at", sort_order="asc")
+
+    assert cursor.query.endswith(" ORDER BY p.created_at ASC")
+
+
+def test_last_worked_at_keeps_nulls_first_case(monkeypatch) -> None:
+    backend, cursor = _backend_with_captured_cursor(monkeypatch)
+
+    backend.list_projects(sort_by="last_worked_at", sort_order="asc")
+
+    assert (
+        " ORDER BY CASE WHEN p.last_worked_at IS NULL THEN 0 ELSE 1 END ASC,"
+        " p.last_worked_at ASC, p.created_at DESC"
+    ) in cursor.query
+
+
+def test_hostile_sort_inputs_fall_back_to_defaults(monkeypatch) -> None:
+    backend, cursor = _backend_with_captured_cursor(monkeypatch)
+
+    backend.list_projects(
+        tag="python",
+        sort_by="name; DROP TABLE projects",
+        sort_order="ASC; DROP TABLE projects",
+    )
+
+    assert "DROP" not in cursor.query
+    assert cursor.query.endswith(
+        " ORDER BY CASE WHEN p.last_worked_at IS NULL THEN 0 ELSE 1 END DESC,"
+        " p.last_worked_at DESC, p.created_at DESC"
+    )
