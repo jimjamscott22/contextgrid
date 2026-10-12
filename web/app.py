@@ -10,9 +10,11 @@ from fastapi.templating import Jinja2Templates
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple
+import logging
 import markdown as md_lib
 import os
 import sys
+from urllib.parse import urlparse
 import httpx
 from dotenv import load_dotenv
 
@@ -38,6 +40,17 @@ app = FastAPI(
     description="Personal project tracker - Local-first web interface",
     version="1.0.0"
 )
+
+logger = logging.getLogger(__name__)
+
+
+def _redirect_to_project(project_id: int) -> RedirectResponse:
+    """303-redirect to a project's detail page using a validated local path."""
+    path = f"/projects/{int(project_id)}"
+    parsed = urlparse(path)
+    if parsed.scheme or parsed.netloc or not path.startswith("/") or path.startswith("//"):
+        return RedirectResponse(url="/projects", status_code=303)
+    return RedirectResponse(url=path, status_code=303)
 
 # Close the shared async API client when the app shuts down
 app.add_event_handler("shutdown", models.aclose_client)
@@ -668,7 +681,7 @@ async def project_update(
                 status_code=400
             )
 
-        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        return _redirect_to_project(project_id)
 
     except Exception as e:
         return templates.TemplateResponse(
@@ -770,7 +783,7 @@ async def project_readme_attach(request: Request, project_id: int):
     """Attach or refresh README snapshot from the project's GitHub repository."""
     try:
         await models.attach_readme(project_id)
-        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        return _redirect_to_project(project_id)
     except Exception as e:
         error_msg = str(e)
         # Extract API error detail if present
@@ -788,9 +801,9 @@ async def project_readme_delete(request: Request, project_id: int):
     """Remove the stored README snapshot for a project."""
     try:
         await models.delete_readme_snapshot(project_id)
-        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        return _redirect_to_project(project_id)
     except Exception as e:
-        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        return _redirect_to_project(project_id)
 
 
 @app.post("/projects/{project_id}/screenshots")
@@ -809,7 +822,7 @@ async def project_upload_screenshot(
                 headers=_api_auth_headers(),
             )
             response.raise_for_status()
-        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        return _redirect_to_project(project_id)
     except httpx.HTTPStatusError as e:
         detail = e.response.json().get("detail", str(e)) if e.response.content else str(e)
         return templates.TemplateResponse(
@@ -835,7 +848,7 @@ async def project_delete_screenshot(
                 headers=_api_auth_headers(),
             )
             response.raise_for_status()
-        return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
+        return _redirect_to_project(project_id)
     except httpx.HTTPStatusError as e:
         detail = e.response.json().get("detail", str(e)) if e.response.content else str(e)
         return templates.TemplateResponse(
@@ -1052,9 +1065,10 @@ async def kanban_move(request: Request):
                 status_code=500
             )
         return JSONResponse({"ok": True, "project_id": project_id, "status": new_status})
-    except Exception as e:
+    except Exception:
+        logger.exception("Kanban status update failed")
         return JSONResponse(
-            {"error": str(e)},
+            {"error": "Failed to update project"},
             status_code=500
         )
 
