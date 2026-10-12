@@ -37,7 +37,8 @@ interface ListProjectsParams {
   search?: string;
   status?: ProjectStatus | "";
   tag?: string;
-  sort?: "recent" | "name" | "created";
+  sort?: "recent" | "name" | "created" | "status";
+  sort_order?: "asc" | "desc";
   limit?: number;
   offset?: number;
   include_archived?: boolean;
@@ -50,6 +51,7 @@ const SORT_MAP: Record<string, string> = {
   recent: "last_worked_at",
   name: "name",
   created: "created_at",
+  status: "status",
 };
 
 function projectLimit(limit?: number): number | undefined {
@@ -65,6 +67,7 @@ function mapProjectQuery(p: ListProjectsParams = {}): Record<string, string | nu
     limit: projectLimit(p.limit),
     offset: p.offset,
     sort_by: p.sort ? SORT_MAP[p.sort] ?? p.sort : undefined,
+    sort_order: p.sort_order,
     include_archived: p.include_archived ? true : undefined,
   };
 }

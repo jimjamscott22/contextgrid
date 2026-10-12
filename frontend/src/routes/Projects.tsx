@@ -17,7 +17,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Plus, RotateCcw, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Plus, RotateCcw, Search } from "lucide-react";
 import { api } from "@/lib/api/endpoints";
 import { qk } from "@/lib/api/keys";
 import {
@@ -39,6 +39,12 @@ import { useToast } from "@/components/Toast";
 import { relativeTime } from "@/lib/format";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useProjectOrder } from "@/hooks/useProjectOrder";
+import {
+  PROJECT_SORT_FIELDS,
+  PROJECT_SORT_LABELS,
+  useProjectSort,
+  type ProjectSortField,
+} from "@/hooks/useProjectSort";
 import { cn } from "@/lib/cn";
 
 export default function Projects() {
@@ -54,15 +60,16 @@ export default function Projects() {
 
   const { toast } = useToast();
   const qc = useQueryClient();
+  const sort = useProjectSort();
 
   const projectsQ = useQuery({
-    queryKey: qk.projects({ search: debouncedSearch, status, tag }),
+    queryKey: qk.projects({ search: debouncedSearch, status, tag, ...sort.query }),
     queryFn: () =>
       api.listProjects({
         search: debouncedSearch || undefined,
         status: status || undefined,
         tag: tag || undefined,
-        sort: "recent",
+        ...sort.query,
         limit: 50,
       }),
     placeholderData: (prev) => prev,
@@ -82,7 +89,10 @@ export default function Projects() {
   const projects = useMemo(() => projectsQ.data?.projects ?? [], [projectsQ.data]);
   const { orderedProjects, hasCustomOrder, storageError, moveProject, resetOrder } =
     useProjectOrder(projects);
+  // A chosen sort shows the server order; the saved drag order is kept for "Custom".
+  const visibleProjects = sort.isCustom ? orderedProjects : projects;
   const reorderDisabled = projectsQ.isPlaceholderData || search !== debouncedSearch;
+  const directionLabel = sort.direction === "asc" ? "ascending" : "descending";
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!reorderDisabled && over) moveProject(Number(active.id), Number(over.id));
@@ -141,6 +151,35 @@ export default function Projects() {
               </option>
             ))}
           </Select>
+          <div className="flex items-center gap-1">
+            <Select
+              aria-label="Sort projects"
+              value={sort.field}
+              onChange={(e) => sort.setField(e.target.value as ProjectSortField)}
+              className="w-44"
+            >
+              {PROJECT_SORT_FIELDS.map((f) => (
+                <option key={f} value={f}>
+                  {f === "custom" ? PROJECT_SORT_LABELS[f] : `Sort: ${PROJECT_SORT_LABELS[f]}`}
+                </option>
+              ))}
+            </Select>
+            {!sort.isCustom && (
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={sort.toggleDirection}
+                aria-label={`Sort direction: ${directionLabel}. Click to reverse.`}
+                title={`Sorted ${directionLabel}. Click to reverse.`}
+              >
+                {sort.direction === "asc" ? (
+                  <ArrowUp size={16} aria-hidden="true" />
+                ) : (
+                  <ArrowDown size={16} aria-hidden="true" />
+                )}
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -161,25 +200,39 @@ export default function Projects() {
 
       {(projects.length > 0 || hasCustomOrder) && (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm text-fg-soft">
-            Drag the handles to rearrange projects. Order is saved in this browser.
-          </p>
-          <Button variant="ghost" size="sm" onClick={resetOrder} disabled={!hasCustomOrder}>
-            <RotateCcw size={14} /> Reset order
-          </Button>
+          {sort.isCustom ? (
+            <>
+              <p className="text-sm text-fg-soft">
+                Drag the handles to rearrange projects. Order is saved in this browser.
+              </p>
+              <Button variant="ghost" size="sm" onClick={resetOrder} disabled={!hasCustomOrder}>
+                <RotateCcw size={14} /> Reset order
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-fg-soft">
+              Sorted by {PROJECT_SORT_LABELS[sort.field].toLowerCase()} ({directionLabel}). Switch
+              to Custom to rearrange projects.
+            </p>
+          )}
         </div>
       )}
-      {storageError && (
+      {sort.isCustom && storageError && (
         <p role="status" className="text-sm text-danger">
           Browser storage is unavailable. Changes to your order may be lost after refreshing.
         </p>
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={orderedProjects.map((p) => p.id)} strategy={rectSortingStrategy}>
+        <SortableContext items={visibleProjects.map((p) => p.id)} strategy={rectSortingStrategy}>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {orderedProjects.map((p) => (
-              <SortableProjectCard key={p.id} project={p} disabled={reorderDisabled} />
+            {visibleProjects.map((p) => (
+              <SortableProjectCard
+                key={p.id}
+                project={p}
+                disabled={reorderDisabled || !sort.isCustom}
+                showHandle={sort.isCustom}
+              />
             ))}
           </div>
         </SortableContext>
@@ -204,7 +257,15 @@ export default function Projects() {
   );
 }
 
-function SortableProjectCard({ project, disabled }: { project: Project; disabled: boolean }) {
+function SortableProjectCard({
+  project,
+  disabled,
+  showHandle,
+}: {
+  project: Project;
+  disabled: boolean;
+  showHandle: boolean;
+}) {
   const {
     attributes,
     listeners,
@@ -221,19 +282,21 @@ function SortableProjectCard({ project, disabled }: { project: Project; disabled
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn("relative min-w-0", isDragging && "z-10 opacity-80")}
     >
-      <Button
-        ref={setActivatorNodeRef}
-        variant="secondary"
-        size="icon"
-        className="absolute right-2 top-2 z-10 h-11 w-11 touch-none cursor-grab shadow-sm active:cursor-grabbing"
-        disabled={disabled}
-        {...attributes}
-        {...listeners}
-        aria-label={`Rearrange ${project.name}`}
-        title="Drag to rearrange, or press Space then use the arrow keys"
-      >
-        <GripVertical size={20} aria-hidden="true" />
-      </Button>
+      {showHandle && (
+        <Button
+          ref={setActivatorNodeRef}
+          variant="secondary"
+          size="icon"
+          className="absolute right-2 top-2 z-10 h-11 w-11 touch-none cursor-grab shadow-sm active:cursor-grabbing"
+          disabled={disabled}
+          {...attributes}
+          {...listeners}
+          aria-label={`Rearrange ${project.name}`}
+          title="Drag to rearrange, or press Space then use the arrow keys"
+        >
+          <GripVertical size={20} aria-hidden="true" />
+        </Button>
+      )}
       <ProjectCard project={project} dragging={isDragging} />
     </div>
   );
