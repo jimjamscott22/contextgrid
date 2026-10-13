@@ -156,6 +156,15 @@ class DatabaseBackend(ABC):
         pass
 
 
+# Allowlist mapping sort keys to fixed SQL column fragments for ORDER BY.
+_SORT_COLUMNS: Dict[str, str] = {
+    "name": "p.name",
+    "created_at": "p.created_at",
+    "last_worked_at": "p.last_worked_at",
+    "status": "p.status",
+}
+
+
 class MySQLBackend(DatabaseBackend):
     """MySQL/MariaDB database backend implementation."""
     
@@ -268,15 +277,11 @@ class MySQLBackend(DatabaseBackend):
                      include_archived: bool = False,
                      search: Optional[str] = None) -> List[Dict[str, Any]]:
         """List projects with optional filtering and pagination."""
-        # Validate and sanitize sort parameters to prevent SQL injection
-        valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
-        if sort_by not in valid_sort_fields:
-            sort_by = "last_worked_at"
-        
-        sort_order = sort_order.upper()
-        if sort_order not in ["ASC", "DESC"]:
-            sort_order = "DESC"
-        
+        # Resolve sort parameters to fixed SQL fragments; user input is only
+        # used as a lookup key, never interpolated into the query.
+        order_column = _SORT_COLUMNS.get(sort_by, _SORT_COLUMNS["last_worked_at"])
+        direction = "ASC" if sort_order.upper() == "ASC" else "DESC"
+
         with self._get_cursor() as cursor:
             if tag:
                 query = """
@@ -308,17 +313,19 @@ class MySQLBackend(DatabaseBackend):
                 )
                 params.extend([term, term])
             
-            # Build ORDER BY clause using validated sort parameters
-            # Note: sort_by and sort_order are validated above, safe to use in f-string
-            if sort_by == "last_worked_at":
+            # Build ORDER BY clause from the fixed fragments resolved above
+            if order_column == _SORT_COLUMNS["last_worked_at"]:
                 # Special handling for NULL last_worked_at values
-                order_clause = f" ORDER BY CASE WHEN last_worked_at IS NULL THEN 0 ELSE 1 END {sort_order}, last_worked_at {sort_order}"
+                order_clause = (
+                    f" ORDER BY CASE WHEN p.last_worked_at IS NULL THEN 0 ELSE 1 END"
+                    f" {direction}, p.last_worked_at {direction}"
+                )
             else:
-                order_clause = f" ORDER BY {sort_by} {sort_order}"
-            
+                order_clause = f" ORDER BY {order_column} {direction}"
+
             # Add secondary sort
-            if sort_by != "created_at":
-                order_clause += ", created_at DESC"
+            if order_column != _SORT_COLUMNS["created_at"]:
+                order_clause += ", p.created_at DESC"
             
             query += order_clause
             
