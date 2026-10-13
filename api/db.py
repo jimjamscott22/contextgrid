@@ -175,6 +175,15 @@ def get_project(project_id: int) -> Optional[Dict[str, Any]]:
         return row
 
 
+# Allowlist mapping sort keys to fixed SQL column fragments for ORDER BY.
+_SORT_COLUMNS: Dict[str, str] = {
+    "name": "p.name",
+    "created_at": "p.created_at",
+    "last_worked_at": "p.last_worked_at",
+    "status": "p.status",
+}
+
+
 def list_projects(
     status: Optional[str] = None,
     tag: Optional[str] = None,
@@ -194,14 +203,10 @@ def list_projects(
     Returns:
         List of project dictionaries
     """
-    # Validate sort parameters
-    valid_sort_fields = ["name", "created_at", "last_worked_at", "status"]
-    if sort_by not in valid_sort_fields:
-        sort_by = "last_worked_at"
-
-    sort_order = sort_order.upper()
-    if sort_order not in ["ASC", "DESC"]:
-        sort_order = "DESC"
+    # Resolve sort parameters to fixed SQL fragments; user input is only used
+    # as a lookup key, never interpolated into the query.
+    order_column = _SORT_COLUMNS.get(sort_by, _SORT_COLUMNS["last_worked_at"])
+    direction = "ASC" if sort_order.upper() == "ASC" else "DESC"
 
     from_where, params = _projects_from_where(
         status=status,
@@ -220,15 +225,15 @@ def list_projects(
     distinct = "DISTINCT " if tag else ""
     query = f"SELECT {distinct}p.*, {open_task_expr} {from_where}"
 
-    if sort_by == "last_worked_at":
+    if order_column == _SORT_COLUMNS["last_worked_at"]:
         query += (
             f" ORDER BY CASE WHEN p.last_worked_at IS NULL THEN 0 ELSE 1 END"
-            f" {sort_order}, p.last_worked_at {sort_order}"
+            f" {direction}, p.last_worked_at {direction}"
         )
     else:
-        query += f" ORDER BY p.{sort_by} {sort_order}"
+        query += f" ORDER BY {order_column} {direction}"
 
-    if sort_by != "created_at":
+    if order_column != _SORT_COLUMNS["created_at"]:
         query += ", p.created_at DESC"
 
     if limit is not None:
