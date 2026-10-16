@@ -108,6 +108,18 @@
                 placeholder="e.g., FastAPI + SQLite, React + Node.js"
             >
         </div>
+
+        <div class="form-group">
+            <label for="package_manager">Package Manager</label>
+            <input
+                type="text"
+                id="package_manager"
+                name="package_manager"
+                value="{{ form_data.package_manager or '' }}"
+                class="form-control"
+                placeholder="e.g., npm, pnpm, uv, poetry, cargo, go"
+            >
+        </div>
     </div>
     
     <div class="form-section">

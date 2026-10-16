@@ -291,6 +291,44 @@ class AsyncAPIClient:
         return result is not None
 
     # =========================
+    # Project Package Methods
+    # =========================
+
+    async def list_project_packages(self, project_id: int) -> List[Dict[str, Any]]:
+        data = await self._request("GET", f"/api/projects/{project_id}/packages")
+        return data["packages"]
+
+    async def create_project_package(
+        self,
+        project_id: int,
+        name: str,
+        version: Optional[str] = None,
+        package_type: str = "prod",
+        description: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        data = await self._request(
+            "POST",
+            f"/api/projects/{project_id}/packages",
+            json={
+                "name": name,
+                "version": version,
+                "package_type": package_type,
+                "description": description,
+            },
+        )
+        return data
+
+    async def update_project_package(
+        self, package_id: int, **kwargs
+    ) -> Dict[str, Any]:
+        updates = {k: v for k, v in kwargs.items() if v is not None}
+        return await self._request("PUT", f"/api/packages/{package_id}", json=updates)
+
+    async def delete_package(self, package_id: int) -> bool:
+        result = await self._request("DELETE", f"/api/packages/{package_id}")
+        return result is not None
+
+    # =========================
     # Project Task Methods
     # =========================
 

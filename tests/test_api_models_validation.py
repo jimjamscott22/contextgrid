@@ -23,6 +23,11 @@ from api.models import (
     LinkCreate,
     # Commands
     CommandCreate,
+    # Packages
+    PackageCreate,
+    PackageUpdate,
+    PackageResponse,
+    PackageListResponse,
     # Tasks (checklist)
     ProjectTaskCreate,
     # Templates
@@ -179,6 +184,49 @@ class TestCommandModels:
     def test_create_rejects_empty_command(self) -> None:
         with pytest.raises(ValidationError):
             CommandCreate(label="Run tests", command="")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Package models
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestPackageModels:
+    """Validation tests for Package models."""
+
+    @pytest.mark.parametrize("pkg_type", ["prod", "dev", "optional", "peer", "other"])
+    def test_create_accepts_valid_package_types(self, pkg_type: str) -> None:
+        pkg = PackageCreate(name="fastapi", version=">=0.115.0", package_type=pkg_type)
+        assert pkg.package_type == pkg_type
+        assert pkg.name == "fastapi"
+        assert pkg.version == ">=0.115.0"
+
+    def test_create_default_type_is_prod(self) -> None:
+        pkg = PackageCreate(name="react")
+        assert pkg.package_type == "prod"
+        assert pkg.version is None
+        assert pkg.description is None
+
+    def test_create_rejects_invalid_package_type(self) -> None:
+        with pytest.raises(ValidationError):
+            PackageCreate(name="react", package_type="global")
+
+    def test_create_rejects_empty_name(self) -> None:
+        with pytest.raises(ValidationError):
+            PackageCreate(name="")
+
+    def test_update_all_optional(self) -> None:
+        upd = PackageUpdate()
+        assert upd.name is None
+        assert upd.version is None
+        assert upd.package_type is None
+        assert upd.description is None
+
+    def test_project_accepts_package_manager(self) -> None:
+        p = ProjectBase(name="Test", package_manager="uv")
+        assert p.package_manager == "uv"
+
+        u = ProjectUpdate(package_manager="pnpm")
+        assert u.package_manager == "pnpm"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

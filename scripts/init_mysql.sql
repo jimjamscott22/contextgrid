@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS projects (
 
     folder_structure TEXT,                         -- text-based folder tree (e.g. `tree` output)
     folder_structure_img_url VARCHAR(2000),        -- optional URL to a visual diagram
+    package_manager VARCHAR(100),                  -- e.g. npm, pnpm, yarn, bun, uv, pip, poetry, cargo, go
 
     INDEX idx_projects_name (name),
     INDEX idx_projects_status (status),
@@ -198,11 +199,33 @@ CREATE TABLE IF NOT EXISTS project_tasks (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =========================
+-- Project Packages Table
+-- =========================
+CREATE TABLE IF NOT EXISTS project_packages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+
+    name VARCHAR(255) NOT NULL,
+    version VARCHAR(100),
+    package_type ENUM('prod', 'dev', 'optional', 'peer', 'other') NOT NULL DEFAULT 'prod',
+    description TEXT,
+
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (project_id)
+        REFERENCES projects(id)
+        ON DELETE CASCADE,
+
+    INDEX idx_project_packages_project_id (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =========================
 -- Migrations (idempotent)
 -- =========================
 ALTER TABLE project_notes ADD COLUMN task_status VARCHAR(20) NOT NULL DEFAULT 'active';
 ALTER TABLE projects ADD COLUMN folder_structure TEXT;
 ALTER TABLE projects ADD COLUMN folder_structure_img_url VARCHAR(2000);
+ALTER TABLE projects ADD COLUMN package_manager VARCHAR(100);
 
 UPDATE projects
 SET project_type = CASE project_type

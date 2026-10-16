@@ -39,6 +39,7 @@ class ProjectBase(BaseModel):
     progress: int = Field(default=0, ge=0, le=100)
     folder_structure: Optional[str] = Field(None, max_length=65535)
     folder_structure_img_url: Optional[str] = Field(None, max_length=2000)
+    package_manager: Optional[str] = Field(None, max_length=100)
 
     @field_validator("repo_url", "folder_structure_img_url")
     @classmethod
@@ -66,6 +67,7 @@ class ProjectUpdate(BaseModel):
     progress: Optional[int] = Field(None, ge=0, le=100)
     folder_structure: Optional[str] = Field(None, max_length=65535)
     folder_structure_img_url: Optional[str] = Field(None, max_length=2000)
+    package_manager: Optional[str] = Field(None, max_length=100)
 
     @field_validator("repo_url", "folder_structure_img_url")
     @classmethod
@@ -352,6 +354,47 @@ class CommandResponse(CommandBase):
 class CommandListResponse(BaseModel):
     """Response for listing project commands."""
     commands: list[CommandResponse]
+    total: int
+
+
+# =========================
+# Project Package Models
+# =========================
+
+class PackageBase(BaseModel):
+    """Base model for project package data."""
+    name: str = Field(..., min_length=1, max_length=255)
+    version: Optional[str] = Field(None, max_length=100)
+    package_type: str = Field(default="prod", pattern="^(prod|dev|optional|peer|other)$")
+    description: Optional[str] = None
+
+
+class PackageCreate(PackageBase):
+    """Model for creating a new project package."""
+    pass
+
+
+class PackageUpdate(BaseModel):
+    """Model for updating a project package. All fields optional."""
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    version: Optional[str] = Field(None, max_length=100)
+    package_type: Optional[str] = Field(None, pattern="^(prod|dev|optional|peer|other)$")
+    description: Optional[str] = None
+
+
+class PackageResponse(PackageBase):
+    """Model for project package response."""
+    id: int
+    project_id: int
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class PackageListResponse(BaseModel):
+    """Response for listing project packages."""
+    packages: list[PackageResponse]
     total: int
 
 

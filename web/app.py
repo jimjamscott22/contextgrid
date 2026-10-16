@@ -407,6 +407,7 @@ async def project_create(
     progress: Optional[int] = Form(0),
     folder_structure: Optional[str] = Form(None),
     folder_structure_img_url: Optional[str] = Form(None),
+    package_manager: Optional[str] = Form(None),
 ):
     """Handle project creation form submission."""
     # Validate required fields
@@ -429,6 +430,7 @@ async def project_create(
                     "progress": progress,
                     "folder_structure": folder_structure,
                     "folder_structure_img_url": folder_structure_img_url,
+                    "package_manager": package_manager,
                 }
             },
             status_code=400
@@ -456,6 +458,7 @@ async def project_create(
                         "progress": progress,
                         "folder_structure": folder_structure,
                         "folder_structure_img_url": folder_structure_img_url,
+                        "package_manager": package_manager,
                     }
                 },
                 status_code=400
@@ -471,6 +474,7 @@ async def project_create(
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
     folder_structure = folder_structure.strip() if folder_structure and folder_structure.strip() else None
     folder_structure_img_url = folder_structure_img_url.strip() if folder_structure_img_url and folder_structure_img_url.strip() else None
+    package_manager = package_manager.strip() if package_manager and package_manager.strip() else None
     
     try:
         # Create the project
@@ -488,6 +492,7 @@ async def project_create(
             progress=max(0, min(100, progress or 0)),
             folder_structure=folder_structure,
             folder_structure_img_url=folder_structure_img_url,
+            package_manager=package_manager,
         )
         
         # Redirect to the new project's detail page
@@ -512,6 +517,7 @@ async def project_create(
                     "progress": progress,
                     "folder_structure": folder_structure,
                     "folder_structure_img_url": folder_structure_img_url,
+                    "package_manager": package_manager,
                 }
             },
             status_code=500
@@ -560,6 +566,7 @@ async def project_update(
     progress: Optional[int] = Form(0),
     folder_structure: Optional[str] = Form(None),
     folder_structure_img_url: Optional[str] = Form(None),
+    package_manager: Optional[str] = Form(None),
 ):  
     """Handle project edit form submission."""
     project = await models.get_project(project_id)
@@ -593,6 +600,7 @@ async def project_update(
                     "progress": progress,
                     "folder_structure": folder_structure,
                     "folder_structure_img_url": folder_structure_img_url,
+                    "package_manager": package_manager,
                 },
                 "project": project
             },
@@ -621,6 +629,7 @@ async def project_update(
                         "progress": progress,
                         "folder_structure": folder_structure,
                         "folder_structure_img_url": folder_structure_img_url,
+                        "package_manager": package_manager,
                     },
                     "project": project
                 },
@@ -636,6 +645,7 @@ async def project_update(
     learning_goal = learning_goal.strip() if learning_goal and learning_goal.strip() else None
     folder_structure = folder_structure.strip() if folder_structure and folder_structure.strip() else None
     folder_structure_img_url = folder_structure_img_url.strip() if folder_structure_img_url and folder_structure_img_url.strip() else None
+    package_manager = package_manager.strip() if package_manager and package_manager.strip() else None
 
     try:
         updated = await models.update_project(
@@ -653,6 +663,7 @@ async def project_update(
             progress=max(0, min(100, progress or 0)),
             folder_structure=folder_structure,
             folder_structure_img_url=folder_structure_img_url,
+            package_manager=package_manager,
         )
 
         if not updated:
@@ -675,6 +686,7 @@ async def project_update(
                         "progress": progress,
                         "folder_structure": folder_structure,
                         "folder_structure_img_url": folder_structure_img_url,
+                        "package_manager": package_manager,
                     },
                     "project": project
                 },
@@ -703,6 +715,7 @@ async def project_update(
                     "progress": progress,
                     "folder_structure": folder_structure,
                     "folder_structure_img_url": folder_structure_img_url,
+                    "package_manager": package_manager,
                 },
                 "project": project
             },

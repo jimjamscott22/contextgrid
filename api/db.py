@@ -128,6 +128,7 @@ def create_project(
     progress: int = 0,
     folder_structure: Optional[str] = None,
     folder_structure_img_url: Optional[str] = None,
+    package_manager: Optional[str] = None,
 ) -> int:
     """
     Create a new project.
@@ -142,15 +143,15 @@ def create_project(
                 name, description, status, project_type,
                 primary_language, stack, repo_url, local_path,
                 scope_size, learning_goal, progress, created_at,
-                folder_structure, folder_structure_img_url
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                folder_structure, folder_structure_img_url, package_manager
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 name, description, status, project_type,
                 primary_language, stack, repo_url, local_path,
                 scope_size, learning_goal, max(0, min(100, progress)),
                 datetime.utcnow(),
-                folder_structure, folder_structure_img_url
+                folder_structure, folder_structure_img_url, package_manager
             )
         )
         return cursor.lastrowid
@@ -333,7 +334,7 @@ def update_project(project_id: int, **kwargs) -> bool:
         "name", "description", "status", "project_type",
         "primary_language", "stack", "repo_url", "local_path",
         "scope_size", "learning_goal", "is_archived", "progress",
-        "folder_structure", "folder_structure_img_url"
+        "folder_structure", "folder_structure_img_url", "package_manager"
     }
     
     updates = {k: v for k, v in kwargs.items() if k in valid_fields}
@@ -1282,6 +1283,109 @@ def delete_command(command_id: int) -> bool:
     """
     with get_db_cursor() as cursor:
         cursor.execute("DELETE FROM project_commands WHERE id = %s", (command_id,))
+        return cursor.rowcount > 0
+
+
+# =========================
+# Project Package Operations
+# =========================
+
+def create_package(
+    project_id: int,
+    name: str,
+    version: Optional[str] = None,
+    package_type: str = "prod",
+    description: Optional[str] = None,
+) -> int:
+    """
+    Create a new package entry for a project.
+
+    Returns:
+        The new package's ID
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            INSERT INTO project_packages (project_id, name, version, package_type, description, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (project_id, name, version, package_type, description, datetime.utcnow())
+        )
+        return cursor.lastrowid
+
+
+def get_package(package_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Fetch a single project package by ID.
+
+    Returns:
+        Dictionary of package fields, or None if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("SELECT * FROM project_packages WHERE id = %s", (package_id,))
+        row = cursor.fetchone()
+        if row and row['created_at']:
+            row['created_at'] = row['created_at'].isoformat()
+        return row
+
+
+def list_project_packages(project_id: int) -> List[Dict[str, Any]]:
+    """
+    Get all packages for a project.
+
+    Returns:
+        List of package dictionaries ordered by package_type then name
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT * FROM project_packages
+            WHERE project_id = %s
+            ORDER BY FIELD(package_type, 'prod', 'dev', 'peer', 'optional', 'other'), name ASC
+            """,
+            (project_id,)
+        )
+        rows = cursor.fetchall()
+        for row in rows:
+            if row['created_at']:
+                row['created_at'] = row['created_at'].isoformat()
+        return list(rows)
+
+
+def update_package(package_id: int, **kwargs) -> bool:
+    """
+    Update package fields.
+
+    Returns:
+        True if updated, False if not found
+    """
+    if not kwargs:
+        return False
+
+    valid_fields = {"name", "version", "package_type", "description"}
+    updates = {k: v for k, v in kwargs.items() if k in valid_fields}
+    if not updates:
+        return False
+
+    with get_db_cursor() as cursor:
+        set_clause = ", ".join(f"{field} = %s" for field in updates.keys())
+        values = list(updates.values()) + [package_id]
+        cursor.execute(
+            f"UPDATE project_packages SET {set_clause} WHERE id = %s",
+            values
+        )
+        return cursor.rowcount > 0
+
+
+def delete_package(package_id: int) -> bool:
+    """
+    Delete a project package by ID.
+
+    Returns:
+        True if deleted, False if not found
+    """
+    with get_db_cursor() as cursor:
+        cursor.execute("DELETE FROM project_packages WHERE id = %s", (package_id,))
         return cursor.rowcount > 0
 
 

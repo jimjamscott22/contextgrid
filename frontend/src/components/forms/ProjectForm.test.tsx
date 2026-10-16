@@ -39,6 +39,9 @@ describe("ProjectForm project type selector", () => {
     fireEvent.change(screen.getByLabelText("Type"), {
       target: { value: "desktop-app" },
     });
+    fireEvent.change(screen.getByLabelText("Package manager"), {
+      target: { value: "pnpm" },
+    });
     fireEvent.submit(screen.getByRole("button", { name: "Save" }).closest("form")!);
 
     await waitFor(() => {
@@ -46,6 +49,7 @@ describe("ProjectForm project type selector", () => {
         expect.objectContaining({
           name: "Portfolio",
           project_type: "desktop-app",
+          package_manager: "pnpm",
         })
       );
     });

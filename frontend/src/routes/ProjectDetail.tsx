@@ -27,6 +27,7 @@ import { RelationshipsPanel } from "@/components/project/RelationshipsPanel";
 import { ScreenshotsPanel } from "@/components/project/ScreenshotsPanel";
 import { ReadmePanel } from "@/components/project/ReadmePanel";
 import { FolderStructurePanel } from "@/components/project/FolderStructurePanel";
+import { PackagesPanel } from "@/components/project/PackagesPanel";
 import { useToast } from "@/components/Toast";
 import { formatDate, relativeTime } from "@/lib/format";
 import { projectTypeLabel, type ProjectInput } from "@/lib/api/types";
@@ -86,6 +87,17 @@ export default function ProjectDetail() {
     onError: (e) => toast(`Save failed: ${(e as Error).message}`, "error"),
   });
 
+  const packageManagerMut = useMutation({
+    mutationFn: (packageManager: string) =>
+      api.updateProject(projectId, { package_manager: packageManager }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: qk.project(projectId) });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast("Package manager saved", "success");
+    },
+    onError: (e) => toast(`Save failed: ${(e as Error).message}`, "error"),
+  });
+
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState error={error} />;
   if (!project) return null;
@@ -137,12 +149,13 @@ export default function ProjectDetail() {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-5">
             <Meta
               label="Type"
               value={project.project_type ? projectTypeLabel(project.project_type) : "—"}
             />
             <Meta label="Language" value={project.primary_language ?? "—"} />
+            <Meta label="Package Manager" value={project.package_manager || "—"} />
             <Meta label="Scope" value={project.scope_size ?? "—"} />
             <Meta label="Progress" value={`${project.progress}%`} />
           </div>
@@ -192,6 +205,7 @@ export default function ProjectDetail() {
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="links">Links</TabsTrigger>
           <TabsTrigger value="commands">Commands</TabsTrigger>
+          <TabsTrigger value="packages">Packages</TabsTrigger>
           <TabsTrigger value="relationships">Relationships</TabsTrigger>
           <TabsTrigger value="screenshots">Screenshots</TabsTrigger>
           <TabsTrigger value="readme">README</TabsTrigger>
@@ -208,6 +222,14 @@ export default function ProjectDetail() {
         </TabsContent>
         <TabsContent value="commands">
           <CommandsPanel projectId={projectId} />
+        </TabsContent>
+        <TabsContent value="packages">
+          <PackagesPanel
+            projectId={projectId}
+            packageManager={project.package_manager}
+            savingPackageManager={packageManagerMut.isPending}
+            onSavePackageManager={(value) => packageManagerMut.mutateAsync(value)}
+          />
         </TabsContent>
         <TabsContent value="relationships">
           <RelationshipsPanel projectId={projectId} />
@@ -243,6 +265,7 @@ export default function ProjectDetail() {
             repo_url: project.repo_url ?? "",
             local_path: project.local_path ?? "",
             learning_goal: project.learning_goal ?? "",
+            package_manager: project.package_manager ?? "",
           }}
           onSubmit={async (values) => {
             await updateMut.mutateAsync(values);
