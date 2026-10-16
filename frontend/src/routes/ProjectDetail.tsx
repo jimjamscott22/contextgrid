@@ -89,7 +89,9 @@ export default function ProjectDetail() {
 
   const packageManagerMut = useMutation({
     mutationFn: (packageManager: string) =>
-      api.updateProject(projectId, { package_manager: packageManager }),
+      api.updateProject(projectId, {
+        package_manager: packageManager.trim() || null,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.project(projectId) });
       qc.invalidateQueries({ queryKey: ["projects"] });

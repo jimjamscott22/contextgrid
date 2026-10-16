@@ -23,7 +23,7 @@ interface PackagesPanelProps {
   savingPackageManager?: boolean;
 }
 
-function buildInstallCommand(
+export function buildInstallCommand(
   manager: string | null,
   pkgName: string,
   version: string | null,
@@ -45,11 +45,11 @@ function buildInstallCommand(
     case "bun":
       return `bun add ${pkgType === "dev" ? "-d " : ""}${spec}`;
     case "uv":
-      return `uv add ${pkgType === "dev" ? "--dev " : ""}${pySpec}`;
+      return `uv add ${pkgType === "dev" ? "--dev " : ""}"${pySpec}"`;
     case "pip":
       return `pip install "${pySpec}"`;
     case "poetry":
-      return `poetry add ${pkgType === "dev" ? "--group dev " : ""}${pySpec}`;
+      return `poetry add ${pkgType === "dev" ? "--group dev " : ""}"${pySpec}"`;
     case "cargo":
       return `cargo add ${pkgType === "dev" ? "--dev " : ""}${pkgName}${version ? `@${version}` : ""}`;
     case "go":

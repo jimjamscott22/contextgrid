@@ -2,7 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ToastProvider } from "@/components/Toast";
-import { PackagesPanel } from "@/components/project/PackagesPanel";
+import {
+  PackagesPanel,
+  buildInstallCommand,
+} from "@/components/project/PackagesPanel";
 import { api } from "@/lib/api/endpoints";
 
 vi.mock("@/lib/api/endpoints", () => ({
@@ -75,8 +78,23 @@ describe("PackagesPanel", () => {
     });
 
     expect(screen.getByText("Web API framework")).toBeTruthy();
-    expect(screen.getByText("uv add fastapi>=0.115.0")).toBeTruthy();
-    expect(screen.getByText("uv add --dev pytest==^8.0.0")).toBeTruthy();
+    expect(screen.getByText('uv add "fastapi>=0.115.0"')).toBeTruthy();
+    expect(screen.getByText('uv add --dev "pytest==^8.0.0"')).toBeTruthy();
+  });
+
+  it("shell-quotes uv and poetry install specs so version constraints survive copy-paste", () => {
+    expect(buildInstallCommand("uv", "fastapi", ">=0.115.0", "prod")).toBe(
+      'uv add "fastapi>=0.115.0"',
+    );
+    expect(buildInstallCommand("uv", "pytest", ">=8.0.0", "dev")).toBe(
+      'uv add --dev "pytest>=8.0.0"',
+    );
+    expect(buildInstallCommand("poetry", "fastapi", ">=0.115.0", "prod")).toBe(
+      'poetry add "fastapi>=0.115.0"',
+    );
+    expect(buildInstallCommand("poetry", "pytest", ">=8.0.0", "dev")).toBe(
+      'poetry add --group dev "pytest>=8.0.0"',
+    );
   });
 
   it("allows selecting a preset and saving the package manager", async () => {

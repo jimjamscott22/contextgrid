@@ -115,6 +115,46 @@ def test_update_project_updates_package_manager(monkeypatch) -> None:
     assert res.json()["package_manager"] == "cargo"
 
 
+def test_update_project_clears_package_manager_when_null_or_empty(monkeypatch) -> None:
+    """PUT /api/projects/{id} clears package_manager when sent as null or empty."""
+    state: Dict[str, Any] = {"package_manager": "uv"}
+    captured_calls: List[Dict[str, Any]] = []
+
+    monkeypatch.setattr(
+        db,
+        "get_project",
+        lambda pid: _sample_project(
+            project_id=pid,
+            package_manager=state["package_manager"],
+        ),
+    )
+
+    def fake_update_project(project_id: int, **kwargs: Any) -> bool:
+        captured_calls.append(dict(kwargs))
+        state.update(kwargs)
+        return True
+
+    monkeypatch.setattr(db, "update_project", fake_update_project)
+
+    client = TestClient(app)
+
+    res_null = client.put(
+        "/api/projects/1",
+        json={"name": "Demo", "status": "active", "package_manager": None},
+    )
+    assert res_null.status_code == 200
+    assert "package_manager" in captured_calls[-1]
+    assert captured_calls[-1]["package_manager"] is None
+    assert res_null.json()["package_manager"] is None
+
+    state["package_manager"] = "pnpm"
+    res_blank = client.put("/api/projects/1", json={"package_manager": "   "})
+    assert res_blank.status_code == 200
+    assert "package_manager" in captured_calls[-1]
+    assert captured_calls[-1]["package_manager"] is None
+    assert res_blank.json()["package_manager"] is None
+
+
 def test_list_project_packages(monkeypatch) -> None:
     """GET /api/projects/{id}/packages returns all packages for the project."""
     monkeypatch.setattr(db, "get_project", lambda pid: _sample_project(project_id=pid))
@@ -235,3 +275,44 @@ def test_delete_project_package(monkeypatch) -> None:
 
     missing_res = client.delete("/api/packages/999")
     assert missing_res.status_code == 404
+
+
+def test_create_project_package_rejects_whitespace_only_name(monkeypatch) -> None:
+    """POST /api/projects/{id}/packages rejects names that are empty after trimming."""
+    monkeypatch.setattr(db, "get_project", lambda pid: _sample_project(project_id=pid))
+    called = False
+
+    def fake_create_package(**kwargs: Any) -> int:
+        nonlocal called
+        called = True
+        return 1
+
+    monkeypatch.setattr(db, "create_package", fake_create_package)
+
+    client = TestClient(app)
+    res = client.post(
+        "/api/projects/1/packages",
+        json={"name": "   \t  ", "version": "1.0.0", "package_type": "prod"},
+    )
+
+    assert res.status_code == 422
+    assert not called
+
+
+def test_update_project_package_rejects_whitespace_only_name(monkeypatch) -> None:
+    """PUT /api/packages/{id} rejects names that are empty after trimming."""
+    monkeypatch.setattr(db, "get_package", lambda pkg_id: _sample_package(pkg_id=pkg_id))
+    called = False
+
+    def fake_update_package(package_id: int, **kwargs: Any) -> bool:
+        nonlocal called
+        called = True
+        return True
+
+    monkeypatch.setattr(db, "update_package", fake_update_package)
+
+    client = TestClient(app)
+    res = client.put("/api/packages/10", json={"name": "   "})
+
+    assert res.status_code == 422
+    assert not called

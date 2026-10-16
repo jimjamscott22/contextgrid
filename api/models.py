@@ -46,6 +46,14 @@ class ProjectBase(BaseModel):
     def validate_http_urls(cls, v: Optional[str]) -> Optional[str]:
         return _validate_http_scheme(v)
 
+    @field_validator("package_manager")
+    @classmethod
+    def normalize_package_manager(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
+
 
 class ProjectCreate(ProjectBase):
     """Model for creating a new project."""
@@ -73,6 +81,14 @@ class ProjectUpdate(BaseModel):
     @classmethod
     def validate_http_urls(cls, v: Optional[str]) -> Optional[str]:
         return _validate_http_scheme(v)
+
+    @field_validator("package_manager")
+    @classmethod
+    def normalize_package_manager(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
 
 
 class ProjectResponse(ProjectBase):
@@ -368,6 +384,14 @@ class PackageBase(BaseModel):
     package_type: str = Field(default="prod", pattern="^(prod|dev|optional|peer|other)$")
     description: Optional[str] = None
 
+    @field_validator("name")
+    @classmethod
+    def validate_non_empty_name(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Package name cannot be empty")
+        return stripped
+
 
 class PackageCreate(PackageBase):
     """Model for creating a new project package."""
@@ -380,6 +404,16 @@ class PackageUpdate(BaseModel):
     version: Optional[str] = Field(None, max_length=100)
     package_type: Optional[str] = Field(None, pattern="^(prod|dev|optional|peer|other)$")
     description: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_non_empty_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Package name cannot be empty")
+        return stripped
 
 
 class PackageResponse(PackageBase):

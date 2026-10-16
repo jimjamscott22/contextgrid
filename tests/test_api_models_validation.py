@@ -214,6 +214,14 @@ class TestPackageModels:
         with pytest.raises(ValidationError):
             PackageCreate(name="")
 
+    def test_create_rejects_whitespace_only_name(self) -> None:
+        with pytest.raises(ValidationError):
+            PackageCreate(name="   ")
+
+    def test_update_rejects_whitespace_only_name(self) -> None:
+        with pytest.raises(ValidationError):
+            PackageUpdate(name="  \t  ")
+
     def test_update_all_optional(self) -> None:
         upd = PackageUpdate()
         assert upd.name is None

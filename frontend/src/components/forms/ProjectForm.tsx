@@ -71,7 +71,7 @@ export function ProjectForm({
       repo_url: values.repo_url || null,
       local_path: values.local_path || null,
       learning_goal: values.learning_goal || null,
-      package_manager: values.package_manager || null,
+      package_manager: values.package_manager?.trim() || null,
       project_type: values.project_type || null,
       scope_size: values.scope_size || null,
     };

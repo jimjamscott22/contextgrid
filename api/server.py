@@ -239,8 +239,17 @@ def update_project(project_id: int, project: ProjectUpdate):
         if not existing:
             raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
         
-        # Build update dict (only include non-None values)
-        updates = {k: v for k, v in project.dict().items() if v is not None}
+        # Build update dict from explicitly provided fields so nullable fields
+        # (such as package_manager) can be cleared with null/empty values while
+        # omitted fields and non-nullable columns remain protected.
+        non_nullable_fields = {"name", "status", "progress"}
+        updates = {
+            k: v
+            for k, v in project.model_dump(exclude_unset=True).items()
+            if v is not None or k not in non_nullable_fields
+        }
+        if "package_manager" in updates and isinstance(updates["package_manager"], str):
+            updates["package_manager"] = updates["package_manager"].strip() or None
         
         if updates:
             success = db.update_project(project_id, **updates)
@@ -901,9 +910,13 @@ def create_project_package(project_id: int, package: PackageCreate):
         if not project:
             raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
 
+        cleaned_name = package.name.strip()
+        if not cleaned_name:
+            raise HTTPException(status_code=422, detail="Package name cannot be empty")
+
         package_id = db.create_package(
             project_id=project_id,
-            name=package.name.strip(),
+            name=cleaned_name,
             version=package.version.strip() if package.version else None,
             package_type=package.package_type,
             description=package.description.strip() if package.description else None,
@@ -926,9 +939,19 @@ def update_project_package(package_id: int, package: PackageUpdate):
         if not existing:
             raise HTTPException(status_code=404, detail=f"Package {package_id} not found")
 
-        updates = {k: v for k, v in package.dict().items() if v is not None}
-        if "name" in updates and isinstance(updates["name"], str):
-            updates["name"] = updates["name"].strip()
+        raw_updates = package.model_dump(exclude_unset=True)
+        if "name" in raw_updates:
+            cleaned_name = (raw_updates["name"] or "").strip()
+            if not cleaned_name:
+                raise HTTPException(status_code=422, detail="Package name cannot be empty")
+            raw_updates["name"] = cleaned_name
+
+        non_nullable_pkg_fields = {"name", "package_type"}
+        updates = {
+            k: v
+            for k, v in raw_updates.items()
+            if v is not None or k not in non_nullable_pkg_fields
+        }
         if "version" in updates and isinstance(updates["version"], str):
             updates["version"] = updates["version"].strip() or None
         if "description" in updates and isinstance(updates["description"], str):
