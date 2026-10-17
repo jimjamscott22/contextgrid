@@ -30,6 +30,7 @@ from api.models import (
     ActivityDay, ActivityStreakResponse, ActivityHeatmapResponse,
     LinkCreate, LinkResponse, LinkListResponse,
     CommandCreate, CommandResponse, CommandListResponse,
+    PackageCreate, PackageUpdate, PackageResponse, PackageListResponse,
     ProjectTaskCreate, ProjectTaskResponse, ProjectTaskListResponse,
     TemplateCreate, TemplateUpdate, TemplateResponse, TemplateListResponse,
     AnalyticsChartItem, AnalyticsSummary, AnalyticsResponse,
@@ -218,6 +219,7 @@ def create_project(project: ProjectCreate):
             learning_goal=project.learning_goal,
             folder_structure=project.folder_structure,
             folder_structure_img_url=project.folder_structure_img_url,
+            package_manager=project.package_manager,
         )
         
         # Fetch and return the created project
@@ -237,8 +239,17 @@ def update_project(project_id: int, project: ProjectUpdate):
         if not existing:
             raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
         
-        # Build update dict (only include non-None values)
-        updates = {k: v for k, v in project.dict().items() if v is not None}
+        # Build update dict from explicitly provided fields so nullable fields
+        # (such as package_manager) can be cleared with null/empty values while
+        # omitted fields and non-nullable columns remain protected.
+        non_nullable_fields = {"name", "status", "progress"}
+        updates = {
+            k: v
+            for k, v in project.model_dump(exclude_unset=True).items()
+            if v is not None or k not in non_nullable_fields
+        }
+        if "package_manager" in updates and isinstance(updates["package_manager"], str):
+            updates["package_manager"] = updates["package_manager"].strip() or None
         
         if updates:
             success = db.update_project(project_id, **updates)
@@ -863,6 +874,109 @@ def delete_command(command_id: int):
         if not success:
             raise HTTPException(status_code=404, detail=f"Command {command_id} not found")
         return MessageResponse(message=f"Command {command_id} deleted successfully")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =========================
+# Project Package Endpoints
+# =========================
+
+@app.get("/api/projects/{project_id}/packages", response_model=PackageListResponse)
+def get_project_packages(project_id: int):
+    """Get all packages for a specific project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        packages = db.list_project_packages(project_id)
+        return PackageListResponse(packages=packages, total=len(packages))
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/projects/{project_id}/packages", response_model=PackageResponse, status_code=201)
+def create_project_package(project_id: int, package: PackageCreate):
+    """Add a package to a project."""
+    try:
+        project = db.get_project(project_id)
+        if not project:
+            raise HTTPException(status_code=404, detail=f"Project {project_id} not found")
+
+        cleaned_name = package.name.strip()
+        if not cleaned_name:
+            raise HTTPException(status_code=422, detail="Package name cannot be empty")
+
+        package_id = db.create_package(
+            project_id=project_id,
+            name=cleaned_name,
+            version=package.version.strip() if package.version else None,
+            package_type=package.package_type,
+            description=package.description.strip() if package.description else None,
+        )
+
+        created_package = db.get_package(package_id)
+        return created_package
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/packages/{package_id}", response_model=PackageResponse)
+def update_project_package(package_id: int, package: PackageUpdate):
+    """Update a project package by ID."""
+    try:
+        existing = db.get_package(package_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail=f"Package {package_id} not found")
+
+        raw_updates = package.model_dump(exclude_unset=True)
+        if "name" in raw_updates:
+            cleaned_name = (raw_updates["name"] or "").strip()
+            if not cleaned_name:
+                raise HTTPException(status_code=422, detail="Package name cannot be empty")
+            raw_updates["name"] = cleaned_name
+
+        non_nullable_pkg_fields = {"name", "package_type"}
+        updates = {
+            k: v
+            for k, v in raw_updates.items()
+            if v is not None or k not in non_nullable_pkg_fields
+        }
+        if "version" in updates and isinstance(updates["version"], str):
+            updates["version"] = updates["version"].strip() or None
+        if "description" in updates and isinstance(updates["description"], str):
+            updates["description"] = updates["description"].strip() or None
+
+        if updates:
+            db.update_package(package_id, **updates)
+
+        updated_package = db.get_package(package_id)
+        return updated_package
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/packages/{package_id}", response_model=MessageResponse)
+def delete_project_package(package_id: int):
+    """Delete a project package by ID."""
+    try:
+        success = db.delete_package(package_id)
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Package {package_id} not found")
+        return MessageResponse(message=f"Package {package_id} deleted successfully")
 
     except HTTPException:
         raise

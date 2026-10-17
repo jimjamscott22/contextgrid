@@ -70,6 +70,12 @@
                     <td>{{ project.stack }}</td>
                 </tr>
                 {% endif %}
+                {% if project.package_manager %}
+                <tr>
+                    <td class="label">Package Manager</td>
+                    <td><code>{{ project.package_manager }}</code></td>
+                </tr>
+                {% endif %}
                 {% if project.scope_size %}
                 <tr>
                     <td class="label">Scope</td>
@@ -328,6 +334,36 @@
                     <div class="project-inline-action-row">
                         <button type="button" class="btn btn-primary btn-compact" id="save-command-btn">Save</button>
                         <button type="button" class="btn btn-secondary btn-compact" id="cancel-command-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="packages-section">
+            <div class="section-header">
+                <h3>Packages{% if project.package_manager %} ({{ project.package_manager }}){% endif %}</h3>
+                <button type="button" class="btn btn-secondary btn-compact" id="add-package-btn">+ Add</button>
+            </div>
+
+            <div id="packages-list">
+                <div class="muted">Loading...</div>
+            </div>
+
+            <div id="package-add-form" class="project-add-form is-hidden">
+                <div class="form-group project-add-stack">
+                    <input type="text" id="package-name-input" class="form-control" placeholder="Package name (e.g. fastapi)">
+                    <input type="text" id="package-version-input" class="form-control" placeholder="Version (optional, e.g. ^18.3.0)">
+                    <select id="package-type-input" class="form-control">
+                        <option value="prod">Production (prod)</option>
+                        <option value="dev">Development (dev)</option>
+                        <option value="optional">Optional</option>
+                        <option value="peer">Peer</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <input type="text" id="package-desc-input" class="form-control" placeholder="Details / purpose (optional)">
+                    <div class="project-inline-action-row">
+                        <button type="button" class="btn btn-primary btn-compact" id="save-package-btn">Save</button>
+                        <button type="button" class="btn btn-secondary btn-compact" id="cancel-package-btn">Cancel</button>
                     </div>
                 </div>
             </div>
@@ -1260,6 +1296,134 @@
     });
 
     loadCommands();
+})();
+</script>
+
+<script>
+// ========================
+// Packages Management
+// ========================
+(function() {
+    const projectId = {{ project.id }};
+    const apiBase = '{{ api_base_url }}';
+
+    const packagesList = document.getElementById('packages-list');
+    const addPackageBtn = document.getElementById('add-package-btn');
+    const packageAddForm = document.getElementById('package-add-form');
+    const savePackageBtn = document.getElementById('save-package-btn');
+    const cancelPackageBtn = document.getElementById('cancel-package-btn');
+    const packageNameInput = document.getElementById('package-name-input');
+    const packageVersionInput = document.getElementById('package-version-input');
+    const packageTypeInput = document.getElementById('package-type-input');
+    const packageDescInput = document.getElementById('package-desc-input');
+
+    function setFormVisible(form, isVisible) {
+        form.classList.toggle('is-hidden', !isVisible);
+    }
+
+    function isFormVisible(form) {
+        return !form.classList.contains('is-hidden');
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    async function loadPackages() {
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/packages`);
+            if (!response.ok) throw new Error('Failed to fetch packages');
+            const data = await response.json();
+            renderPackages(data.packages);
+        } catch (err) {
+            packagesList.innerHTML = '<p class="muted">Failed to load packages</p>';
+        }
+    }
+
+    function renderPackages(packages) {
+        if (!packages || packages.length === 0) {
+            packagesList.innerHTML = '<p class="muted">No packages tracked yet</p>';
+            return;
+        }
+        let html = '<div class="commands-list-inner">';
+        packages.forEach(pkg => {
+            const versionBadge = pkg.version ? ` <code class="command-value">${escapeHtml(pkg.version)}</code>` : '';
+            const descLine = pkg.description ? `<div class="muted" style="font-size:0.8rem;">${escapeHtml(pkg.description)}</div>` : '';
+            html += `
+                <div class="command-item" data-id="${pkg.id}">
+                    <div class="command-info">
+                        <div>
+                            <span class="command-label">${escapeHtml(pkg.name)}</span>${versionBadge}
+                            <span class="badge" style="font-size:0.7rem; margin-left:0.25rem;">${escapeHtml(pkg.package_type)}</span>
+                        </div>
+                        ${descLine}
+                    </div>
+                    <div class="command-actions">
+                        <button type="button" class="package-delete-btn command-delete-btn" data-id="${pkg.id}" title="Remove package">×</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        packagesList.innerHTML = html;
+
+        packagesList.querySelectorAll('.package-delete-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const pkgId = btn.dataset.id;
+                if (confirm('Remove this package?')) {
+                    await fetch(`${apiBase}/api/packages/${pkgId}`, { method: 'DELETE' });
+                    loadPackages();
+                }
+            });
+        });
+    }
+
+    addPackageBtn.addEventListener('click', () => {
+        const shouldShow = !isFormVisible(packageAddForm);
+        setFormVisible(packageAddForm, shouldShow);
+        if (shouldShow) packageNameInput.focus();
+    });
+
+    cancelPackageBtn.addEventListener('click', () => {
+        setFormVisible(packageAddForm, false);
+        packageNameInput.value = '';
+        packageVersionInput.value = '';
+        packageTypeInput.value = 'prod';
+        packageDescInput.value = '';
+    });
+
+    savePackageBtn.addEventListener('click', async () => {
+        const name = packageNameInput.value.trim();
+        const version = packageVersionInput.value.trim() || null;
+        const package_type = packageTypeInput.value;
+        const description = packageDescInput.value.trim() || null;
+
+        if (!name) { alert('Please enter a package name.'); return; }
+
+        try {
+            const response = await fetch(`${apiBase}/api/projects/${projectId}/packages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, version, package_type, description })
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Failed to save package');
+            }
+            packageNameInput.value = '';
+            packageVersionInput.value = '';
+            packageTypeInput.value = 'prod';
+            packageDescInput.value = '';
+            setFormVisible(packageAddForm, false);
+            loadPackages();
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    });
+
+    loadPackages();
 })();
 </script>
 

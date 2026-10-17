@@ -28,6 +28,7 @@ async def create_project(
     progress: int = 0,
     folder_structure: Optional[str] = None,
     folder_structure_img_url: Optional[str] = None,
+    package_manager: Optional[str] = None,
 ) -> int:
     try:
         return await _client.create_project(
@@ -44,6 +45,7 @@ async def create_project(
             progress=progress,
             folder_structure=folder_structure,
             folder_structure_img_url=folder_structure_img_url,
+            package_manager=package_manager,
         )
     except APIError as e:
         _handle_api_error(e)
@@ -371,6 +373,50 @@ async def create_project_command(
 async def delete_command(command_id: int) -> bool:
     try:
         return await _client.delete_command(command_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+# =========================
+# Project Package Operations
+# =========================
+
+async def list_project_packages(project_id: int) -> List[Dict[str, Any]]:
+    try:
+        return await _client.list_project_packages(project_id)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def create_project_package(
+    project_id: int,
+    name: str,
+    version: Optional[str] = None,
+    package_type: str = "prod",
+    description: Optional[str] = None,
+) -> Dict[str, Any]:
+    try:
+        return await _client.create_project_package(
+            project_id,
+            name=name,
+            version=version,
+            package_type=package_type,
+            description=description,
+        )
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def update_project_package(package_id: int, **kwargs) -> Dict[str, Any]:
+    try:
+        return await _client.update_project_package(package_id, **kwargs)
+    except APIError as e:
+        _handle_api_error(e)
+
+
+async def delete_package(package_id: int) -> bool:
+    try:
+        return await _client.delete_package(package_id)
     except APIError as e:
         _handle_api_error(e)
 

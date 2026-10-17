@@ -58,6 +58,39 @@ export const LINK_TYPES: readonly LinkType[] = [
   "other",
 ];
 
+export const PACKAGE_TYPES: readonly PackageType[] = [
+  "prod",
+  "dev",
+  "optional",
+  "peer",
+  "other",
+];
+
+export const PACKAGE_MANAGERS: readonly string[] = [
+  "npm",
+  "pnpm",
+  "yarn",
+  "bun",
+  "uv",
+  "pip",
+  "poetry",
+  "cargo",
+  "go",
+  "composer",
+  "maven",
+  "gradle",
+  "dotnet",
+  "bundler",
+];
+
+export const PACKAGE_TYPE_LABELS: Record<PackageType, string> = {
+  prod: "Production",
+  dev: "Development",
+  optional: "Optional",
+  peer: "Peer",
+  other: "Other",
+};
+
 export const RELATIONSHIP_TYPES: readonly RelationshipType[] = [
   "related_to",
   "depends_on",
@@ -73,6 +106,8 @@ export type NoteType = "log" | "idea" | "blocker" | "reflection" | "future_idea"
 export type NoteStatus = "active" | "completed" | "archived";
 
 export type LinkType = "docs" | "deployment" | "design" | "board" | "repo" | "other";
+
+export type PackageType = "prod" | "dev" | "optional" | "peer" | "other";
 
 export type RelationshipType = "related_to" | "depends_on" | "part_of";
 
@@ -91,6 +126,7 @@ export interface Project {
   progress: number;
   folder_structure: string | null;
   folder_structure_img_url: string | null;
+  package_manager: string | null;
   created_at: string;
   last_worked_at: string | null;
   is_archived: number;
@@ -112,6 +148,7 @@ export interface ProjectInput {
   progress: number;
   folder_structure?: string | null;
   folder_structure_img_url?: string | null;
+  package_manager?: string | null;
 }
 
 export interface ProjectListResponse {
@@ -239,6 +276,28 @@ export interface CommandInput {
 
 export interface CommandListResponse {
   commands: Command[];
+  total: number;
+}
+
+export interface ProjectPackage {
+  id: number;
+  project_id: number;
+  name: string;
+  version: string | null;
+  package_type: PackageType;
+  description: string | null;
+  created_at: string;
+}
+
+export interface ProjectPackageInput {
+  name: string;
+  version?: string | null;
+  package_type?: PackageType;
+  description?: string | null;
+}
+
+export interface ProjectPackageListResponse {
+  packages: ProjectPackage[];
   total: number;
 }
 

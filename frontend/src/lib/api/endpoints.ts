@@ -18,6 +18,9 @@ import type {
   Project,
   ProjectInput,
   ProjectListResponse,
+  ProjectPackage,
+  ProjectPackageInput,
+  ProjectPackageListResponse,
   ProjectStatus,
   ProjectTask,
   ProjectTaskListResponse,
@@ -175,6 +178,24 @@ export const api = {
 
   deleteCommand: (id: number) =>
     request<MessageResponse>(`/api/commands/${id}`, { method: "DELETE" }),
+
+  listPackages: (projectId: number) =>
+    request<ProjectPackageListResponse>(`/api/projects/${projectId}/packages`),
+
+  createPackage: (projectId: number, data: ProjectPackageInput) =>
+    request<ProjectPackage>(`/api/projects/${projectId}/packages`, {
+      method: "POST",
+      body: data,
+    }),
+
+  updatePackage: (id: number, data: Partial<ProjectPackageInput>) =>
+    request<ProjectPackage>(`/api/packages/${id}`, {
+      method: "PUT",
+      body: data,
+    }),
+
+  deletePackage: (id: number) =>
+    request<MessageResponse>(`/api/packages/${id}`, { method: "DELETE" }),
 
   listProjectTasks: (projectId: number) =>
     request<ProjectTaskListResponse>(`/api/projects/${projectId}/tasks`),

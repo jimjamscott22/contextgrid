@@ -56,6 +56,7 @@ def create_project(
     local_path: Optional[str] = None,
     scope_size: Optional[str] = None,
     learning_goal: Optional[str] = None,
+    package_manager: Optional[str] = None,
 ) -> int:
     """
     Create a new project and return its ID.
@@ -72,7 +73,8 @@ def create_project(
                 repo_url=repo_url,
                 local_path=local_path,
                 scope_size=scope_size,
-                learning_goal=learning_goal
+                learning_goal=learning_goal,
+                package_manager=package_manager,
             )
         else:
             return _db_backend.create_project(
@@ -85,7 +87,8 @@ def create_project(
                 repo_url=repo_url,
                 local_path=local_path,
                 scope_size=scope_size,
-                learning_goal=learning_goal
+                learning_goal=learning_goal,
+                package_manager=package_manager,
             )
     except Exception as e:
         _handle_error(e)

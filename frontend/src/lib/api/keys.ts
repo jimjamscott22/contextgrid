@@ -9,6 +9,7 @@ export const qk = {
   relationships: (projectId: number) => ["relationships", projectId] as const,
   links: (projectId: number) => ["links", projectId] as const,
   commands: (projectId: number) => ["commands", projectId] as const,
+  packages: (projectId: number) => ["packages", projectId] as const,
   projectTasks: (projectId: number) => ["project-tasks", projectId] as const,
   templates: ["templates"] as const,
   screenshots: (projectId: number) => ["screenshots", projectId] as const,

@@ -39,6 +39,9 @@ describe("ProjectForm project type selector", () => {
     fireEvent.change(screen.getByLabelText("Type"), {
       target: { value: "desktop-app" },
     });
+    fireEvent.change(screen.getByLabelText("Package manager"), {
+      target: { value: "pnpm" },
+    });
     fireEvent.submit(screen.getByRole("button", { name: "Save" }).closest("form")!);
 
     await waitFor(() => {
@@ -46,6 +49,39 @@ describe("ProjectForm project type selector", () => {
         expect.objectContaining({
           name: "Portfolio",
           project_type: "desktop-app",
+          package_manager: "pnpm",
+        })
+      );
+    });
+  });
+
+  it("submits null package_manager when cleared in the edit dialog", async () => {
+    const onSubmit = vi.fn();
+    render(
+      <ProjectForm
+        defaultValues={{
+          name: "Portfolio",
+          status: "active",
+          package_manager: "pnpm",
+          progress: 50,
+        }}
+        onSubmit={onSubmit}
+      />
+    );
+
+    const pmInput = screen.getByLabelText("Package manager") as HTMLInputElement;
+    expect(pmInput.value).toBe("pnpm");
+
+    fireEvent.change(pmInput, {
+      target: { value: "   " },
+    });
+    fireEvent.submit(screen.getByRole("button", { name: "Save" }).closest("form")!);
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Portfolio",
+          package_manager: null,
         })
       );
     });

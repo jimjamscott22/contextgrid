@@ -22,6 +22,7 @@ const projectSchema = z.object({
   local_path: z.string().nullable().optional(),
   scope_size: z.enum(["tiny", "medium", "long-haul"]).nullable().optional(),
   learning_goal: z.string().nullable().optional(),
+  package_manager: z.string().nullable().optional(),
   progress: z.coerce.number().int().min(0).max(100),
 });
 
@@ -55,6 +56,7 @@ export function ProjectForm({
       local_path: "",
       scope_size: null,
       learning_goal: "",
+      package_manager: "",
       progress: 0,
       ...defaultValues,
     },
@@ -69,6 +71,7 @@ export function ProjectForm({
       repo_url: values.repo_url || null,
       local_path: values.local_path || null,
       learning_goal: values.learning_goal || null,
+      package_manager: values.package_manager?.trim() || null,
       project_type: values.project_type || null,
       scope_size: values.scope_size || null,
     };
@@ -123,6 +126,13 @@ export function ProjectForm({
         <Field label="Primary language">
           <Input {...form.register("primary_language")} placeholder="e.g. Python" />
         </Field>
+        <Field label="Package manager">
+          <Input
+            {...form.register("package_manager")}
+            placeholder="e.g. npm, pnpm, uv, cargo"
+          />
+        </Field>
+
         <Field label="Stack">
           <Input {...form.register("stack")} placeholder="e.g. FastAPI + React" />
         </Field>

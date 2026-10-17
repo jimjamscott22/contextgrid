@@ -39,11 +39,20 @@ class ProjectBase(BaseModel):
     progress: int = Field(default=0, ge=0, le=100)
     folder_structure: Optional[str] = Field(None, max_length=65535)
     folder_structure_img_url: Optional[str] = Field(None, max_length=2000)
+    package_manager: Optional[str] = Field(None, max_length=100)
 
     @field_validator("repo_url", "folder_structure_img_url")
     @classmethod
     def validate_http_urls(cls, v: Optional[str]) -> Optional[str]:
         return _validate_http_scheme(v)
+
+    @field_validator("package_manager")
+    @classmethod
+    def normalize_package_manager(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
 
 
 class ProjectCreate(ProjectBase):
@@ -66,11 +75,20 @@ class ProjectUpdate(BaseModel):
     progress: Optional[int] = Field(None, ge=0, le=100)
     folder_structure: Optional[str] = Field(None, max_length=65535)
     folder_structure_img_url: Optional[str] = Field(None, max_length=2000)
+    package_manager: Optional[str] = Field(None, max_length=100)
 
     @field_validator("repo_url", "folder_structure_img_url")
     @classmethod
     def validate_http_urls(cls, v: Optional[str]) -> Optional[str]:
         return _validate_http_scheme(v)
+
+    @field_validator("package_manager")
+    @classmethod
+    def normalize_package_manager(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
 
 
 class ProjectResponse(ProjectBase):
@@ -352,6 +370,65 @@ class CommandResponse(CommandBase):
 class CommandListResponse(BaseModel):
     """Response for listing project commands."""
     commands: list[CommandResponse]
+    total: int
+
+
+# =========================
+# Project Package Models
+# =========================
+
+class PackageBase(BaseModel):
+    """Base model for project package data."""
+    name: str = Field(..., min_length=1, max_length=255)
+    version: Optional[str] = Field(None, max_length=100)
+    package_type: str = Field(default="prod", pattern="^(prod|dev|optional|peer|other)$")
+    description: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_non_empty_name(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Package name cannot be empty")
+        return stripped
+
+
+class PackageCreate(PackageBase):
+    """Model for creating a new project package."""
+    pass
+
+
+class PackageUpdate(BaseModel):
+    """Model for updating a project package. All fields optional."""
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    version: Optional[str] = Field(None, max_length=100)
+    package_type: Optional[str] = Field(None, pattern="^(prod|dev|optional|peer|other)$")
+    description: Optional[str] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_non_empty_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("Package name cannot be empty")
+        return stripped
+
+
+class PackageResponse(PackageBase):
+    """Model for project package response."""
+    id: int
+    project_id: int
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class PackageListResponse(BaseModel):
+    """Response for listing project packages."""
+    packages: list[PackageResponse]
     total: int
 
 
