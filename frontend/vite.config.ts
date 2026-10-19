@@ -1,5 +1,6 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 import { visualizer } from "rollup-plugin-visualizer";
 /// <reference types="vitest" />
@@ -7,6 +8,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(),
     process.env.ANALYZE === "1" &&
       visualizer({
         filename: "dist/stats.html",
@@ -17,7 +19,7 @@ export default defineConfig({
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   server: {
