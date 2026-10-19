@@ -93,7 +93,7 @@ The server **refuses to start** when `API_HOST` is non-loopback and `API_TOKEN` 
 
 - [uv](https://docs.astral.sh/uv/) (manages Python 3.8+ and dependencies)
 - MySQL 8.0+ or MariaDB
-- Node.js + npm (only for the React SPA)
+- Node.js 24.15+ within Node 24, or another version supported by the frontend dependencies, plus npm (only for the React SPA)
 
 ### 1. Install dependencies
 
@@ -138,8 +138,15 @@ Interactive API docs: `http://localhost:8003/docs`
 **React SPA — development** (separate terminal; Vite proxies `/api/*` to `:8003`):
 
 ```bash
-cd frontend && npm install && npm run dev   # http://localhost:5173
+cd frontend && npm ci && npm run dev   # http://localhost:5173
 ```
+
+The SPA uses Tailwind CSS 4 through `@tailwindcss/vite`. Theme tokens,
+named theme palettes, the dark variant, and shared component styles live in
+`frontend/src/index.css`; there is no separate Tailwind or PostCSS config.
+Use `npm ci` after pulling dependency changes to install the committed lockfile.
+Run `npm run lint`, `npm test`, `npm run build`, and `npm audit` from `frontend/`
+when changing frontend dependencies or styling.
 
 **React SPA — production** (served by the API server at `http://localhost:8003`):
 
