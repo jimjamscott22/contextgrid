@@ -238,3 +238,6 @@ graphify-out/
 .graphify/needs_update
 .graphify/store-state.json
 /frontend/.claude/skills/prompt-cache-control
+
+# Graphify generated artifacts
+.graphify/
