@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { X } from "lucide-react";
-import { api } from "@/lib/api/endpoints";
-import { qk } from "@/lib/api/keys";
+import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { useSidebarProjects } from "@/hooks/useSidebarProjects";
+import { LanguageBadge } from "@/components/project/LanguageBadge";
+import { projectLanguage } from "@/lib/projectLanguages";
+import type { Project } from "@/lib/api/types";
 import { Input, Select } from "@/components/ui/Input";
 import { StatusBadge } from "@/components/ui/Badge";
 import { cn } from "@/lib/cn";
@@ -29,8 +30,24 @@ type SortKey =
   | "name_asc"
   | "name_desc";
 
+type GroupBy = "none" | "custom" | "language";
+
+interface ProjectGroup {
+  key: string;
+  name: string;
+  projects: Project[];
+}
+
 export function Sidebar({ open, onClose }: SidebarProps) {
   const [search, setSearch] = useState("");
+  const [groupBy, setGroupBy] = useState<GroupBy>(() => {
+    try {
+      const value = localStorage.getItem("cg-sidebar-group-by");
+      if (value === "custom" || value === "language") return value;
+    } catch { /* Storage may be unavailable. */ }
+    return "none";
+  });
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<SortKey>(() => {
     try {
       const stored = localStorage.getItem("cg-sidebar-sort");
@@ -42,11 +59,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     return "recent";
   });
 
-  const { data } = useQuery({
-    queryKey: qk.projects({ all: true }),
-    queryFn: () =>
-      api.listProjects({ include_archived: true, limit: 50 }),
-  });
+  const { data, isPending, isError } = useSidebarProjects();
 
   const projects = useMemo(() => {
     const list = data?.projects ?? [];
@@ -68,11 +81,49 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           return (a.last_worked_at || "").localeCompare(b.last_worked_at || "");
         case "recent":
         default:
-          return (b.last_worked_at || "").localeCompare(a.last_worked_at || "");
+          return (b.last_worked_at || "").localeCompare(a.last_worked_at || "")
+            || (b.created_at || "").localeCompare(a.created_at || "");
       }
     });
     return sorted;
   }, [data, search, sort]);
+
+  const groups = useMemo(() => {
+    if (groupBy === "none") return [{ key: "all", name: "", projects }];
+    const grouped = new Map<string, ProjectGroup>();
+    for (const project of projects) {
+      const name = groupBy === "custom"
+        ? project.project_group?.trim()
+        : projectLanguage(project.primary_language)?.name;
+      // Use a separate key for missing values, even if a real group has that name.
+      const key = name ? `named:${name.toLowerCase()}` : "missing";
+      let group = grouped.get(key);
+      if (!group) {
+        group = { key, name: name || (groupBy === "custom" ? "Ungrouped" : "Unspecified"), projects: [] };
+        grouped.set(key, group);
+      }
+      group.projects.push(project);
+    }
+    return Array.from(grouped.values()).sort((a, b) =>
+      a.key === "missing" ? 1 : b.key === "missing" ? -1 : a.name.localeCompare(b.name)
+    );
+  }, [projects, groupBy]);
+
+  const handleGroupBy = (value: GroupBy) => {
+    setGroupBy(value);
+    try {
+      localStorage.setItem("cg-sidebar-group-by", value);
+    } catch { /* The selection still works without storage. */ }
+  };
+
+  const toggleGroup = (key: string) => {
+    setCollapsed((previous) => {
+      const next = new Set(previous);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   const handleSort = (value: SortKey) => {
     setSort(value);
@@ -142,6 +193,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="space-y-2 border-b border-border p-3">
           <Input
             type="search"
+            aria-label="Search projects"
             placeholder="Search projects..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -164,25 +216,70 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               <option value="name_desc">Name (Z-A)</option>
             </Select>
           </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="cg-sidebar-group-by" className="shrink-0 text-xs text-fg-soft">Group by</label>
+            <Select
+              id="cg-sidebar-group-by"
+              value={groupBy}
+              onChange={(e) => handleGroupBy(e.target.value as GroupBy)}
+              className="h-8 text-xs"
+            >
+              <option value="none">None</option>
+              <option value="custom">Custom group</option>
+              <option value="language">Language</option>
+            </Select>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">
-          {projects.length === 0 && (
+          {isPending && <p className="px-3 py-4 text-sm text-fg-soft">Loading projects...</p>}
+          {isError && <p role="alert" className="px-3 py-4 text-sm text-fg-soft">Could not load projects.</p>}
+          {!isPending && !isError && projects.length === 0 && (
             <p className="px-3 py-4 text-sm text-fg-soft">No projects found</p>
           )}
-          {projects.map((p) => (
-            <Link
-              key={p.id}
-              to={`/projects/${p.id}`}
-              onClick={() => {
-                if (window.innerWidth < 1024) onClose();
-              }}
-              className="group flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm text-fg no-underline hover:bg-surface-alt hover:no-underline"
-            >
-              <span className="truncate">{p.name}</span>
-              <StatusBadge status={p.status} />
-            </Link>
-          ))}
+          {groups.map((group, index) => {
+            const key = `${groupBy}:${group.key}`;
+            // Search reveals matching projects even in collapsed sections.
+            const expanded = Boolean(search) || !collapsed.has(key);
+            const panelId = `cg-sidebar-group-${index}`;
+            return (
+              <section key={key}>
+                {groupBy !== "none" && (
+                  <button
+                    type="button"
+                    aria-label={`${group.name} (${group.projects.length} projects)`}
+                    aria-expanded={expanded}
+                    aria-controls={panelId}
+                    onClick={() => toggleGroup(key)}
+                    disabled={Boolean(search)}
+                    className="flex w-full items-center gap-1 rounded-md px-2 py-2 text-xs font-semibold text-fg-soft hover:bg-surface-alt"
+                  >
+                    {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    <span className="min-w-0 flex-1 truncate text-left" title={group.name}>{group.name}</span>
+                    <span>{group.projects.length}</span>
+                  </button>
+                )}
+                <div id={panelId} hidden={groupBy !== "none" && !expanded}>
+                  {group.projects.map((p) => (
+                    <Link
+                      key={p.id}
+                      to={`/projects/${p.id}`}
+                      onClick={() => {
+                        if (window.innerWidth < 1024) onClose();
+                      }}
+                      className="group flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm text-fg no-underline hover:bg-surface-alt hover:no-underline"
+                    >
+                      <span className="min-w-0 flex-1 space-y-1">
+                        <span className="block truncate" title={p.name}>{p.name}</span>
+                        <StatusBadge status={p.status} />
+                      </span>
+                      <LanguageBadge language={p.primary_language} />
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       </aside>
     </>

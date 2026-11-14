@@ -58,7 +58,8 @@ class DatabaseBackend(ABC):
                       stack: Optional[str] = None, repo_url: Optional[str] = None,
                       local_path: Optional[str] = None, scope_size: Optional[str] = None,
                       learning_goal: Optional[str] = None,
-                      package_manager: Optional[str] = None) -> int:
+                      package_manager: Optional[str] = None,
+                      project_group: Optional[str] = None) -> int:
         """Create a new project and return its ID."""
         pass
     
@@ -241,7 +242,8 @@ class MySQLBackend(DatabaseBackend):
                       stack: Optional[str] = None, repo_url: Optional[str] = None,
                       local_path: Optional[str] = None, scope_size: Optional[str] = None,
                       learning_goal: Optional[str] = None,
-                      package_manager: Optional[str] = None) -> int:
+                      package_manager: Optional[str] = None,
+                      project_group: Optional[str] = None) -> int:
         """Create a new project and return its ID."""
         with self._get_cursor() as cursor:
             cursor.execute(
@@ -249,13 +251,13 @@ class MySQLBackend(DatabaseBackend):
                 INSERT INTO projects (
                     name, description, status, project_type,
                     primary_language, stack, repo_url, local_path,
-                    scope_size, learning_goal, package_manager, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    scope_size, learning_goal, package_manager, project_group, created_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     name, description, status, project_type,
                     primary_language, stack, repo_url, local_path,
-                    scope_size, learning_goal, package_manager, _datetime_for_mysql()
+                    scope_size, learning_goal, package_manager, project_group, _datetime_for_mysql()
                 )
             )
             return cursor.lastrowid
@@ -360,7 +362,7 @@ class MySQLBackend(DatabaseBackend):
         valid_fields = {
             "name", "description", "status", "project_type",
             "primary_language", "stack", "repo_url", "local_path",
-            "scope_size", "learning_goal", "package_manager", "is_archived"
+            "scope_size", "learning_goal", "package_manager", "project_group", "is_archived"
         }
         
         updates = {k: v for k, v in kwargs.items() if k in valid_fields}
