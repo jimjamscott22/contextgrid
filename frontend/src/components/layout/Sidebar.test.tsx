@@ -34,6 +34,29 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("sidebar grouping", () => {
+  it.each([null, "2026-11-01T12:00:00"])(
+    "keeps newer projects first when Recent activity is tied at %s",
+    async (last_worked_at) => {
+      const tiedProjects = [
+        { ...projects[0], created_at: "2026-01-01T12:00:00", last_worked_at },
+        { ...projects[1], created_at: "2026-10-01T12:00:00", last_worked_at },
+        {
+          ...projects[2],
+          created_at: "2025-01-01T12:00:00",
+          last_worked_at: "2026-11-02T12:00:00",
+        },
+      ];
+      vi.mocked(api.listProjects).mockResolvedValue({ projects: tiedProjects, total: 3 });
+      mount();
+      await screen.findByText("Zebra");
+
+      const links = screen.getAllByRole("link")
+        .map((link) => link.getAttribute("href"))
+        .filter((href) => href?.startsWith("/projects/"));
+      expect(links).toEqual(["/projects/3", "/projects/2", "/projects/1"]);
+    },
+  );
+
   it("groups, sorts, collapses, and reveals search matches", async () => {
     mount();
     await screen.findByText("Zebra");

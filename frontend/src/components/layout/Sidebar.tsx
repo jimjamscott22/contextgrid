@@ -81,7 +81,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           return (a.last_worked_at || "").localeCompare(b.last_worked_at || "");
         case "recent":
         default:
-          return (b.last_worked_at || "").localeCompare(a.last_worked_at || "");
+          return (b.last_worked_at || "").localeCompare(a.last_worked_at || "")
+            || (b.created_at || "").localeCompare(a.created_at || "");
       }
     });
     return sorted;
