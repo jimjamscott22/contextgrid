@@ -51,6 +51,21 @@ Check if the API server and database are healthy.
 
 ## Projects
 
+Projects include an optional `project_group` string (up to 100 characters),
+used by the React sidebar's **Group by → Custom group** view. Set it when
+creating or updating a project, for example `"project_group": "Work"`.
+Names are trimmed. Send `null` or a blank string to remove an assignment;
+omitting the field during an update preserves the current group.
+
+The project form suggests existing group names and accepts new ones. Groups
+exist while assigned to projects. The sidebar also supports grouping by primary
+language, remembers its grouping mode per browser, and shows Shields.io language
+badges with text fallbacks. Search reveals matches inside collapsed sections.
+
+The `project_group` column is added by the normal schema initialization on API
+startup (or `uv run python scripts/init_database.py`). Existing projects remain
+ungrouped until assigned.
+
 ### List Projects
 
 #### `GET /api/projects`

@@ -220,6 +220,7 @@ def create_project(project: ProjectCreate):
             folder_structure=project.folder_structure,
             folder_structure_img_url=project.folder_structure_img_url,
             package_manager=project.package_manager,
+            project_group=project.project_group,
         )
         
         # Fetch and return the created project

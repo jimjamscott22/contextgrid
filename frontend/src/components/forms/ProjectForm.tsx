@@ -1,4 +1,6 @@
+import { useId } from "react";
 import { useForm } from "react-hook-form";
+import { useSidebarProjects } from "@/hooks/useSidebarProjects";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -17,6 +19,7 @@ const projectSchema = z.object({
   status: z.enum(["idea", "active", "paused", "archived"]),
   project_type: z.enum(PROJECT_TYPES).nullable().optional(),
   primary_language: z.string().nullable().optional(),
+  project_group: z.string().trim().max(100).nullable().optional(),
   stack: z.string().nullable().optional(),
   repo_url: z.string().nullable().optional(),
   local_path: z.string().nullable().optional(),
@@ -43,6 +46,11 @@ export function ProjectForm({
   submitLabel = "Save",
   onCancel,
 }: ProjectFormProps) {
+  const groupListId = useId();
+  const { data } = useSidebarProjects();
+  const groupNames = Array.from(new Set(
+    (data?.projects ?? []).map((p) => p.project_group?.trim()).filter((g): g is string => Boolean(g))
+  )).sort((a, b) => a.localeCompare(b));
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -51,6 +59,7 @@ export function ProjectForm({
       status: "idea",
       project_type: null,
       primary_language: "",
+      project_group: "",
       stack: "",
       repo_url: "",
       local_path: "",
@@ -67,6 +76,7 @@ export function ProjectForm({
       ...values,
       description: values.description || null,
       primary_language: values.primary_language || null,
+      project_group: values.project_group?.trim() || null,
       stack: values.stack || null,
       repo_url: values.repo_url || null,
       local_path: values.local_path || null,
@@ -125,6 +135,12 @@ export function ProjectForm({
 
         <Field label="Primary language">
           <Input {...form.register("primary_language")} placeholder="e.g. Python" />
+        </Field>
+        <Field label="Group" error={form.formState.errors.project_group?.message}>
+          <Input {...form.register("project_group")} list={groupListId} maxLength={100} placeholder="e.g. Work, Learning, Personal" />
+          <datalist id={groupListId}>
+            {groupNames.map((name) => <option key={name} value={name} />)}
+          </datalist>
         </Field>
         <Field label="Package manager">
           <Input

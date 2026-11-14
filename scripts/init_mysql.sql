@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS projects (
     project_type VARCHAR(50),                     -- web-app, cli, documentation, college, desktop-app, pwa, llm-integrated, website
     
     primary_language VARCHAR(100),                -- Python, Java, JS, etc
+    project_group VARCHAR(100),                   -- optional sidebar group
     stack TEXT,                                    -- FastAPI + SQLite, React, etc
     
     repo_url VARCHAR(500),
@@ -226,6 +227,7 @@ ALTER TABLE project_notes ADD COLUMN task_status VARCHAR(20) NOT NULL DEFAULT 'a
 ALTER TABLE projects ADD COLUMN folder_structure TEXT;
 ALTER TABLE projects ADD COLUMN folder_structure_img_url VARCHAR(2000);
 ALTER TABLE projects ADD COLUMN package_manager VARCHAR(100);
+ALTER TABLE projects ADD COLUMN project_group VARCHAR(100);
 
 UPDATE projects
 SET project_type = CASE project_type

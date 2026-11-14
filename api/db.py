@@ -129,6 +129,7 @@ def create_project(
     folder_structure: Optional[str] = None,
     folder_structure_img_url: Optional[str] = None,
     package_manager: Optional[str] = None,
+    project_group: Optional[str] = None,
 ) -> int:
     """
     Create a new project.
@@ -143,15 +144,15 @@ def create_project(
                 name, description, status, project_type,
                 primary_language, stack, repo_url, local_path,
                 scope_size, learning_goal, progress, created_at,
-                folder_structure, folder_structure_img_url, package_manager
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                folder_structure, folder_structure_img_url, package_manager, project_group
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 name, description, status, project_type,
                 primary_language, stack, repo_url, local_path,
                 scope_size, learning_goal, max(0, min(100, progress)),
                 datetime.utcnow(),
-                folder_structure, folder_structure_img_url, package_manager
+                folder_structure, folder_structure_img_url, package_manager, project_group
             )
         )
         return cursor.lastrowid
@@ -334,7 +335,7 @@ def update_project(project_id: int, **kwargs) -> bool:
         "name", "description", "status", "project_type",
         "primary_language", "stack", "repo_url", "local_path",
         "scope_size", "learning_goal", "is_archived", "progress",
-        "folder_structure", "folder_structure_img_url", "package_manager"
+        "folder_structure", "folder_structure_img_url", "package_manager", "project_group"
     }
     
     updates = {k: v for k, v in kwargs.items() if k in valid_fields}

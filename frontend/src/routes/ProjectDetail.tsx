@@ -263,6 +263,7 @@ export default function ProjectDetail() {
             ...project,
             description: project.description ?? "",
             primary_language: project.primary_language ?? "",
+            project_group: project.project_group ?? "",
             stack: project.stack ?? "",
             repo_url: project.repo_url ?? "",
             local_path: project.local_path ?? "",

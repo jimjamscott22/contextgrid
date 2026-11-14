@@ -118,6 +118,7 @@ export interface Project {
   status: ProjectStatus;
   project_type: ProjectType | null;
   primary_language: string | null;
+  project_group?: string | null;
   stack: string | null;
   repo_url: string | null;
   local_path: string | null;
@@ -140,6 +141,7 @@ export interface ProjectInput {
   status: ProjectStatus;
   project_type?: ProjectType | null;
   primary_language?: string | null;
+  project_group?: string | null;
   stack?: string | null;
   repo_url?: string | null;
   local_path?: string | null;

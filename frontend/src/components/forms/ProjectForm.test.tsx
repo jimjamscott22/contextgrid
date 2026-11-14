@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ProjectForm } from "@/components/forms/ProjectForm";
 
+vi.mock("@/hooks/useSidebarProjects", () => ({
+  useSidebarProjects: () => ({ data: { projects: [{ project_group: "Work" }, { project_group: "Learning" }] } }),
+}));
+
 const EXPECTED_OPTIONS = [
   ["", "—"],
   ["web-app", "Web App"],
@@ -85,5 +89,23 @@ describe("ProjectForm project type selector", () => {
         })
       );
     });
+  });
+
+  it("suggests existing groups and submits a trimmed custom group", async () => {
+    const onSubmit = vi.fn();
+    render(<ProjectForm defaultValues={{ name: "Demo" }} onSubmit={onSubmit} />);
+    const input = screen.getByLabelText("Group") as HTMLInputElement;
+    expect(document.querySelector('datalist option[value="Work"]')).not.toBeNull();
+    fireEvent.change(input, { target: { value: " Personal " } });
+    fireEvent.submit(screen.getByRole("button", { name: "Save" }).closest("form")!);
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ project_group: "Personal" })));
+  });
+
+  it("clears an existing group with a blank value", async () => {
+    const onSubmit = vi.fn();
+    render(<ProjectForm defaultValues={{ name: "Demo", project_group: "Work" }} onSubmit={onSubmit} />);
+    fireEvent.change(screen.getByLabelText("Group"), { target: { value: "   " } });
+    fireEvent.submit(screen.getByRole("button", { name: "Save" }).closest("form")!);
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ project_group: null })));
   });
 });

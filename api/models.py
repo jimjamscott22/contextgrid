@@ -31,6 +31,7 @@ class ProjectBase(BaseModel):
     status: str = Field(default="idea", pattern="^(idea|active|paused|archived)$")
     project_type: Optional[str] = Field(None, pattern=PROJECT_TYPE_PATTERN)
     primary_language: Optional[str] = None
+    project_group: Optional[str] = Field(None, max_length=100)
     stack: Optional[str] = None
     repo_url: Optional[str] = None
     local_path: Optional[str] = None
@@ -46,7 +47,7 @@ class ProjectBase(BaseModel):
     def validate_http_urls(cls, v: Optional[str]) -> Optional[str]:
         return _validate_http_scheme(v)
 
-    @field_validator("package_manager")
+    @field_validator("package_manager", "project_group")
     @classmethod
     def normalize_package_manager(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
@@ -67,6 +68,7 @@ class ProjectUpdate(BaseModel):
     status: Optional[str] = Field(None, pattern="^(idea|active|paused|archived)$")
     project_type: Optional[str] = Field(None, pattern=PROJECT_TYPE_PATTERN)
     primary_language: Optional[str] = None
+    project_group: Optional[str] = Field(None, max_length=100)
     stack: Optional[str] = None
     repo_url: Optional[str] = None
     local_path: Optional[str] = None
@@ -82,7 +84,7 @@ class ProjectUpdate(BaseModel):
     def validate_http_urls(cls, v: Optional[str]) -> Optional[str]:
         return _validate_http_scheme(v)
 
-    @field_validator("package_manager")
+    @field_validator("package_manager", "project_group")
     @classmethod
     def normalize_package_manager(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
